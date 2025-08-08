@@ -22,6 +22,13 @@ Vue.component('question', {
         };
     },
 
+    mounted() {
+        window.addEventListener('tct:autosaved', this.onAutosaved);
+    },
+    beforeDestroy() {
+        window.removeEventListener('tct:autosaved', this.onAutosaved);
+    },
+
     template: `
     <div class="mx-auto p-4">
         <!-- Header with actions -->
@@ -265,13 +272,8 @@ Vue.component('question', {
             this.savedMessage = 'Saved just now';
         },
         quickAutosaveIfEnabled() {
-            // use debounced autosave to avoid blocking typing
             if (localStorage.getItem("autosaveEnabled") === "true") {
-                if (typeof window.requestAutosaveDebounced === 'function') {
-                    window.requestAutosaveDebounced();
-                } else if (typeof saveAutosave === 'function') {
-                    saveAutosave();
-                }
+                window.requestAutosaveDebounced?.();
                 this.savedMessage = 'Saving...';
             }
         },
