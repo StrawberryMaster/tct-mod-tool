@@ -15,7 +15,6 @@ Vue.component('question', {
 
     data() {
         return {
-            temp_answers: [],
             activeAnswer: null,
             activeTab: 'feedback',
             savedMessage: 'Saved',
@@ -547,12 +546,11 @@ Vue.component('question', {
 
     computed: {
         answers: function() {
-            return this.temp_answers.concat(Vue.prototype.$TCT.getAnswersForQuestion(this.pk));
+            return Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
         },
         
         description: function () {
-            this.temp_answers;
-            return Vue.prototype.$TCT.questions.get(this.pk).fields.description;
+            return Vue.prototype.$TCT.questions.get(this.pk)?.fields.description;
         },
 
         priority: function () {
