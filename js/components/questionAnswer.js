@@ -18,14 +18,42 @@ Vue.component('question', {
             activeAnswer: null,
             activeTab: 'feedback',
             savedMessage: 'Saved',
+            localDescription: ''
         };
     },
 
     mounted() {
         window.addEventListener('tct:autosaved', this.onAutosaved);
+        this.localDescription = this.description || '';
     },
     beforeDestroy() {
         window.removeEventListener('tct:autosaved', this.onAutosaved);
+    },
+
+    watch: {
+        // if user switches question, refresh local buffer
+        pk() {
+            this.localDescription = this.description || '';
+        },
+        // if store changes from elsewhere (clone, delete, etc.), keep local buffer in sync
+        description(newVal) {
+            if (newVal !== this.localDescription) {
+                this.localDescription = newVal || '';
+            }
+        },
+        // push edits into store and debounce autosave so typing is smooth
+        localDescription(newVal) {
+            const q = Vue.prototype.$TCT.questions.get(this.pk);
+            if (q) {
+                q.fields.description = newVal;
+                this.markDirty();
+                // debounce autosave more aggressively while typing to avoid UI stalls
+                if (localStorage.getItem("autosaveEnabled") === "true") {
+                    window.requestAutosaveDebounced?.(1200);
+                    this.savedMessage = 'Saving...';
+                }
+            }
+        }
     },
 
     template: `
@@ -72,9 +100,7 @@ Vue.component('question', {
                 <textarea
                     :key="'question-desc-' + pk"
                     autocomplete="off"
-                    @input="onQuestionDescriptionInput"
-                    :value="description"
-                    name="question_description"
+                    v-model="localDescription"
                     rows="4" 
                     class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
             </div>
@@ -467,15 +493,6 @@ Vue.component('question', {
 
         onInputUpdatePicker: function(evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
-            // const temp = Vue.prototype.$globalData.filename;
-            // Vue.prototype.$globalData.filename = "";
-            // Vue.prototype.$globalData.filename = temp;
-            this.markDirty();
-            this.quickAutosaveIfEnabled();
-        },
-
-        onQuestionDescriptionInput(evt) {
-            Vue.prototype.$TCT.questions.get(this.pk).fields.description = evt.target.value;
             // const temp = Vue.prototype.$globalData.filename;
             // Vue.prototype.$globalData.filename = "";
             // Vue.prototype.$globalData.filename = temp;
