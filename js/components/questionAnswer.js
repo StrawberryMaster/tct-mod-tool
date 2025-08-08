@@ -261,11 +261,18 @@ Vue.component('question', {
         markDirty() {
             this.savedMessage = 'Unsaved changes';
         },
+        onAutosaved() {
+            this.savedMessage = 'Saved just now';
+        },
         quickAutosaveIfEnabled() {
-            // read source of truth from localStorage to avoid scope issues
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') {
-                saveAutosave();
-                this.savedMessage = 'Saved just now';
+            // use debounced autosave to avoid blocking typing
+            if (localStorage.getItem("autosaveEnabled") === "true") {
+                if (typeof window.requestAutosaveDebounced === 'function') {
+                    window.requestAutosaveDebounced();
+                } else if (typeof saveAutosave === 'function') {
+                    saveAutosave();
+                }
+                this.savedMessage = 'Saving...';
             }
         },
 
@@ -495,7 +502,9 @@ Vue.component('question', {
         },
 
         saveQuestion() {
-            if (typeof saveAutosave === 'function') {
+            if (typeof window.requestAutosaveDebounced === 'function') {
+                window.requestAutosaveDebounced(0);
+            } else if (typeof saveAutosave === 'function') {
                 saveAutosave();
             }
             this.savedMessage = 'Saved just now';
@@ -641,7 +650,7 @@ Vue.component('answer', {
             }
             this.feedbacks.push(feedback)
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addGlobalScore: function() {
@@ -658,7 +667,7 @@ Vue.component('answer', {
             }
             this.globalScores.push(x)
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addIssueScore: function() {
@@ -675,7 +684,7 @@ Vue.component('answer', {
             }
             this.issueScores.push(x)
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addStateScore: function() {
@@ -693,7 +702,7 @@ Vue.component('answer', {
             }
             this.stateScores.push(x)
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteAnswer: function() {
@@ -703,25 +712,25 @@ Vue.component('answer', {
         deleteFeedback: function(pk) {
             this.feedbacks = this.feedbacks.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_feedback[pk];
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteGlobalScore: function(pk) {
             this.globalScores = this.globalScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_global[pk];
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteIssueScore: function(pk) {
             this.issueScores = this.issueScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_issue[pk];
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteStateScore: function(pk) {
             this.stateScores = this.stateScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_state[pk];
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         onInput: function(evt) {
@@ -731,7 +740,7 @@ Vue.component('answer', {
             }
 
             Vue.prototype.$TCT.answers[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
@@ -786,7 +795,7 @@ Vue.component('answer-feedback-card', {
             }
 
             Vue.prototype.$TCT.answer_feedback[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
@@ -864,7 +873,7 @@ Vue.component('global-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
@@ -956,7 +965,7 @@ Vue.component('issue-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
@@ -1060,7 +1069,7 @@ Vue.component('state-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
@@ -1447,7 +1456,7 @@ Vue.component('integrated-state-effect-visualizer', {
 
             this.effectListVersion++;
             // autosave after applying changes
-            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         updateOrCreateStateEffect(statePk, value) {

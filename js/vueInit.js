@@ -9,6 +9,18 @@ window.autosaveEnabled = autosaveEnabled;
 // optionally expose the function too (function declarations are global, but this is explicit)
 window.saveAutosave = window.saveAutosave || saveAutosave;
 
+// Debounced autosave helper exposed globally
+let _autosaveDebounceTimer = null;
+function requestAutosaveDebounced(delay = 600) {
+	// only queue if autosave is enabled
+	if (localStorage.getItem("autosaveEnabled") !== "true") return;
+	clearTimeout(_autosaveDebounceTimer);
+	_autosaveDebounceTimer = setTimeout(() => {
+		try { saveAutosave(); } catch (e) { console.error(e); }
+	}, delay);
+}
+window.requestAutosaveDebounced = requestAutosaveDebounced;
+
 if(autosaveEnabled) {
     startAutosave();
 }
@@ -34,6 +46,12 @@ function startAutosave() {
 function saveAutosave() {
     let code2 = Vue.prototype.$TCT.exportCode2();
     localStorage.setItem("autosave", code2);
+    // notify listeners autosave finished
+    try {
+        window.dispatchEvent(new CustomEvent('tct:autosaved'));
+    } catch (e) {
+        // no-op
+    }
 }
 
 function firstNonNull(arr) {
