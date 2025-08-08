@@ -27,7 +27,8 @@ Vue.component('question', {
         <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow">
             <h1 class="font-bold text-xl">Question #{{this.pk}}</h1>
             <div class="flex space-x-2">
-                <button class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center">
+                <button class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center"
+                        @click="saveQuestion">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
@@ -349,8 +350,10 @@ Vue.component('question', {
             });
         },
 
-        deleteAnswer: function(pk) {
-            if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
+        deleteAnswer: function(pk, suppressConfirm = false) {
+            if (!suppressConfirm) {
+                if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
+            }
 
             let referencedFeedbacks = Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
             for(let i = 0; i < referencedFeedbacks.length; i++) {
@@ -435,16 +438,23 @@ Vue.component('question', {
             if (!confirm(`Are you sure you want to delete question #${this.pk}?`)) return;
             
             let referencedAnswers = Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
-            for(let i = 0; i < referencedAnswers.length; i++) {
-                this.deleteAnswer(referencedAnswers[i].pk);
+            for (let i = 0; i < referencedAnswers.length; i++) {
+                this.deleteAnswer(referencedAnswers[i].pk, true);
             }
 
             Vue.prototype.$TCT.questions.delete(this.pk);
-            Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0].pk;
+            Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
 
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
+        },
+
+        saveQuestion() {
+            const temp = Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.filename = "";
+            Vue.prototype.$globalData.filename = temp;
+            alert("Question saved!");
         },
 
         getFeedbackForAnswer(pk) {

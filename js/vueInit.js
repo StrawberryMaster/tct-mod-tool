@@ -45,7 +45,6 @@ async function loadData(dataName, isFirstLoad) {
     } else {
         raw = autosave;
     }
-    
 
     if(raw == null) {
         alert(`Loaded file ./public/${dataName} was null. Not loading.`)
@@ -56,26 +55,32 @@ async function loadData(dataName, isFirstLoad) {
 
     let isNew = true;
 
+    let firstQuestion = Array.from(Vue.prototype.$TCT.questions.values())[0];
+    let firstState = Object.values(Vue.prototype.$TCT.states)[0];
+    let firstIssue = Object.values(Vue.prototype.$TCT.issues)[0];
+    let firstCandidateArr = getListOfCandidates();
+    let firstCandidate = firstCandidateArr.length > 0 ? firstCandidateArr[0][0] : null;
+
     if(Vue.prototype.$globalData == null) {
         Vue.prototype.$globalData = Vue.observable({
             mode: mode,
-            question: firstNonNull(Array.from(Vue.prototype.$TCT.questions.values())).pk,
-            state: firstNonNull(Object.values(Vue.prototype.$TCT.states)).pk,
-            issue: firstNonNull(Object.values(Vue.prototype.$TCT.issues)).pk,
-            candidate: firstNonNull(getListOfCandidates())[0],
+            question: firstQuestion ? firstQuestion.pk : null,
+            state: firstState ? firstState.pk : null,
+            issue: firstIssue ? firstIssue.pk : null,
+            candidate: firstCandidate,
             filename: "default"
         });
     }
     else {
         isNew = false;
-        Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0].pk;
-        Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0].pk;
-        Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0].pk;
-        Vue.prototype.$globalData.candidate = getListOfCandidates()[0][0];
+        Vue.prototype.$globalData.question = firstQuestion ? firstQuestion.pk : null;
+        Vue.prototype.$globalData.state = firstState ? firstState.pk : null;
+        Vue.prototype.$globalData.issue = firstIssue ? firstIssue.pk : null;
+        Vue.prototype.$globalData.candidate = firstCandidate;
         Vue.prototype.$globalData.filename = dataName;
     }
 
-    console.log("Loaded data: ", data);
+    console.log("Loaded data: ", raw);
     console.log("Mode is: ", Vue.prototype.$globalData.mode)
 
     if(isNew) {
