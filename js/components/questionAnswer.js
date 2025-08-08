@@ -17,7 +17,8 @@ Vue.component('question', {
         return {
             temp_answers: [],
             activeAnswer: null,
-            activeTab: 'feedback'
+            activeTab: 'feedback',
+            savedMessage: 'Saved',
         };
     },
 
@@ -26,7 +27,7 @@ Vue.component('question', {
         <!-- Header with actions -->
         <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow">
             <h1 class="font-bold text-xl">Question #{{this.pk}}</h1>
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 items-center">
                 <button class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center"
                         @click="saveQuestion">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,6 +41,7 @@ Vue.component('question', {
                     </svg>
                     Delete
                 </button>
+                <span class="ml-2 text-xs text-gray-500">{{ savedMessage }}</span>
             </div>
         </div>
 
@@ -256,11 +258,24 @@ Vue.component('question', {
     `,
 
     methods: {
+        markDirty() {
+            this.savedMessage = 'Unsaved changes';
+        },
+        quickAutosaveIfEnabled() {
+            if (window.autosaveEnabled && typeof saveAutosave === 'function') {
+                saveAutosave();
+                this.savedMessage = 'Saved just now';
+            }
+        },
+
         selectAnswer(pk) {
             this.activeAnswer = pk;
+            // no save here; just selection
         },
         updateAnswerDescription(evt) {
             Vue.prototype.$TCT.answers[this.activeAnswer].fields.description = evt.target.value;
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         addAnswer: function() {
@@ -276,6 +291,8 @@ Vue.component('question', {
             this.temp_answers = [];
             Vue.prototype.$TCT.answers[newPk] = answer;
             this.selectAnswer(newPk);
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         addFeedback: function(answerPk) {
@@ -291,6 +308,8 @@ Vue.component('question', {
             };
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         addGlobalScore: function(answerPk) {
@@ -307,6 +326,8 @@ Vue.component('question', {
             };
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         addIssueScore: function(answerPk) {
@@ -323,6 +344,8 @@ Vue.component('question', {
             };
             Vue.set(Vue.prototype.$TCT.answer_score_issue, newPk, x);
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         addStateScore: function(answerPk) {
@@ -340,6 +363,8 @@ Vue.component('question', {
             };
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
         switchToStatesTab() {
             this.activeTab = 'states';
@@ -381,32 +406,44 @@ Vue.component('question', {
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
             }
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         cloneAnswer: function(pk) {
             const thisAnswer = Vue.prototype.$TCT.answers[pk];
             Vue.prototype.$TCT.cloneAnswer(thisAnswer, thisAnswer.fields.question);
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         deleteFeedback: function(pk) {
             delete Vue.prototype.$TCT.answer_feedback[pk];
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         deleteGlobalScore: function(pk) {
             delete Vue.prototype.$TCT.answer_score_global[pk];
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         deleteIssueScore: function(pk) {
             delete Vue.prototype.$TCT.answer_score_issue[pk];
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         deleteStateScore: function(pk) {
             delete Vue.prototype.$TCT.answer_score_state[pk];
             this.temp_answers = [];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         onInput: function(evt) {
@@ -414,24 +451,27 @@ Vue.component('question', {
             if(shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = value;
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         onInputUpdatePicker: function(evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            // const temp = Vue.prototype.$globalData.filename;
+            // Vue.prototype.$globalData.filename = "";
+            // Vue.prototype.$globalData.filename = temp;
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         onQuestionDescriptionInput(evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields.description = evt.target.value;
-
-            // force re-render of pickers that depend on filename
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            // const temp = Vue.prototype.$globalData.filename;
+            // Vue.prototype.$globalData.filename = "";
+            // Vue.prototype.$globalData.filename = temp;
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         deleteQuestion() {
@@ -448,13 +488,16 @@ Vue.component('question', {
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
+
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         },
 
         saveQuestion() {
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
-            alert("Question saved!");
+            if (typeof saveAutosave === 'function') {
+                saveAutosave();
+            }
+            this.savedMessage = 'Saved just now';
         },
 
         getFeedbackForAnswer(pk) {
