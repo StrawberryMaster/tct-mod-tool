@@ -60,7 +60,13 @@ Vue.component('question', {
             
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700">Question Text:</label>
-                <textarea @input="onInputUpdatePicker($event)" :value="description" name="description" rows="4" 
+                <textarea
+                    :key="'question-desc-' + pk"
+                    autocomplete="off"
+                    @input="onQuestionDescriptionInput"
+                    :value="description"
+                    name="question_description"
+                    rows="4" 
                     class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
             </div>
         </div>
@@ -411,6 +417,15 @@ Vue.component('question', {
 
         onInputUpdatePicker: function(evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
+            const temp = Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.filename = "";
+            Vue.prototype.$globalData.filename = temp;
+        },
+
+        onQuestionDescriptionInput(evt) {
+            Vue.prototype.$TCT.questions.get(this.pk).fields.description = evt.target.value;
+
+            // force re-render of pickers that depend on filename
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;

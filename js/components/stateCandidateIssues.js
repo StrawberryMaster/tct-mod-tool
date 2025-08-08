@@ -1,81 +1,322 @@
-Vue.component('state', {
+Vue.component('data-table', {
+    props: ['items', 'columns', 'title', 'keyField'],
+    
+    data() {
+        return {
+            filter: '',
+            sortKey: '',
+            sortDir: 1, // 1 for ascending, -1 for descending
+            batchMode: false,
+            batchValues: {},
+            selectedItems: []
+        }
+    },
+    
+    template: `
+    <div class="mx-auto bg-white rounded shadow p-4 mb-4">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-lg">{{ title }} ({{ filteredItems.length }})</h2>
+            <div class="flex">
+                <input v-model="filter" placeholder="Filter items..." class="border p-1 mr-2 rounded">
+                <button @click="toggleBatchMode" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    {{ batchMode ? 'Exit Batch Mode' : 'Batch Edit' }}
+                </button>
+            </div>
+        </div>
+        
+        <!-- Batch Edit Mode -->
+        <div v-if="batchMode" class="bg-gray-100 p-3 mb-4 rounded">
+            <h3 class="font-bold mb-2">Batch Edit {{ selectedItems.length }} items</h3>
+            <div v-for="col in columns" :key="col.field" class="mb-2" v-if="col.editable">
+                <label class="block text-sm">{{ col.label }}</label>
+                <div class="flex items-center">
+                    <input 
+                        v-model="batchValues[col.field]" 
+                        :placeholder="col.label"
+                        class="border p-1 rounded mr-2 flex-grow"
+                        :type="col.type || 'text'"
+                    >
+                    <button @click="applyBatchEdit(col.field)" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Apply</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table Headers -->
+        <div class="grid grid-cols-12 bg-gray-200 p-2 rounded font-bold">
+            <div v-if="batchMode" class="col-span-1">
+                <input type="checkbox" @change="toggleSelectAll" :checked="selectedItems.length === filteredItems.length">
+            </div>
+            <div 
+                v-for="col in columns" 
+                :key="col.field"
+                :class="['col-span-' + (col.width || '2'), 'cursor-pointer']"
+                @click="sortBy(col.field)"
+            >
+                {{ col.label }} 
+                <span v-if="sortKey === col.field">{{ sortDir === 1 ? '▲' : '▼' }}</span>
+            </div>
+        </div>
+        
+        <!-- Table Rows -->
+        <div 
+            v-for="item in filteredItems" 
+            :key="item[keyField]"
+            class="grid grid-cols-12 border-b p-2 hover:bg-gray-100"
+        >
+            <div v-if="batchMode" class="col-span-1">
+                <input 
+                    type="checkbox" 
+                    :value="item[keyField]" 
+                    v-model="selectedItems"
+                >
+            </div>
+            <template v-for="col in columns">
+                <div :class="['col-span-' + (col.width || '2')]" :key="col.field">
+                    <input 
+                        v-if="col.editable"
+                        :value="item[col.field]" 
+                        @input="updateItem($event, item, col.field)"
+                        :type="col.type || 'text'"
+                        class="w-full border rounded p-1"
+                    >
+                    <span v-else>{{ formatValue(item[col.field], col) }}</span>
+                </div>
+            </template>
+        </div>
+    </div>
+    `,
+    
+    methods: {
+        sortBy(key) {
+            if (this.sortKey === key) {
+                this.sortDir *= -1;
+            } else {
+                this.sortKey = key;
+                this.sortDir = 1;
+            }
+        },
+        
+        updateItem(event, item, field) {
+            let value = event.target.value;
+            if (event.target.type === 'number') {
+                value = Number(value);
+            }
+            this.$emit('update-item', item, field, value);
+        },
+        
+        formatValue(value, column) {
+            if (column.formatter) {
+                return column.formatter(value);
+            }
+            return value;
+        },
+        
+        toggleBatchMode() {
+            this.batchMode = !this.batchMode;
+            if (!this.batchMode) {
+                this.selectedItems = [];
+                this.batchValues = {};
+            }
+        },
+        
+        toggleSelectAll(event) {
+            if (event.target.checked) {
+                this.selectedItems = this.filteredItems.map(item => item[this.keyField]);
+            } else {
+                this.selectedItems = [];
+            }
+        },
+        
+        applyBatchEdit(field) {
+            if (this.batchValues[field] === undefined) return;
+            
+            this.selectedItems.forEach(itemKey => {
+                const item = this.items.find(i => i[this.keyField] === itemKey);
+                if (item) {
+                    this.$emit('update-item', item, field, this.batchValues[field]);
+                }
+            });
+        }
+    },
+    
+    computed: {
+        filteredItems() {
+            let result = this.items;
+            
+            // Apply filter
+            if (this.filter) {
+                const lowerFilter = this.filter.toLowerCase();
+                result = result.filter(item => {
+                    return this.columns.some(col => {
+                        const value = item[col.field];
+                        return value !== null && 
+                               value !== undefined && 
+                               String(value).toLowerCase().includes(lowerFilter);
+                    });
+                });
+            }
+            
+            // Apply sorting
+            if (this.sortKey) {
+                result = [...result].sort((a, b) => {
+                    const aVal = a[this.sortKey];
+                    const bVal = b[this.sortKey];
+                    return this.sortDir * (aVal > bVal ? 1 : aVal < bVal ? -1 : 0);
+                });
+            }
+            
+            return result;
+        }
+    }
+});
 
+Vue.component('state', {
     props: ['pk'],
 
     data() {
         return {
-            temp:1
+            temp: 1,
+            activeTab: 'details',
+            showMargins: false,
+            showMultipliers: false,
+            showIssueScores: false,
+            stateColumns: [
+                { field: 'pk', label: 'PK', width: 1 },
+                { field: 'name', label: 'Name', editable: true, width: 3 },
+                { field: 'abbr', label: 'Abbr', editable: true, width: 1 },
+                { field: 'electoral_votes', label: 'EV', editable: true, type: 'number', width: 1 },
+                { field: 'popular_votes', label: 'PV', editable: true, type: 'number', width: 2 },
+                { field: 'poll_closing_time', label: 'Close Time', editable: true, type: 'number', width: 1 },
+                { field: 'winner_take_all_flg', label: 'WTA', editable: true, type: 'number', width: 1 }
+            ],
+            multiplierColumns: [
+                { field: 'pk', label: 'PK', width: 1 },
+                { field: 'candidate', label: 'Candidate', width: 2 },
+                { field: 'candidateName', label: 'Name', width: 3, formatter: val => val || 'Unknown' },
+                { field: 'state_multiplier', label: 'Multiplier', editable: true, type: 'number', width: 3 }
+            ],
+            issueScoreColumns: [
+                { field: 'pk', label: 'PK', width: 1 },
+                { field: 'issue', label: 'Issue', width: 2 },
+                { field: 'issueName', label: 'Issue Name', width: 3, formatter: val => val || 'Unknown' },
+                { field: 'state_issue_score', label: 'Score (-1 to 1)', editable: true, type: 'number', width: 3 },
+                { field: 'weight', label: 'Weight', editable: true, type: 'number', width: 2 }
+            ]
         };
     },
 
-    created() {
-        /*setInterval(() => {
-            this.temp = Math.random()
-        }, 100);*/
-    },
-
     template: `
-    <div style="position:relative" class="mx-auto bg-gray-100 p-4">
+    <div class="bg-white rounded-lg shadow">
+        <!-- Header -->
+        <div class="border-b p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="font-bold text-xl">{{stateName}} ({{abbr}})</h1>
+                <span class="text-gray-500">PK: {{this.pk}}</span>
+            </div>
+            <div class="flex space-x-2">
+                <button @click="refreshMargins" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    Refresh Margins
+                </button>
+                <button @click="deleteState" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                    Delete State
+                </button>
+            </div>
+        </div>
 
-    <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteState()">Delete State</button>
+        <!-- Predicted Margins Section -->
+        <div class="border-b p-4 bg-gray-50">
+            <h2 class="font-bold text-lg mb-2">Predicted Starting PV</h2>
+            <div class="space-y-2">
+                <div v-for="info in margins" :key="info" class="p-3 bg-white rounded shadow-sm">
+                    {{info}}
+                </div>
+            </div>
+        </div>
 
-    <h1 class="font-bold">{{stateName}} - STATE PK {{this.pk}}</h1><br>
+        <!-- Tabs -->
+        <div class="border-b">
+            <nav class="flex space-x-4 px-4">
+                <button 
+                    v-for="tab in ['details', 'multipliers', 'issues']"
+                    :key="tab"
+                    @click="activeTab = tab"
+                    :class="[
+                        'px-3 py-2 text-sm font-medium border-b-2',
+                        activeTab === tab 
+                            ? 'border-blue-500 text-blue-600' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ]"
+                >
+                    {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
+                </button>
+            </nav>
+        </div>
 
-    <div class="starting-margins">
-        <h2 style="text-align:center" class="font-bold">Predicted Starting PV</h2>
-        <ul>
-        <li class="font-bold text-xl" v-for="info in margins" :key="info">{{info}}</li>
-        </ul>
-        <p class="text-xs">You need to exit and enter this state to see changes for now. Sorry I am working on fixing it!</p>
-        <p class="text-xs">These use the default global_parameter values. To change those you can use the console and edit the global_parameter object. You only need to if you changed those values in your code 1.</p>
-    </div>
+        <!-- Content -->
+        <div class="p-4">
+            <!-- State Details Tab -->
+            <div v-if="activeTab === 'details'" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">State Name</label>
+                        <input @input="onInput($event)" :value="stateName" name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Abbreviation</label>
+                        <input @input="onInput($event)" :value="abbr" name="abbr" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Electoral Votes</label>
+                        <input @input="onInput($event)" :value="electoralVotes" name="electoral_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Popular Votes</label>
+                        <input @input="onInput($event)" :value="popularVotes" name="popular_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Poll Closing Time</label>
+                        <input @input="onInput($event)" :value="pollClosingTime" name="poll_closing_time" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Winner Take All (0/1)</label>
+                        <input @input="onInput($event)" :value="winnerTakeAll" name="winner_take_all_flg" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Election PK</label>
+                        <input @input="onInput($event)" :value="election" name="election" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
 
-    <label for="name">State Name:</label><br>
-    <input @input="onInput($event)" :value="stateName" name="name" type="text"><br><br>
+            <!-- Multipliers Tab -->
+            <div v-if="activeTab === 'multipliers'">
+                <data-table 
+                    :items="stateMultipliersWithNames" 
+                    :columns="multiplierColumns" 
+                    title="Candidate State Multipliers" 
+                    keyField="pk"
+                    @update-item="updateMultiplier"
+                ></data-table>
+            </div>
 
-    <label for="abbr">State Abbreviation:</label><br>
-    <input @input="onInput($event)" :value="abbr" name="abbr" type="text"><br><br>
-
-    <label for="electoral_votes">Electoral Votes:</label><br>
-    <input @input="onInput($event)" :value="electoralVotes" name="electoral_votes" type="number"><br>
-    <label for="popular_votes">Popular Votes:</label><br>
-    <input @input="onInput($event)" :value="popularVotes" name="popular_votes" type="number"><br>
-
-    <label for="poll_closing_time">Poll Closing Time</label><br>
-    <input @input="onInput($event)" :value="pollClosingTime" name="poll_closing_time" type="number"><br>
-
-    <label for="winner_take_all_flg">Winner Take All Flag (0/1):</label><br>
-    <input @input="onInput($event)" :value="winnerTakeAll" name="winner_take_all_flg" type="number"><br>
-
-    <label for="election">Election PK (IMPORTANT! MAKE SURE THIS IS YOURS):</label><br>
-    <input @input="onInput($event)" :value="election" name="election" type="number"><br>
-
-    <br>
-
-    <details open>
-    <summary>Candidate State Multipliers ({{this.candidateStateMultipliers.length}})</summary>
-    <ul>
-        <candidate-state-multiplier v-for="c in candidateStateMultipliers" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
-    </ul>
-    </details>
-
-    <details open>
-    <summary>State Issue Scores ({{this.stateIssueScores.length}})</summary>
-    <ul>
-        <state-issue-score v-for="c in stateIssueScores" :pk="c.pk" :key="c.pk"></state-issue-score>
-    </ul>
-    </details>
-
+            <!-- Issue Scores Tab -->
+            <div v-if="activeTab === 'issues'">
+                <data-table 
+                    :items="stateIssueScoresWithNames" 
+                    :columns="issueScoreColumns" 
+                    title="State Issue Scores" 
+                    keyField="pk"
+                    @update-item="updateIssueScore"
+                ></data-table>
+            </div>
+        </div>
     </div>
     `,
 
     methods: {
-
         deleteState: function() {
-
             Vue.prototype.$TCT.deleteState(this.pk);
             Vue.prototype.$globalData.state = Vue.prototype.$TCT.getFirstStatePK();
-
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.mode = STATE;
             const temp = Vue.prototype.$globalData.filename;
@@ -84,22 +325,27 @@ Vue.component('state', {
         },
 
         onInput: function(evt) {
-
             let value = evt.target.value;
             if(shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-
             Vue.prototype.$TCT.states[this.pk].fields[evt.target.name] = value;
         },
 
-        refreshMargins: function(evt) {
+        refreshMargins: function() {
             Vue.prototype.$TCT.getPVForState(this.pk);
+        },
+        
+        updateMultiplier: function(item, field, value) {
+            Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields[field] = value;
+        },
+        
+        updateIssueScore: function(item, field, value) {
+            Vue.prototype.$TCT.state_issue_scores[item.pk].fields[field] = value;
         }
     },
 
     computed: {
-
         stateName: function() {
             return Vue.prototype.$TCT.states[this.pk].fields.name;
         },
@@ -131,38 +377,65 @@ Vue.component('state', {
         candidateStateMultipliers: function () {
             return Vue.prototype.$TCT.getCandidateStateMultipliersForState(this.pk);
         },
+        
+        stateMultipliersWithNames: function() {
+            return this.candidateStateMultipliers.map(multiplier => {
+                const candidatePk = multiplier.fields.candidate;
+                return {
+                    ...multiplier.fields,
+                    pk: multiplier.pk,
+                    candidateName: Vue.prototype.$TCT.getNicknameForCandidate(candidatePk)
+                };
+            });
+        },
 
         stateIssueScores: function () {
             return Vue.prototype.$TCT.getIssueScoreForState(this.pk);
+        },
+        
+        stateIssueScoresWithNames: function() {
+            return this.stateIssueScores.map(score => {
+                const issuePk = score.fields.issue;
+                const issue = Vue.prototype.$TCT.issues[issuePk];
+                return {
+                    ...score.fields,
+                    pk: score.pk,
+                    issueName: issue ? issue.fields.name : null
+                };
+            });
         },
 
         margins: function() {
             return Vue.prototype.$TCT.getPVForState(this.pk);
         }
     }
-})
+});
 
 Vue.component('candidate-state-multiplier', {
 
     props: ['pk'],
 
     template: `
-    <li class="mx-auto bg-gray-100 p-4">
-        <h1 class="font-bold">CANDIDATE STATE MULTIPLIER PK {{this.pk}}</h1><br>
-        
-        <label for="state_multiplier">Candidate PK {{candidate}} <span v-if="nickname" class="italic text-gray-400">({{this.nickname}})</span> {{stateName}} State Multiplier:</label><br>
-        <input @input="onInput($event)" :value="stateMultiplier" name="state_multiplier" type="number"><br>
+    <li class="bg-white rounded shadow p-3 mb-2">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="font-medium">{{stateName}}</span>
+                <span v-if="nickname" class="text-gray-500 ml-2">({{nickname}})</span>
+            </div>
+            <div class="flex items-center">
+                <label class="mr-2">Multiplier:</label>
+                <input @input="onInput($event)" :value="stateMultiplier" name="state_multiplier" type="number" class="border rounded p-1 w-24">
+            </div>
+        </div>
     </li>
     `,
 
     methods: {
         onInput: function(evt) {
-
             let value = evt.target.value;
             if(shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-
             Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields[evt.target.name] = value;
         }
     },
@@ -193,40 +466,48 @@ Vue.component('state-issue-score', {
     props: ['pk', 'hideIssuePK'],
 
     template: `
-    <li class="mx-auto bg-gray-100 p-4">
-        <h1 class="font-bold">STATE ISSUE SCORE PK {{this.pk}} <span v-if="hideIssuePK">({{this.stateName}})</span></h1><br>
-        
-        <div v-if="!hideIssuePK">
-        <label for="issue">Issue PK</label><br>
-        <select @change="onInput($event)" name="issue">
-            <option v-for="issue in issues" :selected="issue.pk == currentIssue" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
-        </select><br>
+    <li class="bg-white rounded shadow p-3 mb-2">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block font-medium">Issue:</label>
+                <select v-if="!hideIssuePK" @change="onInput($event)" name="issue" class="w-full border rounded p-1">
+                    <option v-for="issue in issues" :selected="issue.pk == currentIssue" :value="issue.pk" :key="issue.pk">
+                        {{issue.pk}} - {{issue.fields.name}}
+                    </option>
+                </select>
+                <div v-else class="py-1">{{getIssueName(currentIssue)}}</div>
+            </div>
+            
+            <div>
+                <label class="block font-medium">Score (-1 to 1):</label>
+                <input @input="onInput($event)" :value="stateIssueScore" name="state_issue_score" type="number" class="w-full border rounded p-1">
+                <p class="text-xs text-gray-500">-1.0 = Stance 1, 1.0 = Stance 7</p>
+            </div>
+            
+            <div>
+                <label class="block font-medium">Weight:</label>
+                <input @input="onInput($event)" :value="weight" name="weight" type="number" class="w-full border rounded p-1">
+            </div>
         </div>
-    
-        <label for="state_issue_score">State Issue Score</label><br>
-        <input @input="onInput($event)" :value="stateIssueScore" name="state_issue_score" type="number"><br>
-        <p class="text-xs">(-1.0 = Stance 1, 1.0 = Stance 7)</p>
-    
-        <label for="weight">Issue Weight</label><br>
-        <input @input="onInput($event)" :value="weight" name="weight" type="number"><br>
-    
     </li>
     `,
 
     methods: {
         onInput: function(evt) {
-
             let value = evt.target.value;
             if(shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-
             Vue.prototype.$TCT.state_issue_scores[this.pk].fields[evt.target.name] = value;
         },
+        
+        getIssueName: function(issuePk) {
+            if (!Vue.prototype.$TCT.issues[issuePk]) return 'Unknown Issue';
+            return `${issuePk} - ${Vue.prototype.$TCT.issues[issuePk].fields.name}`;
+        }
     },
 
     computed: {
-
         issues: function () {
             let a = [Vue.prototype.$globalData.filename];
             return Object.values(Vue.prototype.$TCT.issues);
