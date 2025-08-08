@@ -360,25 +360,52 @@ class TCTData {
     }
 
     getMapForPreview(svg) {
-
+        console.log("getMapForPreview called with SVG length:", svg.length);
         
-
-        const pathsRegex = /<path((.|\n)*?)(\/|<\/path)>/g;
-        const idRegex = / id[ \t]*=[ \t]*"(.*)"/g;
-        const dRegex = / d[ \t]*=[ \t]*"(.*)"/g;
-
-        const paths = [...svg.match(pathsRegex)];
-
-        let out = [];
-
-        for(let i = 0; i < paths.length; i++) {
-            const path = paths[i];
-            let id = path.match(idRegex)[0].split("\"")[1].replace("\"", "");
-            let d = path.match(dRegex)[0].split("\"")[1].replace("\"", "");
-            let abbr = id.split(" ")[0].replaceAll("-", "_");
-            out.push([abbr, d]);
+        if (!svg || typeof svg !== 'string') {
+            console.error("Invalid SVG data: not a string");
+            return [];
         }
-
+        
+        // Create a DOM parser
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+        
+        // Query for path elements
+        const pathElements = svgDoc.querySelectorAll('path');
+        console.log(`Found ${pathElements.length} path elements in SVG`);
+        
+        let out = [];
+        
+        for (let i = 0; i < pathElements.length; i++) {
+            try {
+                const path = pathElements[i];
+                let id = path.getAttribute('id') || path.getAttribute('data-id');
+                
+                if (!id) {
+                    console.warn(`Path at index ${i} has no id attribute`);
+                    continue;
+                }
+                
+                let d = path.getAttribute('d');
+                if (!d) {
+                    console.warn(`Path with id ${id} has no d attribute`);
+                    continue;
+                }
+                
+                let abbr = id.split(" ")[0].replaceAll("-", "_");
+                out.push([abbr, d]);
+                
+                // Log every 10th state to avoid console spam
+                if (i % 10 === 0) {
+                    console.log(`Processed state: ${abbr}`);
+                }
+            } catch (error) {
+                console.error(`Error processing path at index ${i}:`, error);
+            }
+        }
+    
+        console.log(`Successfully processed ${out.length} states`);
         return out;
     }
 
@@ -556,6 +583,7 @@ class TCTData {
                 "d": d
             }
             this.states[newPk] = x;
+            this.states[newPk].d = d;
             
             for(let i = 0; i < cans.length; i++) {
                 const cPk = this.getNewPk();
