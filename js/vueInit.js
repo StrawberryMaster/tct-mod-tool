@@ -4,6 +4,11 @@ let autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
 const autosave = localStorage.getItem("autosave");
 let autosaveFunction = null;
 
+// keep a global mirror for other scripts/components
+window.autosaveEnabled = autosaveEnabled;
+// optionally expose the function too (function declarations are global, but this is explicit)
+window.saveAutosave = window.saveAutosave || saveAutosave;
+
 if(autosaveEnabled) {
     startAutosave();
 }

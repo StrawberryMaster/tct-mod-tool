@@ -29,6 +29,9 @@ Vue.component('toolbar', {
             }
 
             autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
+            // keep global mirror in sync
+            window.autosaveEnabled = autosaveEnabled;
+
             this.localAutosaveEnabled = autosaveEnabled;
         },
 

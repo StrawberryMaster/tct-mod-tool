@@ -262,7 +262,8 @@ Vue.component('question', {
             this.savedMessage = 'Unsaved changes';
         },
         quickAutosaveIfEnabled() {
-            if (window.autosaveEnabled && typeof saveAutosave === 'function') {
+            // read source of truth from localStorage to avoid scope issues
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') {
                 saveAutosave();
                 this.savedMessage = 'Saved just now';
             }
@@ -640,6 +641,7 @@ Vue.component('answer', {
             }
             this.feedbacks.push(feedback)
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         addGlobalScore: function() {
@@ -656,6 +658,7 @@ Vue.component('answer', {
             }
             this.globalScores.push(x)
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         addIssueScore: function() {
@@ -672,6 +675,7 @@ Vue.component('answer', {
             }
             this.issueScores.push(x)
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         addStateScore: function() {
@@ -689,6 +693,7 @@ Vue.component('answer', {
             }
             this.stateScores.push(x)
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         deleteAnswer: function() {
@@ -698,21 +703,25 @@ Vue.component('answer', {
         deleteFeedback: function(pk) {
             this.feedbacks = this.feedbacks.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_feedback[pk];
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         deleteGlobalScore: function(pk) {
             this.globalScores = this.globalScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_global[pk];
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         deleteIssueScore: function(pk) {
             this.issueScores = this.issueScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_issue[pk];
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         deleteStateScore: function(pk) {
             this.stateScores = this.stateScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_state[pk];
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         onInput: function(evt) {
@@ -722,6 +731,7 @@ Vue.component('answer', {
             }
 
             Vue.prototype.$TCT.answers[this.pk].fields[evt.target.name] = value;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         }
     },
 
@@ -776,6 +786,7 @@ Vue.component('answer-feedback-card', {
             }
 
             Vue.prototype.$TCT.answer_feedback[this.pk].fields[evt.target.name] = value;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         }
     },
 
@@ -853,6 +864,7 @@ Vue.component('global-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         }
     },
 
@@ -944,6 +956,7 @@ Vue.component('issue-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         }
     },
 
@@ -1047,6 +1060,7 @@ Vue.component('state-score-card', {
             }
 
             Vue.prototype.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         }
     },
 
@@ -1432,6 +1446,8 @@ Vue.component('integrated-state-effect-visualizer', {
             }
 
             this.effectListVersion++;
+            // autosave after applying changes
+            if (localStorage.getItem("autosaveEnabled") === "true" && typeof saveAutosave === 'function') saveAutosave();
         },
 
         updateOrCreateStateEffect(statePk, value) {
