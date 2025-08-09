@@ -1,11 +1,11 @@
 function loadDefaultUSMap() {
     console.log("Called function to load default US map...");
     return fetch('js/components/resources/us.svg')
-      .then(response => response.text())
-      .catch(error => {
-        console.error("Error loading default US map:", error);
-        return null;
-      });
+        .then(response => response.text())
+        .catch(error => {
+            console.error("Error loading default US map:", error);
+            return null;
+        });
 }
 
 Vue.component('question', {
@@ -313,7 +313,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        addAnswer: function() {
+        addAnswer: function () {
             const newPk = Vue.prototype.$TCT.getNewPk();
             let answer = {
                 "model": "campaign_trail.answer",
@@ -330,7 +330,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        addFeedback: function(answerPk) {
+        addFeedback: function (answerPk) {
             const newPk = Vue.prototype.$TCT.getNewPk();
             let feedback = {
                 "model": "campaign_trail.answer_feedback",
@@ -347,7 +347,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        addGlobalScore: function(answerPk) {
+        addGlobalScore: function (answerPk) {
             const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_global",
@@ -365,7 +365,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        addIssueScore: function(answerPk) {
+        addIssueScore: function (answerPk) {
             const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_issue",
@@ -383,7 +383,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        addStateScore: function(answerPk) {
+        addStateScore: function (answerPk) {
             const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_state",
@@ -410,34 +410,34 @@ Vue.component('question', {
             });
         },
 
-        deleteAnswer: function(pk, suppressConfirm = false) {
+        deleteAnswer: function (pk, suppressConfirm = false) {
             if (!suppressConfirm) {
                 if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
             }
 
             let referencedFeedbacks = Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
-            for(let i = 0; i < referencedFeedbacks.length; i++) {
+            for (let i = 0; i < referencedFeedbacks.length; i++) {
                 delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
             }
 
             let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
-            for(let i = 0; i < x.length; i++) {
+            for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
             }
 
             x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
-            for(let i = 0; i < x.length; i++) {
+            for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
             }
 
             x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
-            for(let i = 0; i < x.length; i++) {
+            for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
             }
 
             this.temp_answers = [];
             delete Vue.prototype.$TCT.answers[pk];
-            
+
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
             }
@@ -445,7 +445,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        cloneAnswer: function(pk) {
+        cloneAnswer: function (pk) {
             const thisAnswer = Vue.prototype.$TCT.answers[pk];
             Vue.prototype.$TCT.cloneAnswer(thisAnswer, thisAnswer.fields.question);
             this.temp_answers = [];
@@ -453,37 +453,37 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        deleteFeedback: function(pk) {
+        deleteFeedback: function (pk) {
             delete Vue.prototype.$TCT.answer_feedback[pk];
             this.temp_answers = [];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
-        deleteGlobalScore: function(pk) {
+        deleteGlobalScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_global[pk];
             this.temp_answers = [];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
-        deleteIssueScore: function(pk) {
+        deleteIssueScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_issue[pk];
             this.temp_answers = [];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
-        deleteStateScore: function(pk) {
+        deleteStateScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_state[pk];
             this.temp_answers = [];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = value;
@@ -491,7 +491,7 @@ Vue.component('question', {
             this.quickAutosaveIfEnabled();
         },
 
-        onInputUpdatePicker: function(evt) {
+        onInputUpdatePicker: function (evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
             // const temp = Vue.prototype.$globalData.filename;
             // Vue.prototype.$globalData.filename = "";
@@ -502,7 +502,7 @@ Vue.component('question', {
 
         deleteQuestion() {
             if (!confirm(`Are you sure you want to delete question #${this.pk}?`)) return;
-            
+
             let referencedAnswers = Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
             for (let i = 0; i < referencedAnswers.length; i++) {
                 this.deleteAnswer(referencedAnswers[i].pk, true);
@@ -531,41 +531,41 @@ Vue.component('question', {
         getFeedbackForAnswer(pk) {
             return Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
         },
-        
+
         getGlobalScoresForAnswer(pk) {
             return Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
         },
-        
+
         getIssueScoresForAnswer(pk) {
             return Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
         },
-        
+
         getStateScoresForAnswer(pk) {
             return Vue.prototype.$TCT.getStateScoreForAnswer(pk);
         },
-        
+
         hasFeedback(pk) {
             return this.getFeedbackForAnswer(pk).length > 0;
         },
-        
+
         hasGlobalScores(pk) {
             return this.getGlobalScoresForAnswer(pk).length > 0;
         },
-        
+
         hasIssueScores(pk) {
             return this.getIssueScoresForAnswer(pk).length > 0;
         },
-        
+
         hasStateScores(pk) {
             return this.getStateScoresForAnswer(pk).length > 0;
         }
     },
 
     computed: {
-        answers: function() {
+        answers: function () {
             return Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
         },
-        
+
         description: function () {
             return Vue.prototype.$TCT.questions.get(this.pk)?.fields.description;
         },
@@ -579,8 +579,8 @@ Vue.component('question', {
             this.temp_answers;
             return Vue.prototype.$TCT.questions.get(this.pk).fields.likelihood;
         },
-        
-        getAnswerDescription: function() {
+
+        getAnswerDescription: function () {
             if (!this.activeAnswer) return '';
             return Vue.prototype.$TCT.answers[this.activeAnswer].fields.description;
         }
@@ -594,11 +594,11 @@ Vue.component('answer', {
     data() {
         return {
             feedbacks: Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(this.pk),
-    
+
             globalScores: Vue.prototype.$TCT.getGlobalScoreForAnswer(this.pk),
-    
+
             issueScores: Vue.prototype.$TCT.getIssueScoreForAnswer(this.pk),
-    
+
             stateScores: Vue.prototype.$TCT.getStateScoreForAnswer(this.pk),
         };
     },
@@ -649,13 +649,13 @@ Vue.component('answer', {
 
     methods: {
 
-        cloneAnswer: function() {
+        cloneAnswer: function () {
             this.$emit('cloneAnswer', this.pk)
             const thisAnswer = Vue.prototype.$TCT.answers[this.pk];
         },
 
-        addFeedback: function() {
-            const newPk =  Vue.prototype.$TCT.getNewPk();
+        addFeedback: function () {
+            const newPk = Vue.prototype.$TCT.getNewPk();
             let feedback = {
                 "model": "campaign_trail.answer_feedback",
                 "pk": newPk,
@@ -670,8 +670,8 @@ Vue.component('answer', {
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        addGlobalScore: function() {
-            const newPk =  Vue.prototype.$TCT.getNewPk();
+        addGlobalScore: function () {
+            const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_global",
                 "pk": newPk,
@@ -687,8 +687,8 @@ Vue.component('answer', {
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        addIssueScore: function() {
-            const newPk =  Vue.prototype.$TCT.getNewPk();
+        addIssueScore: function () {
+            const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_issue",
                 "pk": newPk,
@@ -704,8 +704,8 @@ Vue.component('answer', {
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        addStateScore: function() {
-            const newPk =  Vue.prototype.$TCT.getNewPk();
+        addStateScore: function () {
+            const newPk = Vue.prototype.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_state",
                 "pk": newPk,
@@ -722,37 +722,37 @@ Vue.component('answer', {
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        deleteAnswer: function() {
+        deleteAnswer: function () {
             this.$emit('deleteAnswer', this.pk)
         },
 
-        deleteFeedback: function(pk) {
+        deleteFeedback: function (pk) {
             this.feedbacks = this.feedbacks.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_feedback[pk];
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        deleteGlobalScore: function(pk) {
+        deleteGlobalScore: function (pk) {
             this.globalScores = this.globalScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_global[pk];
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        deleteIssueScore: function(pk) {
+        deleteIssueScore: function (pk) {
             this.issueScores = this.issueScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_issue[pk];
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        deleteStateScore: function(pk) {
+        deleteStateScore: function (pk) {
             this.stateScores = this.stateScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_state[pk];
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
 
@@ -763,11 +763,11 @@ Vue.component('answer', {
 
     computed: {
         description: function () {
-          this.feedbacks;
-          this.globalScores;
-          this.issueScores;
-          this.stateScores;
-          return Vue.prototype.$TCT.answers[this.pk].fields.description;
+            this.feedbacks;
+            this.globalScores;
+            this.issueScores;
+            this.stateScores;
+            return Vue.prototype.$TCT.answers[this.pk].fields.description;
         },
     }
 })
@@ -790,9 +790,10 @@ Vue.component('answer-feedback-card', {
         <div class="mt-2">
             <label class="block text-xs font-medium text-gray-700">Candidate:</label>
             <div class="flex items-center mt-1">
-                <input @input="onInput($event)" :value="candidate" name="candidate" type="number"
-                    class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                <span v-if="candidateNickname" class="ml-2 text-xs text-gray-500">({{candidateNickname}})</span>
+                <select @change="onInput($event)" :value="candidate" name="candidate"
+                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
+                </select>
             </div>
         </div>
         
@@ -805,9 +806,9 @@ Vue.component('answer-feedback-card', {
     `,
 
     methods: {
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
 
@@ -821,8 +822,12 @@ Vue.component('answer-feedback-card', {
             return Vue.prototype.$TCT.answer_feedback[this.pk].fields.candidate;
         },
 
-        candidateNickname: function() {
+        candidateNickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+        },
+
+        candidates() {
+            return getListOfCandidates();
         },
 
         answerFeedback: function () {
@@ -850,18 +855,20 @@ Vue.component('global-score-card', {
             <div>
                 <label class="block text-xs font-medium text-gray-700">Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="candidate" name="candidate" type="number"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    <span v-if="candidateNickname" class="ml-2 text-xs text-gray-500">({{candidateNickname}})</span>
+                    <select @change="onInput($event)" :value="candidate" name="candidate"
+                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
+                    </select>
                 </div>
             </div>
             
             <div>
                 <label class="block text-xs font-medium text-gray-700">Affected Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="affected" name="affected_candidate" type="number"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    <span v-if="affectedNickname" class="ml-2 text-xs text-gray-500">({{affectedNickname}})</span>
+                    <select @change="onInput($event)" :value="affected" name="affected_candidate"
+                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option v-for="c in candidates" :key="'aff-'+c[0]" :value="c[0]">{{ c[1] }}</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -883,9 +890,9 @@ Vue.component('global-score-card', {
     `,
 
     methods: {
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
 
@@ -895,11 +902,15 @@ Vue.component('global-score-card', {
     },
 
     computed: {
-        candidateNickname: function() {
+        candidates() {
+            return getListOfCandidates();
+        },
+
+        candidateNickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
         },
 
-        affectedNickname: function() {
+        affectedNickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.affected);
         },
 
@@ -975,9 +986,9 @@ Vue.component('issue-score-card', {
     `,
 
     methods: {
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
 
@@ -987,7 +998,7 @@ Vue.component('issue-score-card', {
     },
 
     computed: {
-        issues: function() {
+        issues: function () {
             return Object.values(Vue.prototype.$TCT.issues);
         },
 
@@ -1079,9 +1090,9 @@ Vue.component('state-score-card', {
     `,
 
     methods: {
-        onInput: function(evt) {
+        onInput: function (evt) {
             let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
+            if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
 
@@ -1091,14 +1102,14 @@ Vue.component('state-score-card', {
     },
 
     computed: {
-        candidateNickname: function() {
+        candidateNickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
         },
 
-        affectedNickname: function() {
+        affectedNickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.affected);
         },
-        
+
         candidate: function () {
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.candidate;
         },
@@ -1111,11 +1122,11 @@ Vue.component('state-score-card', {
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state_multiplier;
         },
 
-        state: function() {
+        state: function () {
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state;
         },
 
-        states: function() {
+        states: function () {
             return Object.values(Vue.prototype.$TCT.states);
         }
     }
@@ -1126,7 +1137,7 @@ Vue.component('state-effect-presets', {
         onSelectPreset: Function,
         selectedStatesCount: Number
     },
-    
+
     data() {
         return {
             showPresets: false,
@@ -1138,12 +1149,12 @@ Vue.component('state-effect-presets', {
         togglePresets() {
             this.showPresets = !this.showPresets;
         },
-        
+
         selectPreset(category) {
             const states = Object.values(Vue.prototype.$TCT.states);
             let statePks = [];
-            
-            switch(category) {
+
+            switch (category) {
                 case 'swing':
                     // Common swing states
                     const swingAbbrs = ['FL', 'PA', 'MI', 'WI', 'NC', 'AZ', 'NV', 'GA', 'NH'];
@@ -1151,7 +1162,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => swingAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'south':
                     // Southern states
                     const southAbbrs = ['TX', 'FL', 'GA', 'NC', 'SC', 'VA', 'WV', 'KY', 'TN', 'AL', 'MS', 'AR', 'LA', 'OK'];
@@ -1159,7 +1170,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => southAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'midwest':
                     // Midwest states
                     const midwestAbbrs = ['OH', 'MI', 'IN', 'IL', 'WI', 'MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS'];
@@ -1167,7 +1178,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => midwestAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'northeast':
                     // Northeast states
                     const northeastAbbrs = ['ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'NJ', 'PA', 'DE', 'MD', 'DC'];
@@ -1175,7 +1186,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => northeastAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'west':
                     // Western states
                     const westAbbrs = ['WA', 'OR', 'CA', 'NV', 'ID', 'MT', 'WY', 'UT', 'CO', 'AZ', 'NM', 'AK', 'HI'];
@@ -1183,7 +1194,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => westAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'blue':
                     // Traditionally blue states
                     const blueAbbrs = ['CA', 'NY', 'IL', 'MA', 'MD', 'HI', 'CT', 'ME', 'RI', 'DE', 'WA', 'OR', 'NJ', 'VT', 'NM', 'CO', 'VA', 'MN'];
@@ -1191,7 +1202,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => blueAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'red':
                     // Traditionally red states
                     const redAbbrs = ['TX', 'TN', 'KY', 'AL', 'MS', 'LA', 'AR', 'OK', 'KS', 'NE', 'SD', 'ND', 'MT', 'ID', 'WY', 'UT', 'AK', 'WV', 'SC', 'IN', 'MO'];
@@ -1199,7 +1210,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => redAbbrs.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                
+
                 case 'small':
                     // Small population/EV states
                     const smallStates = ['WY', 'VT', 'DC', 'AK', 'ND', 'SD', 'DE', 'MT', 'RI', 'NH', 'ME', 'HI', 'ID', 'WV', 'NE', 'NM'];
@@ -1207,7 +1218,7 @@ Vue.component('state-effect-presets', {
                         .filter(state => smallStates.includes(state.fields.abbr))
                         .map(state => state.pk);
                     break;
-                    
+
                 case 'large':
                     // Large population/EV states
                     const largeStates = ['CA', 'TX', 'FL', 'NY', 'PA', 'IL', 'OH', 'GA', 'NC', 'MI', 'NJ', 'VA', 'WA', 'AZ', 'MA', 'TN', 'IN', 'MO', 'MD', 'WI', 'MN', 'CO'];
@@ -1216,16 +1227,16 @@ Vue.component('state-effect-presets', {
                         .map(state => state.pk);
                     break;
             }
-            
+
             this.onSelectPreset(statePks);
         },
-        
+
         applyPresetValue(value) {
             this.presetValue = value;
             this.$emit('applyValue', value);
         }
     },
-    
+
     template: `
     <div>
         <button @click="togglePresets" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 flex items-center">
@@ -1281,7 +1292,7 @@ Vue.component('integrated-state-effect-visualizer', {
             mapLoaded: false,
             fallbackViewBox: null,
             usingBasicShapes: false,
-            effectListVersion: 0 
+            effectListVersion: 0
         };
     },
 
@@ -1508,23 +1519,23 @@ Vue.component('integrated-state-effect-visualizer', {
             }
         },
         isExtraState(state) {
-            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\\s]?(\\d+)/i;
-            
+            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
+
             if (state.fields.abbr === 'DC') {
                 return true;
             }
-        
+
             if (districtRegex.test(state.fields.name)) {
                 return true;
             }
-        
+
             if (state.fields.abbr &&
                 ((state.fields.abbr.startsWith("M") || state.fields.abbr.startsWith("N")) &&
                     state.fields.abbr.length === 2 &&
                     !isNaN(state.fields.abbr.charAt(1)))) {
                 return true;
             }
-        
+
             return state.fields.name.includes("CD") ||
                 state.fields.name.includes("District") ||
                 state.fields.name.includes("Congressional");
@@ -1670,15 +1681,15 @@ Vue.component('integrated-state-effect-visualizer', {
         smallStates() {
             // small states are hard to click on
             const smallStateAbbrs = ['CT', 'RI', 'DE', 'NH', 'VT'];
-            
-            return this.states.filter(state => 
-                smallStateAbbrs.includes(state.fields.abbr) && 
+
+            return this.states.filter(state =>
+                smallStateAbbrs.includes(state.fields.abbr) &&
                 !this.isExtraState(state)
             );
         },
 
         extraStates() {
-            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\\s]?(\\d+)/i;
+            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
 
             return this.states.filter(state => {
                 if (state.fields.abbr === 'DC') {
@@ -1708,7 +1719,7 @@ Vue.component('integrated-state-effect-visualizer', {
 
         allStateEffectsForAnswer() {
 
-            this.effectListVersion; 
+            this.effectListVersion;
             console.log("allStateEffectsForAnswer computed property recalculated, version:", this.effectListVersion); // Debugging
             const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
             return stateScores.map(score => {
