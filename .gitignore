@@ -1,2 +1,7 @@
 
 .DS_Store
+
+# Temporary files
+js/vue2-compat.js
+js/vue3-minimal.js
+js/vue2-backup.js

@@ -1,4 +1,5 @@
 let app;
+const { createApp, reactive } = Vue;
 
 let autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
 const autosave = localStorage.getItem("autosave");
@@ -76,7 +77,7 @@ async function loadData(dataName, isFirstLoad) {
 
     Vue.prototype.$TCT = loadDataFromFile(raw);
 
-    let isNew = true;
+    let isNew = app == null;
 
     let firstQuestion = Array.from(Vue.prototype.$TCT.questions.values())[0];
     let firstState = Object.values(Vue.prototype.$TCT.states)[0];
@@ -84,8 +85,10 @@ async function loadData(dataName, isFirstLoad) {
     let firstCandidateArr = getListOfCandidates();
     let firstCandidate = firstCandidateArr.length > 0 ? firstCandidateArr[0][0] : null;
 
-    if(Vue.prototype.$globalData == null) {
-        Vue.prototype.$globalData = Vue.observable({
+    if(isNew) {
+        app = createApp({});
+        app.config.globalProperties.$TCT = Vue.prototype.$TCT;
+        app.config.globalProperties.$globalData = reactive({
             mode: mode,
             question: firstQuestion ? firstQuestion.pk : null,
             state: firstState ? firstState.pk : null,
@@ -93,9 +96,11 @@ async function loadData(dataName, isFirstLoad) {
             candidate: firstCandidate,
             filename: "default"
         });
+        
+        // Keep Vue 2 prototype in sync
+        Vue.prototype.$globalData = app.config.globalProperties.$globalData;
     }
     else {
-        isNew = false;
         Vue.prototype.$globalData.question = firstQuestion ? firstQuestion.pk : null;
         Vue.prototype.$globalData.state = firstState ? firstState.pk : null;
         Vue.prototype.$globalData.issue = firstIssue ? firstIssue.pk : null;
@@ -107,7 +112,7 @@ async function loadData(dataName, isFirstLoad) {
     console.log("Mode is: ", Vue.prototype.$globalData.mode)
 
     if(isNew) {
-        app = new Vue({el: '#app', data: {}})
+        app.mount('#app')
     }
 }
 
