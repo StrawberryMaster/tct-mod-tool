@@ -330,47 +330,61 @@ Vue.component('state', {
                 value = Number(value);
             }
             Vue.prototype.$TCT.states[this.pk].fields[evt.target.name] = value;
+            // force recompute of computed properties displaying derived totals
+            this.temp *= -1;
         },
 
         refreshMargins: function() {
-            Vue.prototype.$TCT.getPVForState(this.pk);
+            // toggle a reactive flag so margins recompute immediately
+            this.temp *= -1;
         },
         
         updateMultiplier: function(item, field, value) {
             Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields[field] = value;
+            // state shifters affect PV immediately
+            this.temp *= -1;
         },
         
         updateIssueScore: function(item, field, value) {
             Vue.prototype.$TCT.state_issue_scores[item.pk].fields[field] = value;
+            // issue weights/scores affect PV immediately
+            this.temp *= -1;
         }
     },
 
     computed: {
         stateName: function() {
+            this.temp; // make header reactive to edits
             return Vue.prototype.$TCT.states[this.pk].fields.name;
         },
 
         abbr: function() {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.abbr;
         },
 
         electoralVotes: function () {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.electoral_votes;
         },
   
         popularVotes: function () {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.popular_votes;
         },
 
         pollClosingTime: function () {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.poll_closing_time;
         },
   
         winnerTakeAll: function () {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.winner_take_all_flg;
         },
 
         election: function () {
+            this.temp;
             return Vue.prototype.$TCT.states[this.pk].fields.election;
         },
   
@@ -406,6 +420,8 @@ Vue.component('state', {
         },
 
         margins: function() {
+            // depend on temp so PV recomputes after any edit
+            this.temp;
             return Vue.prototype.$TCT.getPVForState(this.pk);
         }
     }
