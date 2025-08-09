@@ -1,5 +1,13 @@
 Vue.component('question-picker', {
 
+    data() {
+        return {
+            showReorder: false,
+            orderList: [],       // [{ pk, text }]
+            dragIndex: null
+        };
+    },
+
     template: `
     <div class="mx-auto p-3">
 
@@ -9,15 +17,116 @@ Vue.component('question-picker', {
         <option v-for="question in questions" :value="question.pk" :key="question.pk" :selected="currentQuestion == question.pk">{{question.pk}} - {{questionDescription(question)}}</option>
     </select><br>
 
-    <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
-    <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
+    <div class="flex flex-wrap gap-2">
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
+        <button class="bg-gray-500 text-white p-2 my-2 rounded hover:bg-gray-600" v-on:click="toggleReorder()">
+            {{ showReorder ? 'Done' : 'Reorder Questions' }}
+        </button>
+    </div>
 
-    <p class="text-xs text-gray-700 italic">WARNING: When adding and deleting questions, remember that your code 1 needs to have the same number of questions as in your code 2!</p>
+    <div v-if="showReorder" class="bg-white border rounded p-3 mt-2">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-sm">Drag to reorder (top = asked first)</h3>
+            <div class="flex gap-2">
+                <button class="bg-gray-200 px-2 py-1 rounded text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
+                <button class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+            </div>
+        </div>
+        <ul class="divide-y">
+            <li v-for="(item, idx) in orderList"
+                :key="item.pk"
+                class="py-2 px-2 flex items-center gap-3 hover:bg-gray-50"
+                draggable="true"
+                @dragstart="onDragStart(idx)"
+                @dragover.prevent
+                @drop="onDrop(idx)"
+                @dragend="onDragEnd">
+                <span class="w-6 text-xs text-gray-500">{{ idx + 1 }}</span>
+                <span class="cursor-move select-none inline-flex items-center text-xs text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M7 4a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 9a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 14a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2z"/>
+                    </svg>
+                    Drag
+                </span>
+                <span class="text-sm">
+                    <span class="font-mono text-gray-700">#{{ item.pk }}</span>
+                    <span class="text-gray-700">- {{ item.text }}</span>
+                </span>
+            </li>
+        </ul>
+        <div class="text-xs text-gray-500 mt-2">Tip: You can also use Save Order to immediately autosave the new order.</div>
+    </div>
+
+    <p class="text-xs text-gray-700 italic mt-2">WARNING: When adding and deleting questions, remember that your code 1 needs to have the same number of questions as in your code 2!</p>
 
     </div>
     `,
 
     methods: {
+
+        toggleReorder() {
+            this.showReorder = !this.showReorder;
+            if (this.showReorder) {
+                this.resetOrderFromMap();
+            }
+        },
+
+        resetOrderFromMap() {
+            const list = Array.from(Vue.prototype.$TCT.questions.values());
+            this.orderList = list.map(q => ({
+                pk: q.pk,
+                text: this.questionDescription(q)
+            }));
+        },
+
+        onDragStart(index) {
+            this.dragIndex = index;
+        },
+
+        onDrop(index) {
+            if (this.dragIndex === null || this.dragIndex === index) return;
+            const moved = this.orderList.splice(this.dragIndex, 1)[0];
+            this.orderList.splice(index, 0, moved);
+            this.dragIndex = null;
+        },
+
+        onDragEnd() {
+            this.dragIndex = null;
+        },
+
+        applyOrder() {
+            // create ordered array of PKs
+            const orderedPks = this.orderList.map(x => x.pk);
+            try {
+                // reorder the internal map
+                if (typeof Vue.prototype.$TCT.reorderQuestions === 'function') {
+                    Vue.prototype.$TCT.reorderQuestions(orderedPks);
+                } else {
+                    // fallback: mutate the existing Map in-place
+                    const map = Vue.prototype.$TCT.questions;
+                    const lookup = new Map(Array.from(map.values()).map(q => [q.pk, q]));
+                    const ordered = orderedPks.map(pk => lookup.get(pk)).filter(Boolean);
+                    map.clear();
+                    ordered.forEach(q => map.set(q.pk, q));
+                }
+                // force dropdowns to refresh
+                const temp = Vue.prototype.$globalData.filename;
+                Vue.prototype.$globalData.filename = "";
+                Vue.prototype.$globalData.filename = temp;
+
+                // autosave if enabled
+                if (localStorage.getItem("autosaveEnabled") === "true") {
+                    window.requestAutosaveDebounced?.(0);
+                }
+            } catch (e) {
+                console.error("Failed to reorder questions:", e);
+                alert("There was an error applying the new order. See console for details.");
+                return;
+            }
+
+            this.showReorder = false;
+        },
 
         addQuestion: function() {
             const newPk =  Vue.prototype.$TCT.getNewPk();

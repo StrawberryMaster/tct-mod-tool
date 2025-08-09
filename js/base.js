@@ -108,6 +108,42 @@ class TCTData {
         return question;
     }
 
+    // reorder questions by array of PKs (in desired order)
+    reorderQuestions(newOrderPks) {
+        try {
+            const current = Array.from(this.questions.values());
+            if (!Array.isArray(newOrderPks) || newOrderPks.length !== current.length) {
+                console.warn("reorderQuestions: new order length mismatch");
+            }
+            const lookup = new Map(current.map(q => [q.pk, q]));
+            // validate that provided PKs are all present
+            for (const pk of newOrderPks) {
+                if (!lookup.has(pk)) {
+                    console.warn("reorderQuestions: pk not found in current map:", pk);
+                }
+            }
+            // build ordered question objects; keep any missing ones at the end to be safe
+            const ordered = [];
+            for (const pk of newOrderPks) {
+                const q = lookup.get(pk);
+                if (q) ordered.push(q);
+            }
+            // append any stragglers not in newOrderPks
+            if (ordered.length < current.length) {
+                const missing = current.filter(q => !newOrderPks.includes(q.pk));
+                ordered.push(...missing);
+            }
+            // mutate the existing map in place
+            this.questions.clear();
+            for (const q of ordered) {
+                this.questions.set(q.pk, q);
+            }
+        } catch (e) {
+            console.error("Error in reorderQuestions:", e);
+            throw e;
+        }
+    }
+
     cloneAnswer(toClone, newQuestionPk) {
         let newPk = this.getNewPk();
         let answer = {
