@@ -378,7 +378,7 @@ window.defineComponent('question', {
                     "issue_importance": 0
                 }
             };
-            Vue.set(Vue.prototype.$TCT.answer_score_issue, newPk, x);
+            Vue.prototype.$TCT.answer_score_issue[newPk] = x;
             this.temp_answers = [];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -1309,14 +1309,14 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
             const states = Object.values(Vue.prototype.$TCT.states);
             for (const state of states) {
-                this.$set(this.stateEffects, state.pk, 0);
+                this.stateEffects[state.pk] = 0;
             }
 
             for (const score of stateScores) {
                 if ((this.candidateId == null || score.fields.candidate == this.candidateId) &&
                     (this.affectedCandidateId == null || score.fields.affected_candidate == this.affectedCandidateId)) {
-                    this.$set(this.stateEffects, score.fields.state, score.fields.state_multiplier);
-                    this.$set(this.selectedStates, score.fields.state, true);
+                    this.stateEffects[score.fields.state] = score.fields.state_multiplier;
+                    this.selectedStates[score.fields.state] = true;
                 }
             }
         },
@@ -1456,7 +1456,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         toggleStateSelection(statePk) {
-            this.$set(this.selectedStates, statePk, !this.selectedStates[statePk]);
+            this.selectedStates[statePk] = !this.selectedStates[statePk];
             if (this.selectedStates[statePk]) {
                 this.editValue = this.stateEffects[statePk];
             }
@@ -1479,7 +1479,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             if (selectedStatePks.length === 0) return;
 
             for (const statePk of selectedStatePks) {
-                this.$set(this.stateEffects, statePk, parseFloat(this.editValue));
+                this.stateEffects[statePk] = parseFloat(this.editValue);
                 this.updateOrCreateStateEffect(statePk, parseFloat(this.editValue));
             }
 
@@ -1545,7 +1545,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         selectAll() {
             const states = Object.values(Vue.prototype.$TCT.states);
             for (const state of states) {
-                this.$set(this.selectedStates, state.pk, true);
+                this.selectedStates[state.pk] = true;
             }
         },
 
@@ -1598,10 +1598,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
         selectPresetStates(statePks) {
             this.clearSelection();
             for (const pk of statePks) {
-                this.$set(this.selectedStates, pk, true);
+                this.selectedStates[pk] = true;
             }
         },
-
         applyPresetValue(value) {
             this.editValue = value;
         },
