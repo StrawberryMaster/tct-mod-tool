@@ -305,11 +305,18 @@ window.defineComponent('question', {
         },
 
         selectAnswer(pk) {
+            // guard against selecting deleted/non-existent answers
+            if (!Vue.prototype.$TCT.answers[pk]) {
+                this.activeAnswer = null;
+                return;
+            }
             this.activeAnswer = pk;
             // no save here; just selection
         },
         updateAnswerDescription(evt) {
-            Vue.prototype.$TCT.answers[this.activeAnswer].fields.description = evt.target.value;
+            const a = Vue.prototype.$TCT.answers[this.activeAnswer];
+            if (!a) return; // guard if the answer was removed meanwhile
+            a.fields.description = evt.target.value;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -448,8 +455,12 @@ window.defineComponent('question', {
 
         cloneAnswer: function (pk) {
             const thisAnswer = Vue.prototype.$TCT.answers[pk];
-            Vue.prototype.$TCT.cloneAnswer(thisAnswer, thisAnswer.fields.question);
-            this.temp_answers = [];
+            // try to get the new PK and select it; still refresh the list even if undefined
+            const clonedPk = Vue.prototype.$TCT.cloneAnswer?.(thisAnswer, thisAnswer.fields.question);
+            this.temp_answers = []; // trigger reactivity
+            if (clonedPk) {
+                this.selectAnswer(clonedPk);
+            }
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -564,6 +575,7 @@ window.defineComponent('question', {
 
     computed: {
         answers: function () {
+            this.temp_answers;
             return Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
         },
 
@@ -583,7 +595,8 @@ window.defineComponent('question', {
 
         getAnswerDescription: function () {
             if (!this.activeAnswer) return '';
-            return Vue.prototype.$TCT.answers[this.activeAnswer].fields.description;
+            const ans = Vue.prototype.$TCT.answers[this.activeAnswer];
+            return ans ? ans.fields.description : '';
         }
     }
 });
