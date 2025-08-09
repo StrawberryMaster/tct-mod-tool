@@ -18,7 +18,8 @@ window.defineComponent('question', {
             activeAnswer: null,
             activeTab: 'feedback',
             savedMessage: 'Saved',
-            localDescription: ''
+            localDescription: '',
+            temp_answers: [] // Used to trigger reactivity when data changes
         };
     },
 
