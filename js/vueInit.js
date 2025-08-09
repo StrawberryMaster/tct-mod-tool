@@ -1,5 +1,5 @@
 let app;
-const { createApp, reactive } = Vue;
+const { createApp, reactive, ref, computed, watch } = Vue;
 
 let autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
 const autosave = localStorage.getItem("autosave");
@@ -96,6 +96,11 @@ async function loadData(dataName, isFirstLoad) {
             candidate: firstCandidate,
             filename: "default"
         });
+        
+        // Initialize modern component system
+        if (window.initializeTCTApp) {
+            window.initializeTCTApp(app);
+        }
         
         // Keep Vue 2 prototype in sync
         Vue.prototype.$globalData = app.config.globalProperties.$globalData;

@@ -1,4 +1,5 @@
-Vue.component('toolbar', {
+// Modern component registration using Vue 3 patterns
+window.defineComponent('toolbar', {
 
     data() {
         return {
@@ -89,7 +90,7 @@ Vue.component('toolbar', {
     }
 })
 
-Vue.component('editor', {
+window.defineComponent('editor', {
     template: `
     <div class="mx-auto bg-gray-100 p-4">
 
