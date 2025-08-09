@@ -1,4 +1,4 @@
-Vue.component('question-picker', {
+window.defineComponent('question-picker', {
 
     data() {
         return {
@@ -197,7 +197,7 @@ Vue.component('question-picker', {
     }
 })
 
-Vue.component('state-picker', {
+window.defineComponent('state-picker', {
 
     template: `
     <div class="mx-auto p-3">
@@ -255,7 +255,7 @@ Vue.component('state-picker', {
     }
 })
 
-Vue.component('issue-picker', {
+window.defineComponent('issue-picker', {
 
     template: `
     <div class="mx-auto p-3">
@@ -291,7 +291,7 @@ Vue.component('issue-picker', {
     }
 })
 
-Vue.component('candidate-picker', {
+window.defineComponent('candidate-picker', {
 
     template: `
     <div class="mx-auto p-3">
