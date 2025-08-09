@@ -1,4 +1,4 @@
-Vue.component('bulk', {
+window.defineComponent('bulk', {
 
     data() {
         return {
@@ -291,7 +291,7 @@ Vue.component('bulk', {
     }
 });
 
-Vue.component('bulk-state', {
+window.defineComponent('bulk-state', {
 
     data() {
         return {
@@ -315,7 +315,7 @@ Vue.component('bulk-state', {
     }
 });
 
-Vue.component('bulk-issue', {
+window.defineComponent('bulk-issue', {
 
     data() {
         return {
@@ -340,7 +340,7 @@ Vue.component('bulk-issue', {
 });
 
 
-Vue.component('bulk-state-multiplier', {
+window.defineComponent('bulk-state-multiplier', {
 
     data() {
         return {

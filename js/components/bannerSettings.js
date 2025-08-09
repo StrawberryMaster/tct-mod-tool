@@ -1,4 +1,4 @@
-Vue.component('banner-settings', {
+window.defineComponent('banner-settings', {
 
     template: `
     <div class="mx-auto bg-gray-100 p-4">

@@ -1,4 +1,4 @@
-Vue.component('mapping', {
+window.defineComponent('mapping', {
 
     data() {
         return {
@@ -121,7 +121,7 @@ Vue.component('mapping', {
     }
 });
 
-Vue.component('map-preview', {
+window.defineComponent('map-preview', {
 
     props: ['svg', 'x', 'y', 'dx', 'dy'],
 

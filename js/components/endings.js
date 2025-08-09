@@ -1,4 +1,4 @@
-Vue.component('endings', {
+window.defineComponent('endings', {
 
     data() {
         return {
@@ -81,7 +81,7 @@ Vue.component('endings', {
     }
 })
 
-Vue.component('ending', {
+window.defineComponent('ending', {
 
     props: ['id'],
 

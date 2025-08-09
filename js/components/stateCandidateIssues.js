@@ -1,4 +1,4 @@
-Vue.component('data-table', {
+window.defineComponent('data-table', {
     props: ['items', 'columns', 'title', 'keyField'],
     
     data() {
@@ -170,7 +170,7 @@ Vue.component('data-table', {
     }
 });
 
-Vue.component('state', {
+window.defineComponent('state', {
     props: ['pk'],
 
     data() {
@@ -427,7 +427,7 @@ Vue.component('state', {
     }
 });
 
-Vue.component('candidate-state-multiplier', {
+window.defineComponent('candidate-state-multiplier', {
 
     props: ['pk'],
 
@@ -477,7 +477,7 @@ Vue.component('candidate-state-multiplier', {
     }
 })
 
-Vue.component('state-issue-score', {
+window.defineComponent('state-issue-score', {
 
     props: ['pk', 'hideIssuePK'],
 
@@ -548,7 +548,7 @@ Vue.component('state-issue-score', {
     }
 })
 
-Vue.component('issue', {
+window.defineComponent('issue', {
 
     props: ['pk'],
 
@@ -668,7 +668,7 @@ Vue.component('issue', {
     }
 })
 
-Vue.component('stance', {
+window.defineComponent('stance', {
 
     props: ['pk', 'n'],
 
@@ -708,7 +708,7 @@ Vue.component('stance', {
     }
 })
 
-Vue.component('candidate-issue-score', {
+window.defineComponent('candidate-issue-score', {
 
     props: ['pk', 'isRunning'],
 
@@ -776,7 +776,7 @@ Vue.component('candidate-issue-score', {
     }
 })
 
-Vue.component('candidate', {
+window.defineComponent('candidate', {
 
     props: ['pk'],
 

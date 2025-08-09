@@ -1,4 +1,4 @@
-Vue.component('cyoa', {
+window.defineComponent('cyoa', {
 
     data() {
         return {
@@ -74,7 +74,7 @@ Vue.component('cyoa', {
     }
 })
 
-Vue.component('cyoa-event', {
+window.defineComponent('cyoa-event', {
 
     props: ['id'],
 
