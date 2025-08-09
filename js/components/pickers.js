@@ -342,7 +342,7 @@ window.defineComponent('candidate-picker', {
     }
 })
 
-Vue.component('cyoa-picker', {
+window.defineComponent('cyoa-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -359,7 +359,7 @@ Vue.component('cyoa-picker', {
     }
 })
 
-Vue.component('banner-picker', {
+window.defineComponent('banner-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -376,7 +376,7 @@ Vue.component('banner-picker', {
     }
 })
 
-Vue.component('template-picker', {
+window.defineComponent('template-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -409,7 +409,7 @@ Vue.component('template-picker', {
     }
 })
 
-Vue.component('ending-picker', {
+window.defineComponent('ending-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -426,7 +426,7 @@ Vue.component('ending-picker', {
     }
 })
 
-Vue.component('mapping-picker', {
+window.defineComponent('mapping-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -443,7 +443,7 @@ Vue.component('mapping-picker', {
     }
 })
 
-Vue.component('bulk-picker', {
+window.defineComponent('bulk-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">

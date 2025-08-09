@@ -8,7 +8,7 @@ function loadDefaultUSMap() {
         });
 }
 
-Vue.component('question', {
+window.defineComponent('question', {
     props: {
         pk: Number
     },
@@ -587,7 +587,7 @@ Vue.component('question', {
     }
 });
 
-Vue.component('answer', {
+window.defineComponent('answer', {
 
     props: ['pk'],
 
@@ -773,7 +773,7 @@ Vue.component('answer', {
 })
 
 // Feedback Card Component
-Vue.component('answer-feedback-card', {
+window.defineComponent('answer-feedback-card', {
     props: ['pk'],
 
     template: `
@@ -837,7 +837,7 @@ Vue.component('answer-feedback-card', {
 });
 
 // Global Score Card Component
-Vue.component('global-score-card', {
+window.defineComponent('global-score-card', {
     props: ['pk'],
 
     template: `
@@ -929,7 +929,7 @@ Vue.component('global-score-card', {
 });
 
 // Issue Score Card Component
-Vue.component('issue-score-card', {
+window.defineComponent('issue-score-card', {
     props: ['pk'],
 
     template: `
@@ -1024,7 +1024,7 @@ Vue.component('issue-score-card', {
     }
 });
 // State Score Card Component
-Vue.component('state-score-card', {
+window.defineComponent('state-score-card', {
     props: ['pk'],
 
     template: `
@@ -1132,7 +1132,7 @@ Vue.component('state-score-card', {
     }
 });
 
-Vue.component('state-effect-presets', {
+window.defineComponent('state-effect-presets', {
     props: {
         onSelectPreset: Function,
         selectedStatesCount: Number
@@ -1264,7 +1264,7 @@ Vue.component('state-effect-presets', {
     `
 });
 
-Vue.component('integrated-state-effect-visualizer', {
+window.defineComponent('integrated-state-effect-visualizer', {
     props: ['answerId'],
 
     watch: {
