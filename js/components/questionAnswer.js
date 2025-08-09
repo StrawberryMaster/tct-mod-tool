@@ -331,7 +331,7 @@ window.defineComponent('question', {
                     "description": "New answer option"
                 }
             };
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             Vue.prototype.$TCT.answers[newPk] = answer;
             this.selectAnswer(newPk);
             this.markDirty();
@@ -350,7 +350,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -368,7 +368,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -386,7 +386,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -405,7 +405,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -443,7 +443,7 @@ window.defineComponent('question', {
                 delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
             }
 
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             delete Vue.prototype.$TCT.answers[pk];
 
             if (this.activeAnswer === pk) {
@@ -457,7 +457,7 @@ window.defineComponent('question', {
             const thisAnswer = Vue.prototype.$TCT.answers[pk];
             // try to get the new PK and select it; still refresh the list even if undefined
             const clonedPk = Vue.prototype.$TCT.cloneAnswer?.(thisAnswer, thisAnswer.fields.question);
-            this.temp_answers = []; // trigger reactivity
+            this.temp_answers = [Date.now()]; // trigger reactivity
             if (clonedPk) {
                 this.selectAnswer(clonedPk);
             }
@@ -467,28 +467,28 @@ window.defineComponent('question', {
 
         deleteFeedback: function (pk) {
             delete Vue.prototype.$TCT.answer_feedback[pk];
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteGlobalScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_global[pk];
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteIssueScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_issue[pk];
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteStateScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_state[pk];
-            this.temp_answers = [];
+            this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -1306,7 +1306,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
             mapLoaded: false,
             fallbackViewBox: null,
             usingBasicShapes: false,
-            effectListVersion: 0
+            effectListVersion: 0,
+            useListEditor: false,
+            stateDropdownPk: null
         };
     },
 
@@ -1335,24 +1337,41 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         loadMapData() {
+            // if state data is invalid/missing, fall back to list editor
+            const allStates = Vue.prototype.$TCT.states ? Object.values(Vue.prototype.$TCT.states) : [];
+            const validStates = allStates.filter(s => s && s.pk != null && s.fields && s.fields.abbr);
+            if (validStates.length === 0) {
+                this.enableListEditor();
+                return;
+            }
+
             if (Vue.prototype.$TCT.jet_data?.mapping_data?.mapSvg) {
                 try {
                     this.mapData = Vue.prototype.$TCT.getMapForPreview(Vue.prototype.$TCT.jet_data.mapping_data.mapSvg);
+                    // if map has fewer shapes than states, use list editor
+                    if (!Array.isArray(this.mapData) || this.mapData.length < Math.min(10, validStates.length)) {
+                        this.enableListEditor();
+                        return;
+                    }
                     this.mapLoaded = true;
                 } catch (error) {
                     console.error("Error loading map data from mapSvg:", error);
-                    this.loadDefaultMap();
+                    this.enableListEditor();
                 }
             }
-            else if (Vue.prototype.$TCT.states && Object.values(Vue.prototype.$TCT.states).some(state => state.d)) {
+            else if (Vue.prototype.$TCT.states && validStates.some(state => state.d)) {
                 try {
-                    this.mapData = Object.values(Vue.prototype.$TCT.states)
+                    this.mapData = validStates
                         .filter(state => state.d)
                         .map(state => [state.fields.abbr, state.d]);
+                    if (!Array.isArray(this.mapData) || this.mapData.length === 0) {
+                        this.enableListEditor();
+                        return;
+                    }
                     this.mapLoaded = true;
                 } catch (error) {
                     console.error("Error extracting path data from states:", error);
-                    this.loadDefaultMap();
+                    this.enableListEditor();
                 }
             } else {
                 this.loadDefaultMap();
@@ -1365,11 +1384,12 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 if (svgContent) {
                     this.validateAndUseDefaultMap(svgContent);
                 } else {
-                    console.log("Default US map not available, falling back to basic shapes");
-                    this.createBasicStateShapes();
+                    console.log("Default US map not available, falling back to list editor");
+                    this.enableListEditor();
                 }
             });
         },
+
         validateAndUseDefaultMap(svgContent) {
             console.log("Validating default US map...");
             const parser = new DOMParser();
@@ -1377,18 +1397,18 @@ window.defineComponent('integrated-state-effect-visualizer', {
             const statePaths = svgDoc.querySelectorAll('[data-name]');
 
             if (statePaths.length !== 51) {
-                console.warn(`Default map does not contain 51 states. Found ${statePaths.length}. Falling back to basic shapes.`);
-                this.createBasicStateShapes();
+                console.warn(`Default map does not contain 51 states. Found ${statePaths.length}. Falling back to list editor.`);
+                this.enableListEditor();
                 return;
             }
 
-            const statesData = Object.values(Vue.prototype.$TCT.states);
+            const statesData = Object.values(Vue.prototype.$TCT.states).filter(s => s && s.fields && s.fields.name);
             let allStatesMatch = true;
 
             for (const path of statePaths) {
-                const dataName = path.getAttribute('data-name').trim();
-                const matchingState = statesData.find(state => state.fields.name.trim() === dataName);
-
+                const dataName = path.getAttribute('data-name')?.trim();
+                if (!dataName) { allStatesMatch = false; break; }
+                const matchingState = statesData.find(state => state.fields.name?.trim() === dataName);
                 if (!matchingState) {
                     console.warn(`State name "${dataName}" in SVG not found in state data.`);
                     allStatesMatch = false;
@@ -1397,8 +1417,8 @@ window.defineComponent('integrated-state-effect-visualizer', {
             }
 
             if (!allStatesMatch) {
-                console.warn("State names in default map do not match the state data. Falling back to basic shapes.");
-                this.createBasicStateShapes();
+                console.warn("State names in default map do not match the state data. Falling back to list editor.");
+                this.enableListEditor();
                 return;
             }
 
@@ -1410,10 +1430,18 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 this.fallbackViewBox = "0 0 1000 589";
             } catch (error) {
                 console.error("Error parsing default US map:", error);
-                this.createBasicStateShapes();
+                this.enableListEditor();
             }
         },
 
+        enableListEditor() {
+            this.useListEditor = true;
+            this.mapLoaded = false;
+            this.usingBasicShapes = false;
+            this.mapData = [];
+        },
+
+        // keep this for other flows, but not for invalid maps
         createBasicStateShapes() {
             const states = Object.values(Vue.prototype.$TCT.states);
             const cols = Math.ceil(Math.sqrt(states.length));
@@ -1583,6 +1611,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             };
 
             if (this.isStateSelected(statePk)) {
+               
                 baseStyle.stroke = '#000000';
                 baseStyle['stroke-width'] = 2;
             } else if (this.isStateHighlighted(statePk)) {
@@ -1618,6 +1647,13 @@ window.defineComponent('integrated-state-effect-visualizer', {
             this.editValue = value;
         },
 
+        selectStateFromDropdown() {
+            if (this.stateDropdownPk) {
+                this.toggleStateSelection(this.stateDropdownPk);
+                this.editValue = this.stateEffects[this.stateDropdownPk] || 0;
+            }
+        },
+
         getStateByAbbr(abbr) {
             const normalizedAbbr = abbr.trim().toUpperCase().replaceAll('-', '_');
             return Object.values(Vue.prototype.$TCT.states).find(state => {
@@ -1651,10 +1687,10 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 const stateAbbr = state.fields.abbr;
                 return x[0] === stateAbbr || x[0] === stateAbbr.replaceAll('-', '_');
             });
-
             if (stateData) {
                 return stateData[1];
             }
+            // safe minimal shape if path is missing
             return `M0,0 L10,0 L10,10 L0,10 Z`;
         },
 
@@ -1671,8 +1707,18 @@ window.defineComponent('integrated-state-effect-visualizer', {
     },
 
     computed: {
+        // provide candidates list for dropdowns (same shape used elsewhere)
+        candidates() {
+            return typeof getListOfCandidates === 'function'
+                ? getListOfCandidates()
+                : Object.values(Vue.prototype.$TCT.candidates || {}).map(c => [c.pk, c.fields?.name || `Candidate ${c.pk}`]);
+        },
+
         states() {
-            return Object.values(Vue.prototype.$TCT.states);
+            // filter to valid states to avoid undefined "state.pk" errors
+            return Object.values(Vue.prototype.$TCT.states || {}).filter(
+                s => s && s.pk != null && s.fields && s.fields.abbr && s.fields.name
+            );
         },
 
         selectedStatesList() {
@@ -1694,40 +1740,27 @@ window.defineComponent('integrated-state-effect-visualizer', {
         smallStates() {
             // small states are hard to click on
             const smallStateAbbrs = ['CT', 'RI', 'DE', 'NH', 'VT'];
-
             return this.states.filter(state =>
-                smallStateAbbrs.includes(state.fields.abbr) &&
-                !this.isExtraState(state)
+                state?.fields?.abbr && smallStateAbbrs.includes(state.fields.abbr) && !this.isExtraState(state)
             );
         },
 
         extraStates() {
             const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
-
             return this.states.filter(state => {
-                if (state.fields.abbr === 'DC') {
-                    return false;
-                }
-
-                if (districtRegex.test(state.fields.name)) {
-                    return true;
-                }
-
+                if (!state?.fields) return false;
+                if (state.fields.abbr === 'DC') return false;
+                if (districtRegex.test(state.fields.name || '')) return true;
                 if (state.fields.abbr &&
                     ((state.fields.abbr.startsWith("M") || state.fields.abbr.startsWith("N")) &&
                         state.fields.abbr.length === 2 &&
                         !isNaN(state.fields.abbr.charAt(1)))) {
                     return true;
                 }
-
-                return state.fields.name.includes("CD") ||
-                    state.fields.name.includes("District") ||
-                    state.fields.name.includes("Congressional");
+                return (state.fields.name || '').includes("CD") ||
+                    (state.fields.name || '').includes("District") ||
+                    (state.fields.name || '').includes("Congressional");
             });
-        },
-
-        candidates() {
-            return getListOfCandidates();
         },
 
         allStateEffectsForAnswer() {
@@ -1779,7 +1812,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         <!-- Map and Controls in Flex Layout -->
         <div class="flex flex-col md:flex-row gap-4">
             <!-- Map Display -->
-            <div class="md:w-3/5">
+            <div class="md:w-3/5" v-if="!useListEditor">
                 <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
                     <div class="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1815,7 +1848,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                                 {{ state.fields.abbr }}
                             </text>
                             <!-- Value Labels (only on basic shapes) -->
-                            <text v-if="usingBasicShapes && Math.abs(stateEffects[state.pk]) > 0.001"
+                            <text v-if="usingBasicShapes && Math.abs(stateEffects[state.pk] || 0) > 0.0005"
                                 v-for="state in states"
                                 :key="'value-' + state.pk"
                                 :x="getStateTextPosition(state).x"
@@ -1874,6 +1907,24 @@ window.defineComponent('integrated-state-effect-visualizer', {
                         :onSelectPreset="selectPresetStates"
                         @applyValue="applyPresetValue">
                     </state-effect-presets>
+                </div>
+
+                <!-- Fallback State Dropdown -->
+                <div class="mb-4" v-if="useListEditor || !mapLoaded">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Select State</label>
+                    <div class="flex items-center gap-2">
+                        <select v-model="stateDropdownPk"
+                                class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm">
+                            <option :value="null" disabled>Select a state...</option>
+                            <option v-for="s in states" :key="'dd-' + s.pk" :value="s.pk">
+                                {{ s.fields.abbr }} - {{ s.fields.name }}
+                            </option>
+                        </select>
+                        <button @click="selectStateFromDropdown"
+                                class="bg-blue-500 text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                            Toggle
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Effect Value Editor -->
