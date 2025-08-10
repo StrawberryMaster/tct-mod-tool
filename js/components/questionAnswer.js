@@ -19,6 +19,7 @@ window.defineComponent('question', {
             activeTab: 'feedback',
             savedMessage: 'Saved',
             localDescription: '',
+            localAnswerDescription: '', // local buffer for the selected answer text
             temp_answers: [] // Used to trigger reactivity when data changes
         };
     },
@@ -49,6 +50,34 @@ window.defineComponent('question', {
                 q.fields.description = newVal;
                 this.markDirty();
                 // debounce autosave more aggressively while typing to avoid UI stalls
+                if (localStorage.getItem("autosaveEnabled") === "true") {
+                    window.requestAutosaveDebounced?.(1200);
+                    this.savedMessage = 'Saving...';
+                }
+            }
+        },
+        // keep answer input buffer in sync when switching answers
+        activeAnswer(newVal) {
+            if (!newVal) {
+                this.localAnswerDescription = '';
+                return;
+            }
+            const a = Vue.prototype.$TCT.answers[newVal];
+            this.localAnswerDescription = a?.fields.description || '';
+        },
+        // if the underlying store changes externally (clone, delete, etc.)
+        getAnswerDescription(newVal) {
+            if (this.activeAnswer && newVal !== this.localAnswerDescription) {
+                this.localAnswerDescription = newVal || '';
+            }
+        },
+        // push edits into store with debounced autosave like question text
+        localAnswerDescription(newVal) {
+            if (!this.activeAnswer) return;
+            const a = Vue.prototype.$TCT.answers[this.activeAnswer];
+            if (a) {
+                a.fields.description = newVal;
+                this.markDirty();
                 if (localStorage.getItem("autosaveEnabled") === "true") {
                     window.requestAutosaveDebounced?.(1200);
                     this.savedMessage = 'Saving...';
@@ -160,7 +189,8 @@ window.defineComponent('question', {
                 <div class="md:w-1/2" v-if="activeAnswer">
                     <div class="p-4">
                         <h3 class="font-bold text-md mb-3">Edit Answer #{{activeAnswer}}</h3>
-                        <textarea @input="updateAnswerDescription" :value="getAnswerDescription" 
+                        <textarea
+                            v-model="localAnswerDescription"
                             class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             rows="4" placeholder="Answer text..."></textarea>
                             
@@ -308,17 +338,16 @@ window.defineComponent('question', {
             // guard against selecting deleted/non-existent answers
             if (!Vue.prototype.$TCT.answers[pk]) {
                 this.activeAnswer = null;
+                this.localAnswerDescription = '';
                 return;
             }
             this.activeAnswer = pk;
+            this.localAnswerDescription = Vue.prototype.$TCT.answers[pk]?.fields.description || '';
             // no save here; just selection
         },
         updateAnswerDescription(evt) {
-            const a = Vue.prototype.$TCT.answers[this.activeAnswer];
-            if (!a) return; // guard if the answer was removed meanwhile
-            a.fields.description = evt.target.value;
-            this.markDirty();
-            this.quickAutosaveIfEnabled();
+            // not used anymore; kept for backwards safety
+            this.localAnswerDescription = evt.target.value;
         },
 
         addAnswer: function () {
@@ -448,6 +477,7 @@ window.defineComponent('question', {
 
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
+                this.localAnswerDescription = '';
             }
             this.markDirty();
             this.quickAutosaveIfEnabled();

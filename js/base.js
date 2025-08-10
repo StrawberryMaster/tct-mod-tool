@@ -1,3 +1,4 @@
+"use strict";
 const TEMPLATE_NAMES =
 [
     "1844-Clay.txt",
@@ -65,21 +66,27 @@ class TCTData {
         this.clean(this.states);
     }
 
+    // guard against nulls in map values
     cleanMap(map) {
         for (let [key, value] of map) {
-            if(typeof value === 'object') {
-                this.clean(map.get(key))
+            if (value && typeof value === 'object') {
+                this.clean(map.get(key));
             }
-        } 
+        }
     }
 
+    // avoid converting empty strings to 0; handle nulls safely
     clean(obj) {
+        if (!obj || typeof obj !== 'object') return;
         for (let key in obj) {
-            if(!isNaN(obj[key])) {
-                obj[key] = Number(obj[key]);
-            }
-            else if(typeof obj[key] === 'object') {
-                this.clean(obj[key])
+            const val = obj[key];
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed !== '' && !isNaN(trimmed)) {
+                    obj[key] = Number(trimmed);
+                }
+            } else if (val && typeof val === 'object') {
+                this.clean(val);
             }
         }
     }
@@ -175,6 +182,8 @@ class TCTData {
         for(let i = 0; i < stateScores.length; i++) {
             this.cloneStateScore(stateScores[i], newPk);
         }
+
+        return newPk; // allow callers to select the cloned answer
     }
 
     cloneFeedback(toClone, newAnswerPk) {
@@ -343,7 +352,7 @@ class TCTData {
     }
 
     deleteState(pk) {
-        if(!pk in this.states) {
+        if (!(pk in this.states)) {
             return;
         }
 
@@ -387,64 +396,75 @@ class TCTData {
         delete this.states[pk];
     }
 
+    // deterministic order of candidates
     getAllCandidatePKs() {
         let cans = new Set();
         const canState = Object.values(this.candidate_state_multiplier);
 
-        for(let i = 0; i < canState.length; i++) {
+        for (let i = 0; i < canState.length; i++) {
             cans.add(canState[i].fields.candidate);
         }
-
-        return Array.from(cans);
+        return Array.from(cans).sort((a, b) => a - b);
     }
 
     getMapForPreview(svg) {
-        console.log("getMapForPreview called with SVG length:", svg.length);
-        
+        console.log("getMapForPreview called with SVG length:", svg?.length ?? 0);
         if (!svg || typeof svg !== 'string') {
             console.error("Invalid SVG data: not a string");
             return [];
         }
-        
-        // Create a DOM parser
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
-        
-        // Query for path elements
-        const pathElements = svgDoc.querySelectorAll('path');
-        console.log(`Found ${pathElements.length} path elements in SVG`);
-        
-        let out = [];
-        
-        for (let i = 0; i < pathElements.length; i++) {
-            try {
-                const path = pathElements[i];
-                let id = path.getAttribute('id') || path.getAttribute('data-id');
-                
-                if (!id) {
-                    console.warn(`Path at index ${i} has no id attribute`);
-                    continue;
+
+        // prefer DOM parsing when available
+        try {
+            if (typeof DOMParser !== 'undefined') {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+                const pathElements = svgDoc.querySelectorAll('path');
+                console.log(`Found ${pathElements.length} path elements in SVG`);
+
+                const out = [];
+                for (let i = 0; i < pathElements.length; i++) {
+                    try {
+                        const path = pathElements[i];
+                        const id = path.getAttribute('id') || path.getAttribute('data-id');
+                        if (!id) {
+                            if (i % 25 === 0) console.warn(`Path at index ${i} has no id attribute`);
+                            continue;
+                        }
+                        const d = path.getAttribute('d');
+                        if (!d) {
+                            if (i % 25 === 0) console.warn(`Path with id ${id} has no d attribute`);
+                            continue;
+                        }
+                        const abbr = id.split(" ")[0].replaceAll("-", "_");
+                        out.push([abbr, d]);
+                        if (i % 10 === 0) console.log(`Processed state: ${abbr}`);
+                    } catch (err) {
+                        console.error(`Error processing path at index ${i}:`, err);
+                    }
                 }
-                
-                let d = path.getAttribute('d');
-                if (!d) {
-                    console.warn(`Path with id ${id} has no d attribute`);
-                    continue;
-                }
-                
-                let abbr = id.split(" ")[0].replaceAll("-", "_");
-                out.push([abbr, d]);
-                
-                // Log every 10th state to avoid console spam
-                if (i % 10 === 0) {
-                    console.log(`Processed state: ${abbr}`);
-                }
-            } catch (error) {
-                console.error(`Error processing path at index ${i}:`, error);
+                console.log(`Successfully processed ${out.length} states`);
+                return out;
             }
+        } catch (e) {
+            console.warn("DOMParser not available; falling back to regex parsing.");
         }
-    
-        console.log(`Successfully processed ${out.length} states`);
+
+        // fallback: regex parsing when DOMParser is not available
+        const out = [];
+        const pathRegex = /<path\b[^>]*>/gi;
+        const idRe = /id\s*=\s*"([^"]+)"/i;
+        const dRe = /d\s*=\s*"([^"]+)"/i;
+        const paths = svg.match(pathRegex) || [];
+        for (let i = 0; i < paths.length; i++) {
+            const path = paths[i];
+            const idMatch = idRe.exec(path);
+            const dMatch = dRe.exec(path);
+            if (!idMatch || !dMatch) continue;
+            const abbr = idMatch[1].split(" ")[0].replaceAll("-", "_");
+            out.push([abbr, dMatch[1]]);
+        }
+        console.log(`Regex fallback processed ${out.length} states`);
         return out;
     }
 
@@ -582,32 +602,35 @@ class TCTData {
     }
 
     loadMap() {
-
         const cans = this.getAllCandidatePKs();
         const issues = Object.keys(this.issues);
 
         const existingStateKeys = Object.keys(this.states);
         existingStateKeys.forEach((x) => this.deleteState(x));
 
-        const svg = this.jet_data.mapping_data.mapSvg;
-
-        const pathsRegex = /<path((.|\n)*?)(\/|<\/path)>/g;
-        const idRegex = / id[ \t]*=[ \t]*"(.*)"/g;
-        const dRegex = / d[ \t]*=[ \t]*"(.*)"/g;
-
-        const paths = [...svg.match(pathsRegex)];
-
+        const svg = this.jet_data.mapping_data.mapSvg || "";
         const electionPk = this.jet_data.mapping_data.electionPk ?? -1;
 
-        for(let i = 0; i < paths.length; i++) {
-            const path = paths[i];
+        const pathRegex = /<path\b[^>]*>/gi;
+        const idRe = /id\s*=\s*"([^"]+)"/i;
+        const dRe = /d\s*=\s*"([^"]+)"/i;
+        const paths = svg.match(pathRegex) || [];
 
-            let id = path.match(idRegex)[0].split("\"")[1].replace("\"", "");
-            let d = path.match(dRegex)[0].split("\"")[1].replace("\"", "");
-            let abbr = id.split(" ")[0].replaceAll("-", "_");
+        for (let i = 0; i < paths.length; i++) {
+            const path = paths[i];
+            const idMatch = idRe.exec(path);
+            const dMatch = dRe.exec(path);
+            if (!idMatch || !dMatch) {
+                console.warn(`Skipping path index ${i} due to missing id or d attribute`);
+                continue;
+            }
+
+            const id = idMatch[1];
+            const d = dMatch[1];
+            const abbr = id.split(" ")[0].replaceAll("-", "_");
 
             const newPk = this.getNewPk();
-            let x = {
+            const state = {
                 "model": "campaign_trail.state",
                 "pk": newPk,
                 "fields": {
@@ -620,48 +643,43 @@ class TCTData {
                     "election": electionPk,
                 },
                 "d": d
-            }
-            this.states[newPk] = x;
-            this.states[newPk].d = d;
-            
-            for(let i = 0; i < cans.length; i++) {
+            };
+            this.states[newPk] = state;
+
+            for (let j = 0; j < cans.length; j++) {
                 const cPk = this.getNewPk();
-                // Create candidate state multipliers
-                let c = {
+                const c = {
                     "model": "campaign_trail.candidate_state_multiplier",
                     "pk": cPk,
                     "fields": {
-                        "candidate": cans[i],
+                        "candidate": cans[j],
                         "state": newPk,
                         "state_multiplier": 1
                     }
-                }
+                };
                 this.candidate_state_multiplier[cPk] = c;
             }
 
-            for(let i = 0; i < issues.length; i++) {
+            for (let k = 0; k < issues.length; k++) {
                 const iPk = this.getNewPk();
-                // Create state issue scores
-                let iss = {
+                const iss = {
                     "model": "campaign_trail.state_issue_score",
                     "pk": iPk,
                     "fields": {
                         "state": newPk,
-                        "issue": issues[i],
+                        "issue": issues[k],
                         "state_issue_score": 0,
                         "weight": 1.5
                     }
-                }
+                };
                 this.state_issue_scores[iPk] = iss;
             }
-            
         }
-
     }
 
     getMapCode() {
         const viewboxCode = false ? "this.paper.setViewBox(0,0,c,u,false);" : `this.paper.setViewBox(${this.jet_data.mapping_data.dx}, ${this.jet_data.mapping_data.dy}, ${this.jet_data.mapping_data.x}, ${this.jet_data.mapping_data.y}, false);`;
-        return `(function(e,t,n,r,i){function s(e,t,n,r){r=r instanceof Array?r:[];var i={};for(var s=0;s<r.length;s++){i[r[s]]=true}var o=function(e){this.element=e};o.prototype=n;e.fn[t]=function(){var n=arguments;var r=this;this.each(function(){var s=e(this);var u=s.data("plugin-"+t);if(!u){u=new o(s);s.data("plugin-"+t,u);if(u._init){u._init.apply(u,n)}}else if(typeof n[0]=="string"&&n[0].charAt(0)!="_"&&typeof u[n[0]]=="function"){var a=Array.prototype.slice.call(n,1);var f=u[n[0]].apply(u,a);if(n[0]in i){r=f}}});return r}}var o=370,u=215,a=10;var f={stateStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},stateHoverStyles:{fill:"#33c",stroke:"#000",scale:[1.1,1.1]},stateHoverAnimation:500,stateSpecificStyles:{},stateSpecificHoverStyles:{},click:null,mouseover:null,mouseout:null,clickState:{},mouseoverState:{},mouseoutState:{},showLabels:true,labelWidth:20,labelHeight:15,labelGap:6,labelRadius:3,labelBackingStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},labelBackingHoverStyles:{fill:"#33c",stroke:"#000"},stateSpecificLabelBackingStyles:{},stateSpecificLabelBackingHoverStyles:{},labelTextStyles:{fill:"#fff",stroke:"none","font-weight":300,"stroke-width":0,"font-size":"10px"},labelTextHoverStyles:{},stateSpecificLabelTextStyles:{},stateSpecificLabelTextHoverStyles:{}};var l={_init:function(t){this.options={};e.extend(this.options,f,t);var n=this.element.width();var i=this.element.height();var s=this.element.width()/o;var l=this.element.height()/u;this.scale=Math.min(s,l);this.labelAreaWidth=Math.ceil(a/this.scale);var c=o+Math.max(0,this.labelAreaWidth-a);this.paper=r(this.element.get(0),c,u);this.paper.setSize(n,i);${viewboxCode}this.stateHitAreas={};this.stateShapes={};this.topShape=null;this._initCreateStates();this.labelShapes={};this.labelTexts={};this.labelHitAreas={};if(this.options.showLabels){this._initCreateLabels()}},_initCreateStates:function(){var t=this.options.stateStyles;var n=this.paper;var r={${this.getStateJavascriptForMapping()}};var i={};for(var s in r){i={};if(this.options.stateSpecificStyles[s]){e.extend(i,t,this.options.stateSpecificStyles[s])}else{i=t}this.stateShapes[s]=n.path(r[s]).attr(i);this.topShape=this.stateShapes[s];this.stateHitAreas[s]=n.path(r[s]).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.stateHitAreas[s].node.dataState=s}this._onClickProxy=e.proxy(this,"_onClick");this._onMouseOverProxy=e.proxy(this,"_onMouseOver"),this._onMouseOutProxy=e.proxy(this,"_onMouseOut");for(var s in this.stateHitAreas){this.stateHitAreas[s].toFront();e(this.stateHitAreas[s].node).bind("mouseout",this._onMouseOutProxy);e(this.stateHitAreas[s].node).bind("click",this._onClickProxy);e(this.stateHitAreas[s].node).bind("mouseover",this._onMouseOverProxy)}},_initCreateLabels:function(){var t=this.paper;var n=[];var r=860;var i=220;var s=this.options.labelWidth;var o=this.options.labelHeight;var u=this.options.labelGap;var a=this.options.labelRadius;var f=s/this.scale;var l=o/this.scale;var c=(s+u)/this.scale;var h=(o+u)/this.scale*.5;var p=a/this.scale;var d=this.options.labelBackingStyles;var v=this.options.labelTextStyles;var m={};for(var g=0,y,b,w;g<n.length;++g){w=n[g];y=(g+1)%2*c+r;b=g*h+i,m={};if(this.options.stateSpecificLabelBackingStyles[w]){e.extend(m,d,this.options.stateSpecificLabelBackingStyles[w])}else{m=d}this.labelShapes[w]=t.rect(y,b,f,l,p).attr(m);m={};if(this.options.stateSpecificLabelTextStyles[w]){e.extend(m,v,this.options.stateSpecificLabelTextStyles[w])}else{e.extend(m,v)}if(m["font-size"]){m["font-size"]=parseInt(m["font-size"])/this.scale+"px"}this.labelTexts[w]=t.text(y+f/2,b+l/2,w).attr(m);this.labelHitAreas[w]=t.rect(y,b,f,l,p).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.labelHitAreas[w].node.dataState=w}for(var w in this.labelHitAreas){this.labelHitAreas[w].toFront();e(this.labelHitAreas[w].node).bind("mouseout",this._onMouseOutProxy);e(this.labelHitAreas[w].node).bind("click",this._onClickProxy);e(this.labelHitAreas[w].node).bind("mouseover",this._onMouseOverProxy)}},_getStateFromEvent:function(e){var t=e.target&&e.target.dataState||e.dataState;return this._getState(t)},_getState:function(e){var t=this.stateShapes[e];var n=this.stateHitAreas[e];var r=this.labelShapes[e];var i=this.labelTexts[e];var s=this.labelHitAreas[e];return{shape:t,hitArea:n,name:e,labelBacking:r,labelText:i,labelHitArea:s}},_onMouseOut:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseout",e,t)},_defaultMouseOutAction:function(t){var n={};if(this.options.stateSpecificStyles[t.name]){e.extend(n,this.options.stateStyles,this.options.stateSpecificStyles[t.name])}else{n=this.options.stateStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingStyles[t.name]){e.extend(n,this.options.labelBackingStyles,this.options.stateSpecificLabelBackingStyles[t.name])}else{n=this.options.labelBackingStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_onClick:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("click",e,t)},_onMouseOver:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseover",e,t)},_defaultMouseOverAction:function(t){this.bringShapeToFront(t.shape);this.paper.safari();var n={};if(this.options.stateSpecificHoverStyles[t.name]){e.extend(n,this.options.stateHoverStyles,this.options.stateSpecificHoverStyles[t.name])}else{n=this.options.stateHoverStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingHoverStyles[t.name]){e.extend(n,this.options.labelBackingHoverStyles,this.options.stateSpecificLabelBackingHoverStyles[t.name])}else{n=this.options.labelBackingHoverStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_triggerEvent:function(t,n,r){var i=r.name;var s=false;var o=e.Event("usmap"+t+i);o.originalEvent=n;if(this.options[t+"State"][i]){s=this.options[t+"State"][i](o,r)===false}if(o.isPropagationStopped()){this.element.trigger(o,[r]);s=s||o.isDefaultPrevented()}if(!o.isPropagationStopped()){var u=e.Event("usmap"+t);u.originalEvent=n;if(this.options[t]){s=this.options[t](u,r)===false||s}if(!u.isPropagationStopped()){this.element.trigger(u,[r]);s=s||u.isDefaultPrevented()}}if(!s){switch(t){case"mouseover":this._defaultMouseOverAction(r);break;case"mouseout":this._defaultMouseOutAction(r);break}}return!s},trigger:function(e,t,n){t=t.replace("usmap","");e=e.toUpperCase();var r=this._getState(e);this._triggerEvent(t,n,r)},bringShapeToFront:function(e){if(this.topShape){e.insertAfter(this.topShape)}this.topShape=e}};var c=[];s(e,"usmap",l,c)})(jQuery,document,window,Raphael)`
+        return `(function(e,t,n,r,i){function s(e,t,n,r){r=r instanceof Array?r:[];var i={};for(var s=0;s<r.length;s++){i[r[s]]=true}var o=function(e){this.element=e};o.prototype=n;e.fn[t]=function(){var n=arguments;var r=this;this.each(function(){var s=e(this);var u=s.data("plugin-"+t);if(!u){u=new o(s);s.data("plugin-"+t,u);if(u._init){u._init.apply(u,n)}}else if(typeof n[0]=="string"&&n[0].charAt(0)!="_"&&typeof u[n[0]]=="function"){var a=Array.prototype.slice.call(n,1);var f=u[n[0]].apply(u,a);if(n[0]in i){r=f}}});return r}}var o=370,u=215,a=10;var f={stateStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},stateHoverStyles:{fill:"#33c",stroke:"#000",scale:[1.1,1.1]},stateSpecificStyles:{},stateSpecificHoverStyles:{},click:null,mouseover:null,mouseout:null,clickState:{},mouseoverState:{},mouseoutState:{},showLabels:true,labelWidth:20,labelHeight:15,labelGap:6,labelRadius:3,labelBackingStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},labelBackingHoverStyles:{fill:"#33c",stroke:"#000"},stateSpecificLabelBackingStyles:{},stateSpecificLabelBackingHoverStyles:{},labelTextStyles:{fill:"#fff",stroke:"none","font-weight":300,"stroke-width":0,"font-size":"10px"},labelTextHoverStyles:{},stateSpecificLabelTextStyles:{},stateSpecificLabelTextHoverStyles:{}};var l={_init:function(t){this.options={};e.extend(this.options,f,t);var n=this.element.width();var i=this.element.height();var s=this.element.width()/o;var l=this.element.height()/u;this.scale=Math.min(s,l);this.labelAreaWidth=Math.ceil(a/this.scale);var c=o+Math.max(0,this.labelAreaWidth-a);this.paper=r(this.element.get(0),c,u);this.paper.setSize(n,i);${viewboxCode}this.stateHitAreas={};this.stateShapes={};this.topShape=null;this._initCreateStates();this.labelShapes={};this.labelTexts={};this.labelHitAreas={};if(this.options.showLabels){this._initCreateLabels()}},_initCreateStates:function(){var t=this.options.stateStyles;var n=this.paper;var r={${this.getStateJavascriptForMapping()}};var i={};for(var s in r){i={};if(this.options.stateSpecificStyles[s]){e.extend(i,t,this.options.stateSpecificStyles[s])}else{i=t}this.stateShapes[s]=n.path(r[s]).attr(i);this.topShape=this.stateShapes[s];this.stateHitAreas[s]=n.path(r[s]).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.stateHitAreas[s].node.dataState=s}this._onClickProxy=e.proxy(this,"_onClick");this._onMouseOverProxy=e.proxy(this,"_onMouseOver"),this._onMouseOutProxy=e.proxy(this,"_onMouseOut");for(var s in this.stateHitAreas){this.stateHitAreas[s].toFront();e(this.stateHitAreas[s].node).bind("mouseout",this._onMouseOutProxy);e(this.stateHitAreas[s].node).bind("click",this._onClickProxy);e(this.stateHitAreas[s].node).bind("mouseover",this._onMouseOverProxy)}},_initCreateLabels:function(){var t=this.paper;var n=[];var r=860;var i=220;var s=this.options.labelWidth;var o=this.options.labelHeight;var u=this.options.labelGap;var a=this.options.labelRadius;var f=s/this.scale;var l=o/this.scale;var c=(s+u)/this.scale;var h=(o+u)/this.scale*.5;var p=a/this.scale;var d=this.options.labelBackingStyles;var v=this.options.labelTextStyles;var m={};for(var g=0,y,b,w;g<n.length;++g){w=n[g];y=(g+1)%2*c+r;b=g*h+i,m={};if(this.options.stateSpecificLabelBackingStyles[w]){e.extend(m,d,this.options.stateSpecificLabelBackingStyles[w])}else{m=d}this.labelShapes[w]=t.rect(y,b,f,l,p).attr(m);m={};if(this.options.stateSpecificLabelTextStyles[w]){e.extend(m,v,this.options.stateSpecificLabelTextStyles[w])}else{e.extend(m,v)}if(m["font-size"]){m["font-size"]=parseInt(m["font-size"])/this.scale+"px"}this.labelTexts[w]=t.text(y+f/2,b+l/2,w).attr(m);this.labelHitAreas[w]=t.rect(y,b,f,l,p).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.labelHitAreas[w].node.dataState=w}for(var w in this.labelHitAreas){this.labelHitAreas[w].toFront();e(this.labelHitAreas[w].node).bind("mouseout",this._onMouseOutProxy);e(this.labelHitAreas[w].node).bind("click",this._onClickProxy);e(this.labelHitAreas[w].node).bind("mouseover",this._onMouseOverProxy)}},_getStateFromEvent:function(e){var t=e.target&&e.target.dataState||e.dataState;return this._getState(t)},_getState:function(e){var t=this.stateShapes[e];var n=this.stateHitAreas[e];var r=this.labelShapes[e];var i=this.labelTexts[e];var s=this.labelHitAreas[e];return{shape:t,hitArea:n,name:e,labelBacking:r,labelText:i,labelHitArea:s}},_onMouseOut:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseout",e,t)},_defaultMouseOutAction:function(t){var n={};if(this.options.stateSpecificStyles[t.name]){e.extend(n,this.options.stateStyles,this.options.stateSpecificStyles[t.name])}else{n=this.options.stateStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingStyles[t.name]){e.extend(n,this.options.labelBackingStyles,this.options.stateSpecificLabelBackingStyles[t.name])}else{n=this.options.labelBackingStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_onClick:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("click",e,t)},_onMouseOver:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseover",e,t)},_defaultMouseOverAction:function(t){this.bringShapeToFront(t.shape);this.paper.safari();var n={};if(this.options.stateSpecificHoverStyles[t.name]){e.extend(n,this.options.stateHoverStyles,this.options.stateSpecificHoverStyles[t.name])}else{n=this.options.stateHoverStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingHoverStyles[t.name]){e.extend(n,this.options.labelBackingHoverStyles,this.options.stateSpecificLabelBackingHoverStyles[t.name])}else{n=this.options.labelBackingHoverStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_triggerEvent:function(t,n,r){var i=r.name;var s=false;var o=e.Event("usmap"+t+i);o.originalEvent=n;if(this.options[t+"State"][i]){s=this.options[t+"State"][i](o,r)===false}if(o.isPropagationStopped()){this.element.trigger(o,[r]);s=s||o.isDefaultPrevented()}if(!o.isPropagationStopped()){var u=e.Event("usmap"+t);u.originalEvent=n;if(this.options[t]){s=this.options[t](u,r)===false||s}if(!u.isPropagationStopped()){this.element.trigger(u,[r]);s=s||u.isDefaultPrevented()}}if(!s){switch(t){case"mouseover":this._defaultMouseOverAction(r);break;case"mouseout":this._defaultMouseOutAction(r);break}}return!s},trigger:function(e,t,n){t=t.replace("usmap","");e=e.toUpperCase();var r=this._getState(e);this._triggerEvent(t,n,r)},bringShapeToFront:function(e){if(this.topShape){e.insertAfter(this.topShape)}this.topShape=e}};var c=[];s(e,"usmap",l,c)})(jQuery,document,window,Raphael)`
     }
 
     getStateJavascriptForMapping() {
@@ -856,63 +874,50 @@ cyoAdventure = function (a) {
 }
 
 function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = []) {
-    let f = raw_file
-    if(!f.includes(start)) {
-        if(backup != null) {
-            console.log(`Start [${start}] not in file provided, trying backup ${backup}`)
-            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required)
-        }
+    let f = raw_file;
+    let res; // declare once; prevent implicit global
 
-        console.log(`ERROR: Start [${start}] not in file provided, returning none`)
-            
-        if(required) {
-            alert(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it, but the editor may be missing some features because the section is missing. Please check your base scenario.`)
+    if (!f.includes(start)) {
+        if (backup != null) {
+            console.log(`Start [${start}] not in file provided, trying backup ${backup}`);
+            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required);
         }
-        
-        return fallback
-    }
-    else if(start.includes("JSON.parse")) {
-        f = f.replaceAll('\\"', '"')
-        f = f.replaceAll("\\'", "'")
-        f = f.replaceAll("\\\\", "\\")
+        console.log(`ERROR: Start [${start}] not in file provided, returning none`);
+        if (required) {
+            alert(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it, but the editor may be missing some features because the section is missing. Please check your base scenario.`);
+        }
+        return fallback;
+    } else if (start.includes("JSON.parse")) {
+        f = f.replaceAll('\\"', '"').replaceAll("\\'", "'").replaceAll("\\\\", "\\");
     }
 
     let startString = f.trim().split(start)[1];
     const possibleEndings = getAllIndexes(startString, end);
     let foundValidJSON = false;
 
-    for(let i = 0; i < possibleEndings.length; i++) {
-        let raw = startString.slice(0, possibleEndings[i])
+    for (let i = 0; i < possibleEndings.length; i++) {
+        let raw = startString.slice(0, possibleEndings[i]);
+        if (raw[0] == '"' || raw[0] == "'") raw = raw.substring(1);
+        if (raw.slice(-1) == '"' || raw.slice(-1) == "'") raw = raw.substring(0, raw.length - 1);
 
-        if(raw[0] == '"' || raw[0] == "'") {
-            raw = raw.substring(1)
-        }
-            
-        if(raw.slice(-1) == '"' || raw.slice(-1) == "'") {
-            raw = raw.substring(0, raw.length-1)
-        }
-            
         try {
-            if( end == "]")
-                raw = "[" + raw + "]"
-            res = JSON.parse(raw)
+            if (end == "]") raw = "[" + raw + "]";
+            res = JSON.parse(raw);
             foundValidJSON = true;
             console.log("Found valid ending for " + start + "!");
             break;
-        }
-        catch(e) {
-            console.log(`Error while parsing JSON for ${start}: ${e} going to try next ending instead`)
+        } catch (e) {
+            console.log(`Error while parsing JSON for ${start}: ${e} going to try next ending instead`);
         }
     }
 
-    if(!foundValidJSON) {
-        console.log(`Error: Could not find a valid JSON for start ${start}`)
+    if (!foundValidJSON) {
+        console.log(`Error: Could not find a valid JSON for start ${start}`);
         return fallback;
     }
 
-    console.log(`found ${start}!`)
-
-    return res
+    console.log(`found ${start}!`);
+    return res;
 }
 
 function extractCode(raw_json) {
@@ -921,27 +926,26 @@ function extractCode(raw_json) {
 }
 
 function loadDataFromFile(raw_json) {
-
-    let highest_pk = -1
+    let highest_pk = -1;
 
     let questions = new Map();
-    let answers = {}
-    let states = {}
-    let feedbacks = {}
+    let answers = {};
+    let states = {};
+    let feedbacks = {};
 
-    let answer_score_globals = {}
-    let answer_score_issues = {}
-    let answer_score_states = {}
+    let answer_score_globals = {};
+    let answer_score_issues = {};
+    let answer_score_states = {};
     
-    let state_issue_scores = {}
+    let state_issue_scores = {};
 
-    let candidate_issue_scores = {}
-    let candidate_state_multipliers = {}
-    let running_mate_issue_scores = {}
+    let candidate_issue_scores = {};
+    let candidate_state_multipliers = {};
+    let running_mate_issue_scores = {};
 
-    let issues = {}
+    let issues = {};
 
-    let jet_data = {}
+    let jet_data = {};
 
     const code = extractCode(raw_json);
 
@@ -951,7 +955,8 @@ function loadDataFromFile(raw_json) {
     raw_json = raw_json.replaceAll("\r", "");
     raw_json = raw_json.replaceAll(/ +/g, " ");
 
-    states_json = extractJSON(raw_json, "campaignTrail_temp.states_json = JSON.parse(", ");", "campaignTrail_temp.states_json = [", "]")
+    // declare locals to avoid implicit globals
+    const states_json = extractJSON(raw_json, "campaignTrail_temp.states_json = JSON.parse(", ");", "campaignTrail_temp.states_json = [", "]");
     states_json.forEach(state => {
 
         if(state["pk"] in states) {
@@ -963,7 +968,7 @@ function loadDataFromFile(raw_json) {
         states[state["pk"]] = state
     });
        
-    questions_json = extractJSON(raw_json, "campaignTrail_temp.questions_json = JSON.parse(", ");", "campaignTrail_temp.questions_json = [", "]");
+    const questions_json = extractJSON(raw_json, "campaignTrail_temp.questions_json = JSON.parse(", ");", "campaignTrail_temp.questions_json = [", "]");
     questions_json.forEach(question => {
 
         if(question["pk"] in questions) {
@@ -980,7 +985,7 @@ function loadDataFromFile(raw_json) {
         questions.set(question.pk, question);
     });
 
-    answers_json = extractJSON(raw_json, "campaignTrail_temp.answers_json = JSON.parse(", ");", "campaignTrail_temp.answers_json = [", "]");
+    const answers_json = extractJSON(raw_json, "campaignTrail_temp.answers_json = JSON.parse(", ");", "campaignTrail_temp.answers_json = [", "]");
     answers_json.forEach(answer => {
 
         if(answer["pk"] in answers) {
@@ -994,11 +999,11 @@ function loadDataFromFile(raw_json) {
             answer['fields']['description'] = answer['fields']['description'].replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
         
-        key = answer["pk"];
+        const key = answer["pk"];
         answers[key] = answer;
     });
 
-    answer_feedbacks_json = extractJSON(raw_json, "campaignTrail_temp.answer_feedback_json = JSON.parse(", ");", "campaignTrail_temp.answer_feedback_json = [", "]");
+    const answer_feedbacks_json = extractJSON(raw_json, "campaignTrail_temp.answer_feedback_json = JSON.parse(", ");", "campaignTrail_temp.answer_feedback_json = [", "]");
     answer_feedbacks_json.forEach(feedback => {
 
         if(feedback["pk"] in feedbacks) {
@@ -1012,11 +1017,11 @@ function loadDataFromFile(raw_json) {
             feedback['fields']['answer_feedback'] = feedback['fields']['answer_feedback'].replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
         
-        key = feedback['pk'];
+        const key = feedback['pk'];
         feedbacks[key] = feedback;
     });
 
-    answer_score_globals_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_global_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_global_json = [", "]");
+    const answer_score_globals_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_global_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_global_json = [", "]");
     answer_score_globals_json.forEach(x => {
 
         if(x["pk"] in answer_score_globals) {
@@ -1026,11 +1031,11 @@ function loadDataFromFile(raw_json) {
 
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         answer_score_globals[key] = x;
     });
 
-    answer_score_issues_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_issue_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_issue_json = [", "]");
+    const answer_score_issues_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_issue_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_issue_json = [", "]");
     answer_score_issues_json.forEach(x => {
 
         if(x["pk"] in answer_score_issues) {
@@ -1039,11 +1044,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         answer_score_issues[key] = x;
     });
 
-    answer_score_states_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_state_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_state_json = [", "]");
+    const answer_score_states_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_state_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_state_json = [", "]");
     answer_score_states_json.forEach(x => {
 
         if(x["pk"] in answer_score_states) {
@@ -1052,11 +1057,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         answer_score_states[key] = x;
     });
 
-    candidate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.candidate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.candidate_issue_score_json = [", "]");
+    const candidate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.candidate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.candidate_issue_score_json = [", "]");
     candidate_issue_scores_json.forEach(x => {
 
         if(x["pk"] in candidate_issue_scores) {
@@ -1065,11 +1070,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         candidate_issue_scores[key] = x;
     });
 
-    candidate_state_multipliers_json = extractJSON(raw_json, "campaignTrail_temp.candidate_state_multiplier_json = JSON.parse(", ");", "campaignTrail_temp.candidate_state_multiplier_json = [", "]");
+    const candidate_state_multipliers_json = extractJSON(raw_json, "campaignTrail_temp.candidate_state_multiplier_json = JSON.parse(", ");", "campaignTrail_temp.candidate_state_multiplier_json = [", "]");
     candidate_state_multipliers_json.forEach(x => {
 
         if(x["pk"] in candidate_state_multipliers) {
@@ -1078,11 +1083,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         candidate_state_multipliers[key] = x;
     });
 
-    running_mate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.running_mate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.running_mate_issue_score_json = [", "]");
+    const running_mate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.running_mate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.running_mate_issue_score_json = [", "]");
     running_mate_issue_scores_json.forEach(x => {
 
         if(x["pk"] in running_mate_issue_scores) {
@@ -1091,11 +1096,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         running_mate_issue_scores[key] = x;
     });
 
-    state_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.state_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.state_issue_score_json = [", "]");
+    const state_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.state_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.state_issue_score_json = [", "]");
     state_issue_scores_json.forEach(x => {
 
         if(x["pk"] in state_issue_scores) {
@@ -1104,11 +1109,11 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         state_issue_scores[key] = x;
     });
 
-    issues_json = extractJSON(raw_json, "campaignTrail_temp.issues_json = JSON.parse(", ");", "campaignTrail_temp.issues_json = [", "]");
+    const issues_json = extractJSON(raw_json, "campaignTrail_temp.issues_json = JSON.parse(", ");", "campaignTrail_temp.issues_json = [", "]");
     issues_json.forEach(x => {
 
         if(x["pk"] in issues) {
@@ -1117,19 +1122,17 @@ function loadDataFromFile(raw_json) {
         }
 
         highest_pk = Math.max(highest_pk, x["pk"]);
-        key = x['pk'];
+        const key = x['pk'];
         issues[key] = x;
     });
 
-    if(duplicates) alert("WARNING: Duplicate PKs found during import process, see console for more details. Some features may not work as expected or data may be missing.")
+    if(duplicates) alert("WARNING: Duplicate PKs found during import process, see console for more details. Some features may not work as expected or data may be missing.");
 
     jet_data = extractJSON(raw_json, "campaignTrail_temp.jet_data = [", "]", null, null, false, [{}])[0];
-
     jet_data.code_to_add = code;
 
-    data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data)
-
-    return data
+    let data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
+    return data;
 }
 
 // https://stackoverflow.com/questions/20798477/how-to-find-the-indexes-of-all-occurrences-of-an-element-in-array#:~:text=The%20.,val%2C%20i%2B1))%20!%3D

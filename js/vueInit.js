@@ -45,14 +45,13 @@ function startAutosave() {
 }
 
 function saveAutosave() {
-    let code2 = Vue.prototype.$TCT.exportCode2();
+    const tct = Vue?.prototype?.$TCT;
+    if (!tct || typeof tct.exportCode2 !== 'function') return;
+    let code2 = tct.exportCode2();
     localStorage.setItem("autosave", code2);
-    // notify listeners autosave finished
     try {
         window.dispatchEvent(new CustomEvent('tct:autosaved'));
-    } catch (e) {
-        // no-op
-    }
+    } catch (e) { /* no-op */ }
 }
 
 function firstNonNull(arr) {
@@ -130,7 +129,7 @@ function getListOfCandidates() {
     let arr = Object.values(Vue.prototype.$TCT.candidate_issue_score).map(c => c.fields.candidate);
     arr = Array.from(new Set(arr));
     arr = arr.map((c) => {
-        nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
+        let nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
         if(nickname != "" && nickname != null) {
             nickname = ` (${nickname})`
             return [c, c + nickname];
