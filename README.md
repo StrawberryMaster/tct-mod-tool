@@ -1,9 +1,13 @@
-# [Jet's The Campaign Trail Mod Tool](https://jetsimon.com/Jets-The-Campaign-Trail-Mod-Tool-Website/)
+# [The Campaign Trail Mod Tool](https://strawberrymaster.github.io/tct-mod-tool/)
 
-For context, this is a fork of Jet's TCT Mod tool. The main difference here is that it implements several of [madbailey](https://github.com/madbailey)'s fork of the TCT mod tool, including the revamped layout for editing questions and state scores. Some other advancements include:
+For context, this is a fork of [Jet's The Campaign Trail Mod Tool](https://jetsimon.com/Jets-The-Campaign-Trail-Mod-Tool-Website/). The main difference here is that it implements several of [madbailey](https://github.com/madbailey)'s changes on their fork of the aforementioned tool, including the revamped layout for editing questions and state scores. Some other advancements include:
 * Upgraded to Vue 3, which brings improved performance
+    * Especially when working with large mods!
 * Reactive elements for a smoother user experience - no more switching between states to see changes
 * A smarter-ish autosave system that reduces data loss
+* Modernizations for better code organization and maintainability
+* A couple of revamped sections, such as the CYOA and State tabs, for consistency (and following madbailey's lead)
+* Other accessibility improvements
 
 ----
 
