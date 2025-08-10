@@ -4,7 +4,10 @@ window.defineComponent('question-picker', {
         return {
             showReorder: false,
             orderList: [],       // [{ pk, text }]
-            dragIndex: null
+            dragIndex: null,
+            showManageModal: false,
+            manageTab: 'reorder', // 'reorder' | 'select'
+            searchSelect: ''
         };
     },
 
@@ -13,49 +16,96 @@ window.defineComponent('question-picker', {
 
     <label for="questionPicker">Questions <span class="text-gray-700 italic">({{numberOfQuestions}})</span>:</label><br>
 
-    <select @click="onClick" @change="onChange($event)" name="questionPicker" id="questionPicker">
+    <!-- For small sets use the classic dropdown, for large sets show a button that opens the modal -->
+    <select v-if="!useModalSelect" @click="onClick" @change="onChange($event)" name="questionPicker" id="questionPicker">
         <option v-for="question in questions" :value="question.pk" :key="question.pk" :selected="currentQuestion == question.pk">{{question.pk}} - {{questionDescription(question)}}</option>
-    </select><br>
+    </select>
+    <div v-else class="my-1 flex items-center gap-2">
+        <button class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" @click="openManageModal('select')">Select Question...</button>
+        <span class="text-xs text-gray-600">Using modal due to many questions ({{numberOfQuestions}})</span>
+    </div>
+    <br>
 
     <div class="flex flex-wrap gap-2">
         <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
         <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
-        <button class="bg-gray-500 text-white p-2 my-2 rounded hover:bg-gray-600" v-on:click="toggleReorder()">
-            {{ showReorder ? 'Done' : 'Reorder Questions' }}
+        <button class="bg-gray-500 text-white p-2 my-2 rounded hover:bg-gray-600" @click="openManageModal('reorder')">
+            Manage Questions
         </button>
     </div>
 
-    <div v-if="showReorder" class="bg-white border rounded p-3 mt-2">
-        <div class="flex justify-between items-center mb-2">
-            <h3 class="font-semibold text-sm">Drag to reorder (top = asked first)</h3>
-            <div class="flex gap-2">
-                <button class="bg-gray-200 px-2 py-1 rounded text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
-                <button class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+    <!-- Question Manager -->
+    <div v-if="showManageModal" class="fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeManageModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded shadow-lg w-full max-w-3xl max-h-[80vh] flex flex-col">
+                <div class="p-3 border-b flex justify-between items-center">
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 rounded text-sm"
+                                :class="manageTab==='select' ? 'bg-gray-800 text-white' : 'bg-gray-200 hover:bg-gray-300'"
+                                @click="manageTab='select'">Select</button>
+                        <button class="px-3 py-1 rounded text-sm"
+                                :class="manageTab==='reorder' ? 'bg-gray-800 text-white' : 'bg-gray-200 hover:bg-gray-300'"
+                                @click="manageTab==='reorder' || resetOrderFromMap(); manageTab='reorder'">Reorder</button>
+                    </div>
+                    <button class="text-gray-600 hover:text-black text-xl leading-none" @click="closeManageModal()">✕</button>
+                </div>
+
+                <div class="p-3 overflow-auto">
+                    <!-- Select tab -->
+                    <div v-if="manageTab==='select'">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input class="border rounded px-2 py-1 w-full" v-model="searchSelect" placeholder="Search by #pk or description...">
+                        </div>
+                        <ul class="divide-y">
+                            <li v-for="q in filteredQuestions" :key="q.pk"
+                                class="py-2 px-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                                @click="gotoSelect(q.pk)">
+                                <span>
+                                    <span class="font-mono text-gray-700">#{{ q.pk }}</span>
+                                    <span class="text-gray-700"> - {{ questionDescription(q) }}</span>
+                                </span>
+                                <button class="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" @click.stop="gotoSelect(q.pk)">Open</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Reorder tab -->
+                    <div v-else>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-sm">Drag to reorder (top = asked first)</h3>
+                            <div class="flex gap-2">
+                                <button class="bg-gray-200 px-2 py-1 rounded text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
+                                <button class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+                            </div>
+                        </div>
+                        <ul class="divide-y">
+                            <li v-for="(item, idx) in orderList"
+                                :key="item.pk"
+                                class="py-2 px-2 flex items-center gap-3 hover:bg-gray-50"
+                                draggable="true"
+                                @dragstart="onDragStart(idx)"
+                                @dragover.prevent
+                                @drop="onDrop(idx)"
+                                @dragend="onDragEnd">
+                                <span class="w-6 text-xs text-gray-500">{{ idx + 1 }}</span>
+                                <span class="cursor-move select-none inline-flex items-center text-xs text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M7 4a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 9a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 14a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2z"/>
+                                    </svg>
+                                    Drag
+                                </span>
+                                <span class="text-sm">
+                                    <span class="font-mono text-gray-700">#{{ item.pk }}</span>
+                                    <span class="text-gray-700">- {{ item.text }}</span>
+                                </span>
+                            </li>
+                        </ul>
+                        <div class="text-xs text-gray-500 mt-2">Tip: You can also use Save Order to immediately autosave the new order.</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <ul class="divide-y">
-            <li v-for="(item, idx) in orderList"
-                :key="item.pk"
-                class="py-2 px-2 flex items-center gap-3 hover:bg-gray-50"
-                draggable="true"
-                @dragstart="onDragStart(idx)"
-                @dragover.prevent
-                @drop="onDrop(idx)"
-                @dragend="onDragEnd">
-                <span class="w-6 text-xs text-gray-500">{{ idx + 1 }}</span>
-                <span class="cursor-move select-none inline-flex items-center text-xs text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M7 4a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 9a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 14a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2z"/>
-                    </svg>
-                    Drag
-                </span>
-                <span class="text-sm">
-                    <span class="font-mono text-gray-700">#{{ item.pk }}</span>
-                    <span class="text-gray-700">- {{ item.text }}</span>
-                </span>
-            </li>
-        </ul>
-        <div class="text-xs text-gray-500 mt-2">Tip: You can also use Save Order to immediately autosave the new order.</div>
     </div>
 
     <p class="text-xs text-gray-700 italic mt-2">WARNING: When adding and deleting questions, remember that your code 1 needs to have the same number of questions as in your code 2!</p>
@@ -65,11 +115,27 @@ window.defineComponent('question-picker', {
 
     methods: {
 
+        // Replace old inline toggle with modal opener
         toggleReorder() {
-            this.showReorder = !this.showReorder;
-            if (this.showReorder) {
+            this.openManageModal('reorder');
+        },
+
+        openManageModal(tab = 'reorder') {
+            this.manageTab = tab;
+            if (tab === 'reorder') {
                 this.resetOrderFromMap();
             }
+            this.showManageModal = true;
+        },
+
+        closeManageModal() {
+            this.showManageModal = false;
+        },
+
+        gotoSelect(pk) {
+            Vue.prototype.$globalData.mode = QUESTION;
+            Vue.prototype.$globalData.question = pk;
+            this.closeManageModal();
         },
 
         resetOrderFromMap() {
@@ -125,7 +191,8 @@ window.defineComponent('question-picker', {
                 return;
             }
 
-            this.showReorder = false;
+            // Close modal after saving
+            this.showManageModal = false;
         },
 
         addQuestion: function() {
@@ -193,6 +260,22 @@ window.defineComponent('question-picker', {
 
         numberOfQuestions() {
             return this.questions.length;
+        },
+
+        // use modal selector when too many questions
+        useModalSelect() {
+            return this.numberOfQuestions > 30;
+        },
+
+        // filter list for the Select tab in the modal
+        filteredQuestions() {
+            const q = (this.searchSelect || '').toLowerCase().trim();
+            if (!q) return this.questions;
+            return this.questions.filter(item => {
+                const pkStr = String(item.pk).toLowerCase();
+                const desc = this.questionDescription(item).toLowerCase();
+                return pkStr.includes(q) || desc.includes(q);
+            });
         }
     }
 })
