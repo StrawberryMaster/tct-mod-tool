@@ -105,7 +105,7 @@ window.defineComponent('question', {
                     </svg>
                     Delete
                 </button>
-                <span class="ml-2 text-xs text-gray-500">{{ savedMessage }}</span>
+                <span class="ml-2 text-xs text-gray-500" role="status" aria-live="polite">{{ savedMessage }}</span>
             </div>
         </div>
 
@@ -113,25 +113,28 @@ window.defineComponent('question', {
         <div class="bg-white rounded-lg shadow mb-6 p-4">
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label for="priority" class="block text-sm font-medium text-gray-700">Priority:</label>
-                    <input @input="onInput($event)" :value="priority" name="priority" type="number" 
+                    <label :for="'priority-' + pk" class="block text-sm font-medium text-gray-700">Priority:</label>
+                    <input @input="onInput($event)" :value="priority" name="priority" type="number"
+                        :id="'priority-' + pk"
                         class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="likelihood" class="block text-sm font-medium text-gray-700">Likelihood:</label>
-                    <input @input="onInput($event)" :value="likelihood" name="likelihood" type="number" 
+                    <label :for="'likelihood-' + pk" class="block text-sm font-medium text-gray-700">Likelihood:</label>
+                    <input @input="onInput($event)" :value="likelihood" name="likelihood" type="number"
+                        :id="'likelihood-' + pk"
                         class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     <div class="text-xs text-gray-500 mt-1">Higher values = more likely to appear</div>
                 </div>
             </div>
-            
+
             <div>
-                <label for="description" class="block text-sm font-medium text-gray-700">Question Text:</label>
+                <label :for="'description-' + pk" class="block text-sm font-medium text-gray-700">Question Text:</label>
                 <textarea
                     :key="'question-desc-' + pk"
                     autocomplete="off"
                     v-model="localDescription"
-                    rows="4" 
+                    :id="'description-' + pk"
+                    rows="4"
                     class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
             </div>
         </div>
@@ -147,26 +150,39 @@ window.defineComponent('question', {
                     Add Answer
                 </button>
             </div>
-            
+
             <!-- Answer list and details in split view -->
             <div class="flex flex-col md:flex-row">
                 <!-- Left side: Answer list -->
                 <div class="md:w-1/2 border-r overflow-y-auto" style="max-height: 600px;">
                     <ul class="divide-y">
-                        <li v-for="answer in answers" :key="answer.pk" 
+                        <li v-for="answer in answers" :key="answer.pk"
                             :class="{'bg-blue-50': activeAnswer === answer.pk}"
                             class="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                            @click="selectAnswer(answer.pk)">
+                            @click="selectAnswer(answer.pk)"
+                            role="button"
+                            tabindex="0"
+                            :aria-selected="activeAnswer === answer.pk ? 'true' : 'false'"
+                            @keydown.enter="selectAnswer(answer.pk)"
+                            @keydown.space.prevent="selectAnswer(answer.pk)">
                             <div class="flex justify-between items-start">
                                 <div class="font-medium text-sm">#{{answer.pk}}</div>
                                 <div class="flex space-x-1">
-                                    <button @click.stop="cloneAnswer(answer.pk)" class="text-blue-500 hover:text-blue-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <button
+                                        @click.stop="cloneAnswer(answer.pk)"
+                                        class="text-blue-500 hover:text-blue-700"
+                                        :aria-label="'Clone answer #' + answer.pk"
+                                        :title="'Clone answer #' + answer.pk">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                                         </svg>
                                     </button>
-                                    <button @click.stop="deleteAnswer(answer.pk)" class="text-red-500 hover:text-red-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <button
+                                        @click.stop="deleteAnswer(answer.pk)"
+                                        class="text-red-500 hover:text-red-700"
+                                        :aria-label="'Delete answer #' + answer.pk"
+                                        :title="'Delete answer #' + answer.pk">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
@@ -184,54 +200,64 @@ window.defineComponent('question', {
                         </li>
                     </ul>
                 </div>
-                
+
                 <!-- Right side: Selected answer details -->
                 <div class="md:w-1/2" v-if="activeAnswer">
                     <div class="p-4">
-                        <h3 class="font-bold text-md mb-3">Edit Answer #{{activeAnswer}}</h3>
+                        <h3 class="font-bold text-md mb-3" :id="'answer-heading-' + activeAnswer">Edit Answer #{{activeAnswer}}</h3>
                         <textarea
                             v-model="localAnswerDescription"
+                            :id="'answer-desc-' + activeAnswer"
+                            :aria-labelledby="'answer-heading-' + activeAnswer"
                             class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             rows="4" placeholder="Answer text..."></textarea>
-                            
+
                         <!-- Tabs for different answer settings -->
                         <div class="mt-4 border-b">
-                            <nav class="flex -mb-px">
-                                <button @click="activeTab = 'feedback'" 
+                            <nav class="flex -mb-px" role="tablist" aria-label="Answer settings">
+                                <button @click="activeTab = 'feedback'"
                                     :class="{'border-blue-500 text-blue-600': activeTab === 'feedback', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'feedback'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center">
+                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    role="tab"
+                                    :aria-selected="activeTab === 'feedback' ? 'true' : 'false'">
                                     <span class="flex items-center">
                                         <span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2" v-if="hasFeedback(activeAnswer)"></span>
                                         Feedback
                                     </span>
                                 </button>
-                                <button @click="activeTab = 'global'" 
+                                <button @click="activeTab = 'global'"
                                     :class="{'border-blue-500 text-blue-600': activeTab === 'global', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'global'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center">
+                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    role="tab"
+                                    :aria-selected="activeTab === 'global' ? 'true' : 'false'">
                                     <span class="flex items-center">
                                         <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-2" v-if="hasGlobalScores(activeAnswer)"></span>
                                         Global
                                     </span>
                                 </button>
-                                <button @click="activeTab = 'issues'" 
+                                <button @click="activeTab = 'issues'"
                                     :class="{'border-blue-500 text-blue-600': activeTab === 'issues', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'issues'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center">
+                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    role="tab"
+                                    :aria-selected="activeTab === 'issues' ? 'true' : 'false'">
                                     <span class="flex items-center">
                                         <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2" v-if="hasIssueScores(activeAnswer)"></span>
                                         Issues
                                     </span>
                                 </button>
-                                <button @click="switchToStatesTab()" 
-                                :class="{'border-blue-500 text-blue-600': activeTab === 'states', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'states'}"
-                                class="py-2 px-4 font-medium text-sm border-b-2 flex items-center">
-                                <span class="flex items-center">
-                                    <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2" v-if="hasStateScores(activeAnswer)"></span>
-                                    States
-                                </span>
-                            </button>
+                                <button @click="switchToStatesTab()"
+                                    :class="{'border-blue-500 text-blue-600': activeTab === 'states', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'states'}"
+                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    role="tab"
+                                    :aria-selected="activeTab === 'states' ? 'true' : 'false'">
+                                    <span class="flex items-center">
+                                        <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2" v-if="hasStateScores(activeAnswer)"></span>
+                                        States
+                                    </span>
+                                </button>
                             </nav>
                         </div>
-                        
+
                         <!-- Tab content -->
                         <div class="p-2 mt-2">
                             <!-- Feedback Tab -->
@@ -242,9 +268,9 @@ window.defineComponent('question', {
                                         Add Feedback
                                     </button>
                                 </div>
-                                <answer-feedback-card 
-                                    v-for="feedback in getFeedbackForAnswer(activeAnswer)" 
-                                    :pk="feedback.pk" 
+                                <answer-feedback-card
+                                    v-for="feedback in getFeedbackForAnswer(activeAnswer)"
+                                    :pk="feedback.pk"
                                     :key="feedback.pk"
                                     @deleteFeedback="deleteFeedback">
                                 </answer-feedback-card>
@@ -252,7 +278,7 @@ window.defineComponent('question', {
                                     No feedback configured yet
                                 </div>
                             </div>
-                            
+
                             <!-- Global Scores Tab -->
                             <div v-if="activeTab === 'global'">
                                 <div class="flex justify-between items-center mb-3">
@@ -261,9 +287,9 @@ window.defineComponent('question', {
                                         Add Global Score
                                     </button>
                                 </div>
-                                <global-score-card 
-                                    v-for="score in getGlobalScoresForAnswer(activeAnswer)" 
-                                    :pk="score.pk" 
+                                <global-score-card
+                                    v-for="score in getGlobalScoresForAnswer(activeAnswer)"
+                                    :pk="score.pk"
                                     :key="score.pk"
                                     @deleteGlobalScore="deleteGlobalScore">
                                 </global-score-card>
@@ -271,7 +297,7 @@ window.defineComponent('question', {
                                     No global scores configured yet
                                 </div>
                             </div>
-                            
+
                             <!-- Issue Scores Tab -->
                             <div v-if="activeTab === 'issues'">
                                 <div class="flex justify-between items-center mb-3">
@@ -280,9 +306,9 @@ window.defineComponent('question', {
                                         Add Issue Score
                                     </button>
                                 </div>
-                                <issue-score-card 
-                                    v-for="score in getIssueScoresForAnswer(activeAnswer)" 
-                                    :pk="score.pk" 
+                                <issue-score-card
+                                    v-for="score in getIssueScoresForAnswer(activeAnswer)"
+                                    :pk="score.pk"
                                     :key="score.pk"
                                     @deleteIssueScore="deleteIssueScore">
                                 </issue-score-card>
@@ -291,21 +317,21 @@ window.defineComponent('question', {
                                 </div>
                             </div>
                             <!-- State Scores Tab -->
-                        <div v-if="activeTab === 'states'" class="mt-4">
-                            <div v-if="activeAnswer">
-                                <integrated-state-effect-visualizer 
-                                    ref="stateVisualizer"
-                                    :answerId="activeAnswer">
-                                </integrated-state-effect-visualizer>
+                            <div v-if="activeTab === 'states'" class="mt-4">
+                                <div v-if="activeAnswer">
+                                    <integrated-state-effect-visualizer
+                                        ref="stateVisualizer"
+                                        :answerId="activeAnswer">
+                                    </integrated-state-effect-visualizer>
+                                </div>
+                                <div v-else class="text-gray-500 text-sm text-center py-4">
+                                    Select an answer to edit state effects
+                                </div>
                             </div>
-                            <div v-else class="text-gray-500 text-sm text-center py-4">
-                                Select an answer to edit state effects
-                            </div>
-                        </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Placeholder when no answer is selected -->
                 <div class="md:w-1/2 flex items-center justify-center p-8 text-gray-500" v-if="!activeAnswer">
                     <div class="text-center">
@@ -824,26 +850,26 @@ window.defineComponent('answer-feedback-card', {
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Feedback #{{pk}}</h4>
-            <button @click="$emit('deleteFeedback', pk)" class="text-red-500 hover:text-red-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button @click="$emit('deleteFeedback', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete feedback #' + pk" :title="'Delete feedback #' + pk">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </button>
         </div>
-        
+
         <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-700">Candidate:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'af-candidate-' + pk">Candidate:</label>
             <div class="flex items-center mt-1">
-                <select @change="onInput($event)" :value="candidate" name="candidate"
+                <select @change="onInput($event)" :value="candidate" name="candidate" :id="'af-candidate-' + pk"
                     class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
                 </select>
             </div>
         </div>
-        
+
         <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-700">Feedback Text:</label>
-            <textarea @input="onInput($event)" :value="answerFeedback" name="answer_feedback" rows="3"
+            <label class="block text-xs font-medium text-gray-700" :for="'af-text-' + pk">Feedback Text:</label>
+            <textarea @input="onInput($event)" :value="answerFeedback" name="answer_feedback" rows="3" :id="'af-text-' + pk"
                 class="mt-1 p-2 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
         </div>
     </div>
@@ -888,43 +914,43 @@ window.defineComponent('global-score-card', {
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Global Score #{{pk}}</h4>
-            <button @click="$emit('deleteGlobalScore', pk)" class="text-red-500 hover:text-red-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button @click="$emit('deleteGlobalScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete global score #' + pk" :title="'Delete global score #' + pk">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </button>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
             <div>
-                <label class="block text-xs font-medium text-gray-700">Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'gsc-candidate-' + pk">Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <select @change="onInput($event)" :value="candidate" name="candidate"
+                    <select @change="onInput($event)" :value="candidate" name="candidate" :id="'gsc-candidate-' + pk"
                         class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
                     </select>
                 </div>
             </div>
-            
+
             <div>
-                <label class="block text-xs font-medium text-gray-700">Affected Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'gsc-affected-' + pk">Affected Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <select @change="onInput($event)" :value="affected" name="affected_candidate"
+                    <select @change="onInput($event)" :value="affected" name="affected_candidate" :id="'gsc-affected-' + pk"
                         class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         <option v-for="c in candidates" :key="'aff-'+c[0]" :value="c[0]">{{ c[1] }}</option>
                     </select>
                 </div>
             </div>
         </div>
-        
+
         <div class="mt-3">
-            <label class="block text-xs font-medium text-gray-700">Global Multiplier:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'gsc-mult-' + pk">Global Multiplier:</label>
             <div class="flex items-center mt-1">
-                <input @input="onInput($event)" :value="multiplier" name="global_multiplier" type="number" step="0.001"
+                <input @input="onInput($event)" :value="multiplier" name="global_multiplier" type="number" step="0.001" :id="'gsc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                <div class="ml-2 flex-1 h-2 bg-gray-200 rounded">
-                    <div class="h-full rounded" 
-                        :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%', 
+                <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
+                    <div class="h-full rounded"
+                        :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
                                  backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
                     </div>
                 </div>
@@ -980,45 +1006,45 @@ window.defineComponent('issue-score-card', {
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Issue Score #{{pk}}</h4>
-            <button @click="$emit('deleteIssueScore', pk)" class="text-red-500 hover:text-red-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button @click="$emit('deleteIssueScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete issue score #' + pk" :title="'Delete issue score #' + pk">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </button>
         </div>
-        
+
         <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-700">Issue:</label>
-            <select @change="onInput($event)" name="issue" 
+            <label class="block text-xs font-medium text-gray-700" :for="'isc-issue-' + pk">Issue:</label>
+            <select @change="onInput($event)" name="issue" :id="'isc-issue-' + pk"
                 class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option v-for="i in issues" :selected="i.pk == issue" :value="i.pk" :key="i.pk">
                     {{i.pk}} - {{i.fields.name}}
                 </option>
             </select>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
             <div>
-                <label class="block text-xs font-medium text-gray-700">Issue Score:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'isc-score-' + pk">Issue Score:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" step="0.1"
+                    <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" step="0.1" :id="'isc-score-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    <div class="ml-2 flex-1 h-2 bg-gray-200 rounded">
-                        <div class="h-full rounded bg-green-500" 
+                    <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
+                        <div class="h-full rounded bg-green-500"
                             :style="{ width: Math.min(Math.max((parseFloat(issueScoreDisplay) + 1) * 50, 0), 100) + '%' }">
                         </div>
                     </div>
                 </div>
                 <div class="text-xs text-gray-500 mt-1">(-1.0 = Stance 1, 1.0 = Stance 7)</div>
             </div>
-            
+
             <div>
-                <label class="block text-xs font-medium text-gray-700">Issue Importance:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'isc-importance-' + pk">Issue Importance:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="issueImportanceDisplay" name="issue_importance" type="number" step="1" min="0"
+                    <input @input="onInput($event)" :value="issueImportanceDisplay" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    <div class="ml-2 flex-1 h-2 bg-gray-200 rounded">
-                        <div class="h-full rounded bg-blue-500" 
+                    <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
+                        <div class="h-full rounded bg-blue-500"
                             :style="{ width: Math.min(Math.max(parseFloat(issueImportanceDisplay) * 20, 0), 100) + '%' }">
                         </div>
                     </div>
@@ -1075,51 +1101,51 @@ window.defineComponent('state-score-card', {
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">State Score #{{pk}}</h4>
-            <button @click="$emit('deleteStateScore', pk)" class="text-red-500 hover:text-red-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button @click="$emit('deleteStateScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete state score #' + pk" :title="'Delete state score #' + pk">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </button>
         </div>
-        
+
         <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-700">State:</label>
-            <select @change="onInput($event)" name="state" 
+            <label class="block text-xs font-medium text-gray-700" :for="'ssc-state-' + pk">State:</label>
+            <select @change="onInput($event)" name="state" :id="'ssc-state-' + pk"
                 class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option v-for="s in states" :selected="s.pk == state" :value="s.pk" :key="s.pk">
                     {{s.pk}} - {{s.fields.name}} ({{s.fields.abbr}})
                 </option>
             </select>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
             <div>
-                <label class="block text-xs font-medium text-gray-700">Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'ssc-candidate-' + pk">Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="candidate" name="candidate" type="number"
+                    <input @input="onInput($event)" :value="candidate" name="candidate" type="number" :id="'ssc-candidate-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     <span v-if="candidateNickname" class="ml-2 text-xs text-gray-500">({{candidateNickname}})</span>
                 </div>
             </div>
-            
+
             <div>
-                <label class="block text-xs font-medium text-gray-700">Affected Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'ssc-affected-' + pk">Affected Candidate:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="affected" name="affected_candidate" type="number"
+                    <input @input="onInput($event)" :value="affected" name="affected_candidate" type="number" :id="'ssc-affected-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     <span v-if="affectedNickname" class="ml-2 text-xs text-gray-500">({{affectedNickname}})</span>
                 </div>
             </div>
         </div>
-        
+
         <div class="mt-3">
-            <label class="block text-xs font-medium text-gray-700">State Multiplier:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'ssc-mult-' + pk">State Multiplier:</label>
             <div class="flex items-center mt-1">
-                <input @input="onInput($event)" :value="multiplier" name="state_multiplier" type="number" step="0.001"
+                <input @input="onInput($event)" :value="multiplier" name="state_multiplier" type="number" step="0.001" :id="'ssc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                <div class="ml-2 flex-1 h-2 bg-gray-200 rounded">
-                    <div class="h-full rounded" 
-                        :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%', 
+                <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
+                    <div class="h-full rounded"
+                        :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
                                  backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
                     </div>
                 </div>
@@ -1283,14 +1309,15 @@ window.defineComponent('state-effect-presets', {
 
     template: `
     <div>
-        <button @click="togglePresets" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <button @click="togglePresets" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 flex items-center"
+                :aria-expanded="showPresets" aria-controls="state-presets-panel">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
             State Presets
         </button>
-        
-        <div v-if="showPresets" class="mt-2 bg-gray-50 p-3 rounded shadow-sm">
+
+        <div v-if="showPresets" id="state-presets-panel" class="mt-2 bg-gray-50 p-3 rounded shadow-sm">
             <h4 class="font-medium text-sm mb-2">Select Region:</h4>
             <div class="grid grid-cols-2 gap-1 mb-2">
                 <button @click="selectPreset('swing')" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded hover:bg-purple-200">Swing States</button>
@@ -1855,7 +1882,8 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 <div id="map_container" class="relative border rounded" style="width: 100%; height: auto;">
                     <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                         style="background-color:#BFE6FF; display: block; width: 100%; height: auto;"
-                        :viewBox="fallbackViewBox || '0 0 1025 595'" preserveAspectRatio="xMidYMid meet">
+                        :viewBox="fallbackViewBox || '0 0 1025 595'" preserveAspectRatio="xMidYMid meet"
+                        role="img" aria-label="United States map. Select states and apply effects.">
                         <g v-if="mapLoaded && states.length > 0">
                             <path v-for="state in states"
                                 :key="state.pk"
@@ -1864,6 +1892,14 @@ window.defineComponent('integrated-state-effect-visualizer', {
                                 @click="toggleStateSelection(state.pk)"
                                 @mouseover="highlightState(state.pk)"
                                 @mouseout="unhighlightState()"
+                                @focus="highlightState(state.pk)"
+                                @blur="unhighlightState()"
+                                @keydown.enter.prevent="toggleStateSelection(state.pk)"
+                                @keydown.space.prevent="toggleStateSelection(state.pk)"
+                                tabindex="0"
+                                role="checkbox"
+                                :aria-checked="isStateSelected(state.pk) ? 'true' : 'false'"
+                                :aria-label="state.fields.name"
                                 :style="getStateStyle(state.pk)">
                             </path>
                             <!-- State Labels (only on basic shapes) -->
@@ -1900,25 +1936,28 @@ window.defineComponent('integrated-state-effect-visualizer', {
                     <button v-if="states.find(s => s.fields.abbr === 'DC')"
                         @click="toggleStateSelection(states.find(s => s.fields.abbr === 'DC').pk)"
                         :class="{'bg-blue-700': isStateSelected(states.find(s => s.fields.abbr === 'DC').pk), 'bg-blue-500': !isStateSelected(states.find(s => s.fields.abbr === 'DC').pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
+                        :aria-pressed="isStateSelected(states.find(s => s.fields.abbr === 'DC').pk) ? 'true' : 'false'">
                         D.C.
                     </button>
-                    
+
                     <!-- Small States -->
                     <button v-for="state in smallStates"
                         :key="'small-' + state.pk"
                         @click="toggleStateSelection(state.pk)"
                         :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
+                        :aria-pressed="isStateSelected(state.pk) ? 'true' : 'false'">
                         {{ state.fields.abbr }}
                     </button>
-                    
+
                     <!-- Congressional Districts -->
                     <button v-for="state in extraStates"
                         :key="state.pk"
                         @click="toggleStateSelection(state.pk)"
                         :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
+                        :aria-pressed="isStateSelected(state.pk) ? 'true' : 'false'">
                         {{ state.fields.abbr || formatDistrictName(state.fields.name) }}
                     </button>
                 </div>
@@ -1971,7 +2010,10 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
                 <!-- Apply Button -->
                 <div class="mb-4">
-                    <button @click="applyValueToSelectedStates" class="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600">
+                    <button @click="applyValueToSelectedStates"
+                            class="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="selectedStatesCount === 0"
+                            :aria-disabled="selectedStatesCount === 0 ? 'true' : 'false'">
                         Apply to Selected ({{ selectedStatesCount }})
                     </button>
                 </div>
