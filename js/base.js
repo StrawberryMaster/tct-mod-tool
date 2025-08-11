@@ -1,35 +1,35 @@
 "use strict";
 const TEMPLATE_NAMES =
-[
-    "1844-Clay.txt",
-    "1844-Polk.txt",
-    "1860-Douglas.txt",
-    "1860-Lincoln.txt",
-    "1896-Bryan.txt",
-    "1896-McKinley.txt",
-    "1916-Hughes.txt",
-    "1916-Wilson.txt",
-    "1948-Dewey.txt",
-    "1948-Truman.txt",
-    "1960-Kennedy.txt",
-    "1960-Nixon.txt",
-    "1968-Humphrey.txt",
-    "1968-Nixon.txt",
-    "1968-Wallace.txt",
-    "1976-Carter.txt",
-    "1976-Ford.txt",
-    "1988-Bush.txt",
-    "1988-Dukakis.txt",
-    "2000-Bush.txt",
-    "2000-Gore.txt",
-    "2000-Nader.txt",
-    "2012-Obama.txt",
-    "2012-Romney.txt",
-    "2016-Clinton.txt",
-    "2016-Trump.txt",
-    "2020-Biden.txt",
-    "2020-Trump.txt"
-]
+    [
+        "1844-Clay.txt",
+        "1844-Polk.txt",
+        "1860-Douglas.txt",
+        "1860-Lincoln.txt",
+        "1896-Bryan.txt",
+        "1896-McKinley.txt",
+        "1916-Hughes.txt",
+        "1916-Wilson.txt",
+        "1948-Dewey.txt",
+        "1948-Truman.txt",
+        "1960-Kennedy.txt",
+        "1960-Nixon.txt",
+        "1968-Humphrey.txt",
+        "1968-Nixon.txt",
+        "1968-Wallace.txt",
+        "1976-Carter.txt",
+        "1976-Ford.txt",
+        "1988-Bush.txt",
+        "1988-Dukakis.txt",
+        "2000-Bush.txt",
+        "2000-Gore.txt",
+        "2000-Nader.txt",
+        "2012-Obama.txt",
+        "2012-Romney.txt",
+        "2016-Clinton.txt",
+        "2016-Trump.txt",
+        "2020-Biden.txt",
+        "2020-Trump.txt"
+    ]
 
 class TCTData {
     constructor(questions, answers, issues, state_issue_scores, candidate_issue_score, running_mate_issue_score, candidate_state_multiplier, answer_score_global, answer_score_issue, answer_score_state, answer_feedback, states, highest_pk, jet_data) {
@@ -107,7 +107,7 @@ class TCTData {
             }
         }
 
-        for(let i = 0; i < answers.length; i++) {
+        for (let i = 0; i < answers.length; i++) {
             this.cloneAnswer(answers[i], newPk);
         }
 
@@ -164,22 +164,22 @@ class TCTData {
         this.answers[newPk] = answer;
 
         const feedbacks = this.getAdvisorFeedbackForAnswer(toClone.pk);
-        for(let i = 0; i < feedbacks.length; i++) {
+        for (let i = 0; i < feedbacks.length; i++) {
             this.cloneFeedback(feedbacks[i], newPk);
         }
-        
+
         const globals = this.getGlobalScoreForAnswer(toClone.pk);
-        for(let i = 0; i < globals.length; i++) {
+        for (let i = 0; i < globals.length; i++) {
             this.cloneGlobalScore(globals[i], newPk);
         }
 
         const issueScores = this.getIssueScoreForAnswer(toClone.pk);
-        for(let i = 0; i < issueScores.length; i++) {
+        for (let i = 0; i < issueScores.length; i++) {
             this.cloneIssueScore(issueScores[i], newPk);
         }
 
         const stateScores = this.getStateScoreForAnswer(toClone.pk);
-        for(let i = 0; i < stateScores.length; i++) {
+        for (let i = 0; i < stateScores.length; i++) {
             this.cloneStateScore(stateScores[i], newPk);
         }
 
@@ -251,27 +251,27 @@ class TCTData {
         this.highest_pk = pk
         return pk
     }
-        
+
     getAnswersForQuestion(pk) {
         return Object.values(this.answers).filter(answer => answer.fields.question == pk);
     }
-    
+
     getAdvisorFeedbackForAnswer(pk) {
         return Object.values(this.answer_feedback).filter(feedback => feedback.fields.answer == pk);
     }
-    
+
     getGlobalScoreForAnswer(pk) {
         return Object.values(this.answer_score_global).filter(x => x.fields.answer == pk);
     }
-    
+
     getStateScoreForAnswer(pk) {
         return Object.values(this.answer_score_state).filter(x => x.fields.answer == pk);
     }
-    
+
     getIssueScoreForAnswer(pk) {
         return Object.values(this.answer_score_issue).filter(x => x.fields.answer == pk);
     }
-    
+
     getIssueScoreForState(pk) {
         return Object.values(this.state_issue_scores).filter(x => x.fields.state == pk);
     }
@@ -279,33 +279,33 @@ class TCTData {
     getStateIssueScoresForIssue(pk) {
         return Object.values(this.state_issue_scores).filter(x => x.fields.issue == pk);
     }
-    
+
     getIssueScoreForCandidate(pk) {
         return Object.values(this.candidate_issue_score).filter(x => x.fields.candidate == pk);
     }
-    
+
     getStateMultiplierForCandidate(pk) {
         return Object.values(this.candidate_state_multiplier).filter(x => x.fields.candidate == pk);
     }
-    
+
     getCandidateIssueScoreForIssue(pk) {
         return Object.values(this.candidate_issue_score).filter(x => x.fields.issue == pk);
     }
-    
+
     getRunningMateIssueScoreForIssue(pk) {
         return Object.values(this.running_mate_issue_score).filter(x => x.fields.issue == pk);
     }
-    
+
     getRunningMateIssueScoreForCandidate(pk) {
         return Object.values(this.running_mate_issue_score).filter(x => x.fields.candidate == pk);
     }
-    
+
     getCandidateStateMultipliersForState(pk) {
         return Object.values(this.candidate_state_multiplier).filter(x => x.fields.state == pk);
     }
 
     getNicknameForCandidate(pk) {
-        if(this.jet_data == null || this.jet_data['nicknames'] == null) {
+        if (this.jet_data == null || this.jet_data['nicknames'] == null) {
             return "";
         }
 
@@ -313,11 +313,11 @@ class TCTData {
     }
 
     getAllCyoaEvents() {
-        if(this.jet_data.cyoa_enabled == null) {
+        if (this.jet_data.cyoa_enabled == null) {
             this.jet_data.cyoa_enabled = false;
         }
 
-        if(this.jet_data.cyoa_data == null) {
+        if (this.jet_data.cyoa_data == null) {
             this.jet_data.cyoa_data = {};
         }
 
@@ -328,11 +328,11 @@ class TCTData {
     }
 
     getAllEndings() {
-        if(this.jet_data.endings_enabled == null) {
+        if (this.jet_data.endings_enabled == null) {
             this.jet_data.endings_enabled = false;
         }
 
-        if(this.jet_data.ending_data == null) {
+        if (this.jet_data.ending_data == null) {
             this.jet_data.ending_data = {};
         }
 
@@ -360,11 +360,11 @@ class TCTData {
 
         for (const xPk in this.answer_score_state) {
             const x = this.answer_score_state[xPk];
-            if(x.fields.state == pk) {
+            if (x.fields.state == pk) {
                 answerScoresToRemove.push(xPk);
             }
         }
-        for(let i = 0; i < answerScoresToRemove.length; i++) {
+        for (let i = 0; i < answerScoresToRemove.length; i++) {
             const xPk = answerScoresToRemove[i];
             delete this.answer_score_state[xPk];
         }
@@ -372,23 +372,23 @@ class TCTData {
         var stateScoresToRemove = [];
         for (const xPk in this.state_issue_scores) {
             const x = this.state_issue_scores[xPk];
-            if(x.fields.state == pk) {
+            if (x.fields.state == pk) {
                 stateScoresToRemove.push(xPk);
             }
         }
-        for(let i = 0; i < stateScoresToRemove.length; i++) {
+        for (let i = 0; i < stateScoresToRemove.length; i++) {
             const xPk = stateScoresToRemove[i];
             delete this.state_issue_scores[xPk];
         }
-        
+
         var csm = [];
         for (const xPk in this.candidate_state_multiplier) {
             const x = this.candidate_state_multiplier[xPk];
-            if(x.fields.state == pk) {
+            if (x.fields.state == pk) {
                 csm.push(xPk);
             }
         }
-        for(let i = 0; i < csm.length; i++) {
+        for (let i = 0; i < csm.length; i++) {
             const xPk = csm[i];
             delete this.candidate_state_multiplier[xPk];
         }
@@ -472,16 +472,16 @@ class TCTData {
         const stateMultipliers = Object.keys(this.candidate_state_multiplier);
         const issueScores = Object.keys(this.candidate_issue_score);
 
-        for(let i = 0; i < stateMultipliers.length; i++) {
+        for (let i = 0; i < stateMultipliers.length; i++) {
             const sPk = stateMultipliers[i];
-            if(this.candidate_state_multiplier[sPk].fields.candidate == pk) {
+            if (this.candidate_state_multiplier[sPk].fields.candidate == pk) {
                 delete this.candidate_state_multiplier[sPk];
             }
         }
 
-        for(let i = 0; i < issueScores.length; i++) {
+        for (let i = 0; i < issueScores.length; i++) {
             const iPk = issueScores[i];
-            if(this.candidate_issue_score[iPk].fields.candidate == pk) {
+            if (this.candidate_issue_score[iPk].fields.candidate == pk) {
                 delete this.candidate_issue_score[iPk];
             }
         }
@@ -497,7 +497,7 @@ class TCTData {
                 }
             );
         }
-        catch(e) {
+        catch (e) {
             console.error("Pv error:", e);
             return ["Error calculating PV, see console"];
         }
@@ -505,7 +505,7 @@ class TCTData {
 
     addStateMultipliersForCandidate(candidatePk) {
         const s = Object.keys(this.states);
-        for(let i = 0; i < s.length; i++) {
+        for (let i = 0; i < s.length; i++) {
             const cPk = this.getNewPk();
             // Create candidate state multipliers
             let c = {
@@ -529,10 +529,10 @@ class TCTData {
 
         this.addStateMultipliersForCandidate(candidatePk);
 
-        for(let i = 0; i < issues.length; i++) {
+        for (let i = 0; i < issues.length; i++) {
             const iPk = this.getNewPk();
             // Create state issue scores
-            let iss =  {
+            let iss = {
                 "model": "campaign_trail.candidate_issue_score",
                 "pk": iPk,
                 "fields": {
@@ -566,8 +566,8 @@ class TCTData {
             }
         }
         this.states[newPk] = x;
-        
-        for(let i = 0; i < cans.length; i++) {
+
+        for (let i = 0; i < cans.length; i++) {
             const cPk = this.getNewPk();
             // Create candidate state multipliers
             let c = {
@@ -582,7 +582,7 @@ class TCTData {
             this.candidate_state_multiplier[cPk] = c;
         }
 
-        for(let i = 0; i < issues.length; i++) {
+        for (let i = 0; i < issues.length; i++) {
             const iPk = this.getNewPk();
             // Create state issue scores
             let iss = {
@@ -686,9 +686,9 @@ class TCTData {
         let f = "";
         const states = Object.values(this.states);
 
-        for(let i = 0; i < states.length; i++) {
+        for (let i = 0; i < states.length; i++) {
             f += `${states[i].fields.abbr}:"${states[i].d}"`
-            if(i < states.length - 1) {
+            if (i < states.length - 1) {
                 f += ", ";
             }
         }
@@ -700,7 +700,7 @@ class TCTData {
 
         let f = "";
 
-        if(this.jet_data.mapping_enabled) {
+        if (this.jet_data.mapping_enabled) {
             f += "\n// Generated mapping code\n" + this.getMapCode();
             this.jet_data.mapping_data.mapSvg = '';
             f += "\n\n";
@@ -771,7 +771,7 @@ class TCTData {
         const code = this.jet_data.code_to_add;
         delete this.jet_data.code_to_add;
 
-        if(this.jet_data.banner_enabled) {
+        if (this.jet_data.banner_enabled) {
             f += `campaignTrail_temp.candidate_image_url = "${this.jet_data.banner_data.canImage}";\n`;
             f += `campaignTrail_temp.running_mate_image_url = "${this.jet_data.banner_data.runImage}";\n`;
             f += `campaignTrail_temp.candidate_last_name = "${this.jet_data.banner_data.canName}";\n`;
@@ -780,7 +780,7 @@ class TCTData {
 
         f += this.getEndingCode();
 
-        if(code) {
+        if (code) {
             f += "//#startcode";
             f += code;
             f += "//#endcode"
@@ -790,16 +790,16 @@ class TCTData {
         x = JSON.stringify(this.jet_data, null, 4)
 
         this.jet_data.code_to_add = code;
-        
+
         f += (x)
         f += "\n]"
         f += ("\n\n")
-        
+
         return f
     }
 
     getEndingCode() {
-        if(this.jet_data.ending_data == null || !this.jet_data.endings_enabled) {
+        if (this.jet_data.ending_data == null || !this.jet_data.endings_enabled) {
             return "";
         }
 
@@ -807,8 +807,8 @@ class TCTData {
 
         const endings = this.getAllEndings();
 
-        f += 
-`
+        f +=
+            `
     function setImage(url) {
         if(url == '' || url == null) return;
         let interval = setInterval(function () {
@@ -821,11 +821,11 @@ class TCTData {
     }
 `
 
-        for(let i = 0; i < endings.length; i++) {
+        for (let i = 0; i < endings.length; i++) {
             const ending = endings[i];
 
-            f += 
-`
+            f +=
+                `
     if(quickstats[${ending.variable}] ${ending.operator} ${ending.amount}) {
         setImage("${ending.endingImage}");
         return \`${ending.endingText}\`;
@@ -839,7 +839,7 @@ class TCTData {
 
     getCYOACode() {
         var f = "";
-        if(this.jet_data.cyoa_data != null && this.jet_data.cyoa_enabled) {
+        if (this.jet_data.cyoa_data != null && this.jet_data.cyoa_enabled) {
             f += `
 campaignTrail_temp.cyoa = true;
 
@@ -860,9 +860,9 @@ cyoAdventure = function (a) {
     }`
             }
 
-            if(events.length > 0) {
-                f += 
-    `\n    else {
+            if (events.length > 0) {
+                f +=
+                    `\n    else {
         return false;
     }`
             }
@@ -936,7 +936,7 @@ function loadDataFromFile(raw_json) {
     let answer_score_globals = {};
     let answer_score_issues = {};
     let answer_score_states = {};
-    
+
     let state_issue_scores = {};
 
     let candidate_issue_scores = {};
@@ -955,179 +955,117 @@ function loadDataFromFile(raw_json) {
     raw_json = raw_json.replaceAll("\r", "");
     raw_json = raw_json.replaceAll(/ +/g, " ");
 
-    // declare locals to avoid implicit globals
-    const states_json = extractJSON(raw_json, "campaignTrail_temp.states_json = JSON.parse(", ");", "campaignTrail_temp.states_json = [", "]");
+    // detect original style (array literal vs JSON.parse)
+    // we prefer direct array literals; JSON.parse is treated as fallback unless
+    // a JSON.parse pattern is detected anywhere (then we flip priorities).
+    const jsonParseDetected = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
+    const preferJSONParsePrimary = jsonParseDetected;
+
+    function getSection(name, required = true, fallback = []) {
+        // name example: "states_json"
+        const primaryIsJSON = preferJSONParsePrimary;
+        const startPrimary = `campaignTrail_temp.${name} = ${primaryIsJSON ? "JSON.parse(" : "["}`;
+        const endPrimary = primaryIsJSON ? ");" : "]";
+        const startBackup = `campaignTrail_temp.${name} = ${primaryIsJSON ? "[" : "JSON.parse("}`;
+        const endBackup = primaryIsJSON ? "]" : ");";
+        return extractJSON(raw_json, startPrimary, endPrimary, startBackup, endBackup, required, fallback);
+    }
+
+    // helper to remap duplicates safely (only for objects needing auto-remap)
+    function ensureUniqueAndStore(container, obj, autoRemap = false) {
+        if (obj.pk in container) {
+            const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
+            console.log(msg);
+            duplicates = true;
+            if (autoRemap) {
+                highest_pk = Math.max(highest_pk, obj.pk);
+                obj.pk = ++highest_pk;
+            }
+        }
+        highest_pk = Math.max(highest_pk, obj.pk);
+        container[obj.pk] = obj;
+    }
+
+    // STATES
+    const states_json = getSection("states_json");
     states_json.forEach(state => {
-
-        if(state["pk"] in states) {
-            console.log(`WARNING: Found duplicate pk ${state["pk"]} in states already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, state["pk"])
-        states[state["pk"]] = state
+        ensureUniqueAndStore(states, state);
     });
-       
-    const questions_json = extractJSON(raw_json, "campaignTrail_temp.questions_json = JSON.parse(", ");", "campaignTrail_temp.questions_json = [", "]");
-    questions_json.forEach(question => {
 
-        if(question["pk"] in questions) {
-            console.log(`WARNING: Found duplicate pk ${question["pk"]} in questions already, make sure there are no duplicate PKs in your file before importing`)
+    // QUESTIONS
+    const questions_json = getSection("questions_json");
+    questions_json.forEach(question => {
+        if (questions.has(question.pk)) {
+            console.log(`WARNING: Found duplicate pk ${question.pk} in questions already`);
             duplicates = true;
         }
-
-        highest_pk = Math.max(highest_pk, question["pk"]);
-
-        if(question.fields.description) {
-            question['fields']['description'] = question['fields']['description'].replaceAll("â€™", "'").replaceAll("â€”", "—");
+        highest_pk = Math.max(highest_pk, question.pk);
+        if (question.fields.description) {
+            question.fields.description = question.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
-        
         questions.set(question.pk, question);
     });
 
-    const answers_json = extractJSON(raw_json, "campaignTrail_temp.answers_json = JSON.parse(", ");", "campaignTrail_temp.answers_json = [", "]");
+    // ANSWERS
+    const answers_json = getSection("answers_json");
     answers_json.forEach(answer => {
-
-        if(answer["pk"] in answers) {
-            console.log(`WARNING: Found duplicate pk ${answer["pk"]} in answers already, make sure there are no duplicate PKs in your file before importing`)
+        if (answer.pk in answers) {
+            console.log(`WARNING: Found duplicate pk ${answer.pk} in answers already`);
             duplicates = true;
         }
-
-        highest_pk = Math.max(highest_pk, answer["pk"]);
-
-        if(answer.fields.description) {
-            answer['fields']['description'] = answer['fields']['description'].replaceAll("â€™", "'").replaceAll("â€”", "—");
+        highest_pk = Math.max(highest_pk, answer.pk);
+        if (answer.fields.description) {
+            answer.fields.description = answer.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
-        
-        const key = answer["pk"];
-        answers[key] = answer;
+        answers[answer.pk] = answer;
     });
 
-    const answer_feedbacks_json = extractJSON(raw_json, "campaignTrail_temp.answer_feedback_json = JSON.parse(", ");", "campaignTrail_temp.answer_feedback_json = [", "]");
+    // FEEDBACKS (auto-remap duplicates)
+    const answer_feedbacks_json = getSection("answer_feedback_json");
     answer_feedbacks_json.forEach(feedback => {
-
-        if(feedback["pk"] in feedbacks) {
-            console.log(`WARNING: Found duplicate pk ${feedback["pk"]} in feedbacks already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
+        if (feedback.fields.answer_feedback) {
+            feedback.fields.answer_feedback = feedback.fields.answer_feedback.replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
-
-        highest_pk = Math.max(highest_pk, feedback["pk"]);
-
-        if(feedback.fields.answer_feedback) {
-            feedback['fields']['answer_feedback'] = feedback['fields']['answer_feedback'].replaceAll("â€™", "'").replaceAll("â€”", "—");
-        }
-        
-        const key = feedback['pk'];
-        feedbacks[key] = feedback;
+        ensureUniqueAndStore(feedbacks, feedback, true);
     });
 
-    const answer_score_globals_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_global_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_global_json = [", "]");
-    answer_score_globals_json.forEach(x => {
+    // GLOBAL ANSWER SCORES (auto-remap)
+    const answer_score_globals_json = getSection("answer_score_global_json");
+    answer_score_globals_json.forEach(x => ensureUniqueAndStore(answer_score_globals, x, true));
 
-        if(x["pk"] in answer_score_globals) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in answer_score_globals already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
+    // ISSUE ANSWER SCORES (auto-remap)
+    const answer_score_issues_json = getSection("answer_score_issue_json");
+    answer_score_issues_json.forEach(x => ensureUniqueAndStore(answer_score_issues, x, true));
 
+    // STATE ANSWER SCORES (auto-remap)
+    const answer_score_states_json = getSection("answer_score_state_json");
+    answer_score_states_json.forEach(x => ensureUniqueAndStore(answer_score_states, x, true));
 
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        answer_score_globals[key] = x;
-    });
+    // CANDIDATE ISSUE SCORES
+    const candidate_issue_scores_json = getSection("candidate_issue_score_json");
+    candidate_issue_scores_json.forEach(x => ensureUniqueAndStore(candidate_issue_scores, x));
 
-    const answer_score_issues_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_issue_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_issue_json = [", "]");
-    answer_score_issues_json.forEach(x => {
+    // CANDIDATE STATE MULTIPLIERS
+    const candidate_state_multipliers_json = getSection("candidate_state_multiplier_json");
+    candidate_state_multipliers_json.forEach(x => ensureUniqueAndStore(candidate_state_multipliers, x));
 
-        if(x["pk"] in answer_score_issues) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in answer_score_issues already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
+    // RUNNING MATE ISSUE SCORES
+    const running_mate_issue_scores_json = getSection("running_mate_issue_score_json");
+    running_mate_issue_scores_json.forEach(x => ensureUniqueAndStore(running_mate_issue_scores, x));
 
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        answer_score_issues[key] = x;
-    });
+    // STATE ISSUE SCORES
+    const state_issue_scores_json = getSection("state_issue_score_json");
+    state_issue_scores_json.forEach(x => ensureUniqueAndStore(state_issue_scores, x));
 
-    const answer_score_states_json = extractJSON(raw_json, "campaignTrail_temp.answer_score_state_json = JSON.parse(", ");", "campaignTrail_temp.answer_score_state_json = [", "]");
-    answer_score_states_json.forEach(x => {
+    // ISSUES
+    const issues_json = getSection("issues_json");
+    issues_json.forEach(x => ensureUniqueAndStore(issues, x));
 
-        if(x["pk"] in answer_score_states) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in answer_score_states already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
+    if (duplicates) {
+        alert("WARNING: Duplicate PKs found during import process, see console for details. Some items may be remapped.");
+    }
 
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        answer_score_states[key] = x;
-    });
-
-    const candidate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.candidate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.candidate_issue_score_json = [", "]");
-    candidate_issue_scores_json.forEach(x => {
-
-        if(x["pk"] in candidate_issue_scores) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in candidate_issue_scores already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        candidate_issue_scores[key] = x;
-    });
-
-    const candidate_state_multipliers_json = extractJSON(raw_json, "campaignTrail_temp.candidate_state_multiplier_json = JSON.parse(", ");", "campaignTrail_temp.candidate_state_multiplier_json = [", "]");
-    candidate_state_multipliers_json.forEach(x => {
-
-        if(x["pk"] in candidate_state_multipliers) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in candidate_state_multipliers already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        candidate_state_multipliers[key] = x;
-    });
-
-    const running_mate_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.running_mate_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.running_mate_issue_score_json = [", "]");
-    running_mate_issue_scores_json.forEach(x => {
-
-        if(x["pk"] in running_mate_issue_scores) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in running_mate_issue_scores already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        running_mate_issue_scores[key] = x;
-    });
-
-    const state_issue_scores_json = extractJSON(raw_json, "campaignTrail_temp.state_issue_score_json = JSON.parse(", ");", "campaignTrail_temp.state_issue_score_json = [", "]");
-    state_issue_scores_json.forEach(x => {
-
-        if(x["pk"] in state_issue_scores) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in state_issue_scores already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        state_issue_scores[key] = x;
-    });
-
-    const issues_json = extractJSON(raw_json, "campaignTrail_temp.issues_json = JSON.parse(", ");", "campaignTrail_temp.issues_json = [", "]");
-    issues_json.forEach(x => {
-
-        if(x["pk"] in issues) {
-            console.log(`WARNING: Found duplicate pk ${x["pk"]} in issues already, make sure there are no duplicate PKs in your file before importing`)
-            duplicates = true;
-        }
-
-        highest_pk = Math.max(highest_pk, x["pk"]);
-        const key = x['pk'];
-        issues[key] = x;
-    });
-
-    if(duplicates) alert("WARNING: Duplicate PKs found during import process, see console for more details. Some features may not work as expected or data may be missing.");
-
+    // keeping jet_data unchanged (still simple array literal); we keep legacy extraction but could be extended similarly
     jet_data = extractJSON(raw_json, "campaignTrail_temp.jet_data = [", "]", null, null, false, [{}])[0];
     jet_data.code_to_add = code;
 
@@ -1138,7 +1076,7 @@ function loadDataFromFile(raw_json) {
 // https://stackoverflow.com/questions/20798477/how-to-find-the-indexes-of-all-occurrences-of-an-element-in-array#:~:text=The%20.,val%2C%20i%2B1))%20!%3D
 function getAllIndexes(arr, val) {
     var indexes = [], i = -1;
-    while ((i = arr.indexOf(val, i+1)) != -1){
+    while ((i = arr.indexOf(val, i + 1)) != -1) {
         indexes.push(i);
     }
     return indexes;
