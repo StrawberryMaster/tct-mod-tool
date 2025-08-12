@@ -13,16 +13,16 @@ window.saveAutosave = window.saveAutosave || saveAutosave;
 // Debounced autosave helper exposed globally
 let _autosaveDebounceTimer = null;
 function requestAutosaveDebounced(delay = 600) {
-	// only queue if autosave is enabled
-	if (localStorage.getItem("autosaveEnabled") !== "true") return;
-	clearTimeout(_autosaveDebounceTimer);
-	_autosaveDebounceTimer = setTimeout(() => {
-		try { saveAutosave(); } catch (e) { console.error(e); }
-	}, delay);
+    // only queue if autosave is enabled
+    if (localStorage.getItem("autosaveEnabled") !== "true") return;
+    clearTimeout(_autosaveDebounceTimer);
+    _autosaveDebounceTimer = setTimeout(() => {
+        try { saveAutosave(); } catch (e) { console.error(e); }
+    }, delay);
 }
 window.requestAutosaveDebounced = requestAutosaveDebounced;
 
-if(autosaveEnabled) {
+if (autosaveEnabled) {
     startAutosave();
 }
 
@@ -62,14 +62,18 @@ async function loadData(dataName, isFirstLoad) {
     let mode = QUESTION;
     let raw;
 
-    if(!isFirstLoad || !autosaveEnabled || !autosave) {
-        let f = await fetch(`./public/${dataName}`, {mode: "no-cors"});
-        raw = await f.text();
+    if (!isFirstLoad || !autosaveEnabled || !autosave) {
+        const url = `./public/${dataName}`;
+        const resp = await fetch(url, { cache: 'no-cache' });
+        if (!resp.ok) {
+            throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
+        }
+        raw = await resp.text();
     } else {
         raw = autosave;
     }
 
-    if(raw == null) {
+    if (raw == null) {
         alert(`Loaded file ./public/${dataName} was null. Not loading.`)
         return;
     }
@@ -84,7 +88,7 @@ async function loadData(dataName, isFirstLoad) {
     let firstCandidateArr = getListOfCandidates();
     let firstCandidate = firstCandidateArr.length > 0 ? firstCandidateArr[0][0] : null;
 
-    if(isNew) {
+    if (isNew) {
         app = createApp({});
         app.config.globalProperties.$TCT = Vue.prototype.$TCT;
         app.config.globalProperties.$globalData = reactive({
@@ -95,12 +99,12 @@ async function loadData(dataName, isFirstLoad) {
             candidate: firstCandidate,
             filename: "default"
         });
-        
+
         // Initialize modern component system
         if (window.initializeTCTApp) {
             window.initializeTCTApp(app);
         }
-        
+
         // Keep Vue 2 prototype in sync
         Vue.prototype.$globalData = app.config.globalProperties.$globalData;
     }
@@ -115,14 +119,14 @@ async function loadData(dataName, isFirstLoad) {
     console.log("Loaded data: ", raw);
     console.log("Mode is: ", Vue.prototype.$globalData.mode)
 
-    if(isNew) {
+    if (isNew) {
         app.mount('#app')
     }
 }
 
 function getListOfCandidates() {
 
-    if(Object.values(Vue.prototype.$TCT.candidate_issue_score).length == 0) {
+    if (Object.values(Vue.prototype.$TCT.candidate_issue_score).length == 0) {
         return [[null, null]];
     }
 
@@ -130,11 +134,11 @@ function getListOfCandidates() {
     arr = Array.from(new Set(arr));
     arr = arr.map((c) => {
         let nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
-        if(nickname != "" && nickname != null) {
+        if (nickname != "" && nickname != null) {
             nickname = ` (${nickname})`
             return [c, c + nickname];
         }
-        
+
         return [c, c];
     });
 
