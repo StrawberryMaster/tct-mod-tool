@@ -1,5 +1,5 @@
 window.defineComponent('data-table', {
-    props: ['items', 'columns', 'title', 'keyField'],
+    props: ['items', 'columns', 'title', 'keyField', 'deletable', 'deleteLabel'],
 
     data() {
         return {
@@ -26,7 +26,14 @@ window.defineComponent('data-table', {
         
         <!-- Batch Edit Mode -->
         <div v-if="batchMode" class="bg-gray-100 p-3 mb-4 rounded">
-            <h3 class="font-bold mb-2">Batch Edit {{ selectedItems.length }} items</h3>
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold">Batch Edit {{ selectedItems.length }} items</h3>
+                <button 
+                    v-if="deletable && selectedItems.length" 
+                    @click="deleteSelected" 
+                    class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                >{{ deleteLabel || 'Delete Selected' }}</button>
+            </div>
             <div v-for="col in columns" :key="col.field" class="mb-2" v-if="col.editable">
                 <label class="block text-sm">{{ col.label }}</label>
                 <div class="flex items-center">
@@ -35,6 +42,11 @@ window.defineComponent('data-table', {
                         :placeholder="col.label"
                         class="border p-1 rounded mr-2 flex-grow"
                         :type="col.type || 'text'"
+                        :min="col.min"
+                        :max="col.max"
+                        :step="col.step"
+                        @click.stop
+                        @keydown.stop
                     >
                     <button @click="applyBatchEdit(col.field)" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Apply</button>
                 </div>
@@ -77,7 +89,12 @@ window.defineComponent('data-table', {
                         :value="item[col.field]" 
                         @input="updateItem($event, item, col.field)"
                         :type="col.type || 'text'"
+                        :min="col.min"
+                        :max="col.max"
+                        :step="col.step"
                         class="w-full border rounded p-1"
+                        @click.stop
+                        @keydown.stop
                     >
                     <span v-else>{{ formatValue(item[col.field], col) }}</span>
                 </div>
@@ -136,6 +153,10 @@ window.defineComponent('data-table', {
                     this.$emit('update-item', item, field, this.batchValues[field]);
                 }
             });
+        },
+        deleteSelected() {
+            this.$emit('delete-items', this.selectedItems.slice());
+            this.selectedItems = [];
         }
     },
 
@@ -170,6 +191,97 @@ window.defineComponent('data-table', {
     }
 });
 
+// a focused editor to quickly add, edit, and delete per-state "shift" values.
+// used wherever an Answer lists state shifts to make the numbers easy to change.
+window.defineComponent('state-shift-editor', {
+    props: ['shifts', 'title'],
+    data() {
+        return {
+            newStatePk: null,
+            newShiftValue: 0
+        };
+    },
+    computed: {
+        // compose the rows with useful context for editing
+        items() {
+            const states = Vue.prototype.$TCT.states;
+            return (this.shifts || []).map(s => {
+                const st = states[s.state];
+                const fields = st ? st.fields : {};
+                return {
+                    state: s.state, // keyField
+                    abbr: fields.abbr || '',
+                    stateName: fields.name || `State ${s.state}`,
+                    electoral_votes: fields.electoral_votes || 0,
+                    shift: s.shift
+                };
+            });
+        },
+        columns() {
+            return [
+                { field: 'abbr', label: 'Abbr', width: 1 },
+                { field: 'stateName', label: 'State', width: 4 },
+                { field: 'electoral_votes', label: 'EV', width: 1 },
+                { field: 'shift', label: 'Shift', editable: true, type: 'number', step: 0.1, width: 2 }
+            ];
+        },
+        availableStates() {
+            const used = new Set((this.shifts || []).map(s => s.state));
+            const states = Vue.prototype.$TCT.states || {};
+            return Object.values(states)
+                .map(s => ({ pk: s.pk, abbr: s.fields.abbr, name: s.fields.name }))
+                .filter(s => !used.has(s.pk))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }
+    },
+    methods: {
+        onUpdate(item, field, value) {
+            if (field !== 'shift') return;
+            this.$emit('update-shift', item.state, value);
+        },
+        onDeleteSelected(keys) {
+            // keys are state PKs because keyField="state"
+            this.$emit('remove-shifts', keys);
+        },
+        addShift() {
+            if (this.newStatePk == null) return;
+            const shiftVal = Number(this.newShiftValue);
+            this.$emit('add-shift', Number(this.newStatePk), isNaN(shiftVal) ? 0 : shiftVal);
+            this.newStatePk = null;
+            this.newShiftValue = 0;
+        }
+    },
+    template: `
+    <div class="mx-auto bg-white rounded shadow p-4 mb-4">
+        <div class="flex justify-between items-end mb-3">
+            <div>
+                <h2 class="font-bold text-lg">{{ title || 'State Shifts' }} ({{ items.length }})</h2>
+            </div>
+            <div class="flex items-center space-x-2">
+                <select v-model="newStatePk" class="border p-1 rounded min-w-[12rem]">
+                    <option :value="null" disabled>Select state…</option>
+                    <option v-for="s in availableStates" :key="s.pk" :value="s.pk">
+                        {{ s.abbr }} - {{ s.name }}
+                    </option>
+                </select>
+                <input v-model.number="newShiftValue" type="number" step="0.1" class="border p-1 rounded w-28" placeholder="Shift">
+                <button @click="addShift" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add</button>
+            </div>
+        </div>
+        <data-table 
+            :items="items" 
+            :columns="columns" 
+            :title="'Shifts'" 
+            keyField="state"
+            :deletable="true"
+            :deleteLabel="'Remove Selected'"
+            @update-item="onUpdate"
+            @delete-items="onDeleteSelected"
+        ></data-table>
+    </div>
+    `
+});
+
 window.defineComponent('state', {
     props: ['pk'],
 
@@ -184,23 +296,23 @@ window.defineComponent('state', {
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'name', label: 'Name', editable: true, width: 3 },
                 { field: 'abbr', label: 'Abbr', editable: true, width: 1 },
-                { field: 'electoral_votes', label: 'EV', editable: true, type: 'number', width: 1 },
-                { field: 'popular_votes', label: 'PV', editable: true, type: 'number', width: 2 },
-                { field: 'poll_closing_time', label: 'Close Time', editable: true, type: 'number', width: 1 },
-                { field: 'winner_take_all_flg', label: 'WTA', editable: true, type: 'number', width: 1 }
+                { field: 'electoral_votes', label: 'EV', editable: true, type: 'number', step: 1, width: 1 },
+                { field: 'popular_votes', label: 'PV', editable: true, type: 'number', step: 1000, width: 2 },
+                { field: 'poll_closing_time', label: 'Close Time', editable: true, type: 'number', step: 1, width: 1 },
+                { field: 'winner_take_all_flg', label: 'WTA', editable: true, type: 'number', step: 1, width: 1 }
             ],
             multiplierColumns: [
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'candidate', label: 'Candidate', width: 2 },
                 { field: 'candidateName', label: 'Name', width: 3, formatter: val => val || 'Unknown' },
-                { field: 'state_multiplier', label: 'Multiplier', editable: true, type: 'number', width: 3 }
+                { field: 'state_multiplier', label: 'Multiplier', editable: true, type: 'number', step: 0.01, width: 3 }
             ],
             issueScoreColumns: [
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'issue', label: 'Issue', width: 2 },
                 { field: 'issueName', label: 'Issue Name', width: 3, formatter: val => val || 'Unknown' },
-                { field: 'state_issue_score', label: 'Score (-1 to 1)', editable: true, type: 'number', width: 3 },
-                { field: 'weight', label: 'Weight', editable: true, type: 'number', width: 2 }
+                { field: 'state_issue_score', label: 'Score (-1 to 1)', editable: true, type: 'number', step: 0.01, min: -1, max: 1, width: 3 },
+                { field: 'weight', label: 'Weight', editable: true, type: 'number', step: 0.01, width: 2 }
             ]
         };
     },
