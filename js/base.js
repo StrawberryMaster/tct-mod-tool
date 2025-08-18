@@ -1062,7 +1062,7 @@ function loadDataFromFile(raw_json) {
     issues_json.forEach(x => ensureUniqueAndStore(issues, x));
 
     if (duplicates) {
-        alert("WARNING: Duplicate PKs found during import process, see console for details. Some items may be remapped.");
+        alert("WARNING: Duplicate PKs found during import process, see console for details. Some items may have been remapped.");
     }
 
     // keeping jet_data unchanged (still simple array literal); we keep legacy extraction but could be extended similarly

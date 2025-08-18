@@ -42,9 +42,94 @@ window.defineComponent('toolbar', {
             if (file) {
                 var reader = new FileReader();
                 reader.readAsText(file, "UTF-8");
-                reader.onload = function (evt) {
+
+                // remove JS-style comments but preserve strings
+                // this lets mods such as the original Obamanation display here
+                const stripJsonComments = (input) => {
+                    let out = '';
+                    let i = 0;
+                    let inString = false;
+                    let stringChar = '';
+                    let escape = false;
+                    let inSingleLine = false;
+                    let inMultiLine = false;
+
+                    while (i < input.length) {
+                        const ch = input[i];
+                        const chNext = input[i+1];
+
+                        if (inSingleLine) {
+                            if (ch === '\n' || ch === '\r') {
+                                inSingleLine = false;
+                                out += ch;
+                            }
+                            // otherwise skip
+                            i++;
+                            continue;
+                        }
+
+                        if (inMultiLine) {
+                            if (ch === '*' && chNext === '/') {
+                                inMultiLine = false;
+                                i += 2;
+                                continue;
+                            }
+                            i++;
+                            continue;
+                        }
+
+                        if (inString) {
+                            out += ch;
+                            if (!escape && ch === stringChar) {
+                                inString = false;
+                                stringChar = '';
+                            }
+                            escape = (!escape && ch === '\\') ? true : false;
+                            i++;
+                            continue;
+                        }
+
+                        // not in string/comment
+                        if (ch === '"' || ch === "'") {
+                            inString = true;
+                            stringChar = ch;
+                            out += ch;
+                            i++;
+                            continue;
+                        }
+
+                        // single-line comment
+                        if (ch === '/' && chNext === '/') {
+                            inSingleLine = true;
+                            i += 2;
+                            continue;
+                        }
+
+                        // multi-line comment
+                        if (ch === '/' && chNext === '*') {
+                            inMultiLine = true;
+                            i += 2;
+                            continue;
+                        }
+
+                        out += ch;
+                        i++;
+                    }
+
+                    return out;
+                };
+
+                reader.onload = (evt) => {
                     try {
-                        Vue.prototype.$TCT = loadDataFromFile(evt.target.result);
+                        const raw = evt.target.result;
+                        // preserve original (with comments) for export
+                        Vue.prototype.$TCT_raw = raw;
+
+                        // strip comments before handing to loader
+                        const stripped = stripJsonComments(raw);
+
+                        // parse!
+                        Vue.prototype.$TCT = loadDataFromFile(stripped);
                         Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0].pk;
                         Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0].pk;
                         Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0].pk;
