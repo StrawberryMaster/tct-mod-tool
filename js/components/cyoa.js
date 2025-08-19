@@ -60,6 +60,30 @@ window.defineComponent('cyoa', {
                     </ul>
                 </div>
             </details>
+
+            <!-- Answer Swap Rules Section -->
+            <details open class="bg-gray-50 rounded border">
+                <summary class="px-3 py-2 font-medium cursor-pointer">Answer Swap Rules</summary>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button class="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600" @click="addAnswerSwapRule">
+                            Add Swap Rule
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="cyoaAnswerSwaps.length">Total: {{ cyoaAnswerSwaps.length }}</span>
+                    </div>
+                    <p v-if="cyoaAnswerSwaps.length === 0" class="text-gray-500 italic">
+                        No swap rules yet. Click "Add Swap Rule" to create one.
+                    </p>
+                    <div v-else class="space-y-2">
+                        <cyoa-answer-swap
+                            v-for="r in cyoaAnswerSwaps"
+                            :id="r.id"
+                            :key="r.id"
+                            @deleteRule="deleteAnswerSwapRule">
+                        </cyoa-answer-swap>
+                    </div>
+                </div>
+            </details>
         </div>
     </div>
     `,
@@ -129,6 +153,35 @@ window.defineComponent('cyoa', {
 
             this.tick++;
         },
+
+        // Answer swap rules
+        addAnswerSwapRule() {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
+            }
+            const id = Date.now();
+            Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[id] = {
+                id,
+                triggers: [],                 // array of answer PKs that trigger the swap block
+                condition: {                  // optional condition; empty variable = no condition
+                    variable: '',
+                    comparator: '>=',
+                    value: 0
+                },
+                swaps: [                      // one or more swaps to apply
+                    { pk1: null, pk2: null, takeEffects: true }
+                ]
+            };
+            this.tick++;
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
+
+        deleteAnswerSwapRule(id) {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) return;
+            delete Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[id];
+            this.tick++;
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
     },
 
     computed: {
@@ -159,6 +212,10 @@ window.defineComponent('cyoa', {
             if(Vue.prototype.$TCT.jet_data.cyoa_variable_effects == null) {
                 Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
             }
+            // initialize answer swap rules store
+            if(Vue.prototype.$TCT.jet_data.cyoa_answer_swaps == null) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
+            }
 
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
@@ -172,6 +229,13 @@ window.defineComponent('cyoa', {
             const hasAnswers = Object.values(Vue.prototype.$TCT.answers).length > 0;
             const hasQuestions = Array.from(Vue.prototype.$TCT.questions.values()).length > 0;
             return hasAnswers && hasQuestions;
+        },
+
+        // expose swaps as a sorted list
+        cyoaAnswerSwaps() {
+            this.tick;
+            const src = Vue.prototype.$TCT.jet_data.cyoa_answer_swaps || {};
+            return Object.values(src).sort((a,b) => a.id - b.id);
         }
     }
 })
@@ -385,4 +449,184 @@ window.defineComponent('cyoa-variable', {
             };
         }
     }
+})
+
+// Single Answer Swap Rule editor
+window.defineComponent('cyoa-answer-swap', {
+    props: ['id'],
+
+    data() {
+        return {
+            triggerToAdd: null,
+            swapRowsTick: 0
+        };
+    },
+
+    methods: {
+        getRule() {
+            return Vue.prototype.$TCT.jet_data.cyoa_answer_swaps?.[this.id] || {
+                id: this.id, triggers: [], condition: { variable: '', comparator: '>=', value: 0 }, swaps: []
+            };
+        },
+
+        addTrigger() {
+            const rule = this.getRule();
+            const val = Number(this.triggerToAdd);
+            if (!val) return;
+            if (!rule.triggers.includes(val)) {
+                rule.triggers.push(val);
+                this.triggerToAdd = null;
+                if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            }
+        },
+
+        removeTrigger(pk) {
+            const rule = this.getRule();
+            rule.triggers = rule.triggers.filter(x => x !== pk);
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
+
+        addSwap() {
+            const rule = this.getRule();
+            rule.swaps.push({ pk1: null, pk2: null, takeEffects: true });
+            this.swapRowsTick++;
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
+
+        removeSwap(index) {
+            const rule = this.getRule();
+            rule.swaps.splice(index, 1);
+            this.swapRowsTick++;
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
+
+        updateCondition(field, value) {
+            const rule = this.getRule();
+            if (field === 'value') {
+                rule.condition.value = Number(value);
+            } else {
+                rule.condition[field] = value;
+            }
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        },
+
+        updateSwap(index, field, value) {
+            const rule = this.getRule();
+            if (!rule.swaps[index]) return;
+            if (field === 'takeEffects') {
+                rule.swaps[index].takeEffects = !!value;
+            } else {
+                rule.swaps[index][field] = Number(value) || null;
+            }
+            this.swapRowsTick++;
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+        }
+    },
+
+    computed: {
+        rule() {
+            // touch tick so list reflects changes
+            this.swapRowsTick;
+            return this.getRule();
+        },
+
+        variables() {
+            // variable names from CYOA vars
+            return (Vue.prototype.$TCT.getAllCyoaVariables?.() || []).map(v => v.name);
+        },
+
+        answers() {
+            return Object.values(Vue.prototype.$TCT.answers || {});
+        }
+    },
+
+    template: `
+    <div class="bg-white rounded shadow p-3 border-l-4 border-purple-400">
+        <div class="flex justify-between items-start mb-2">
+            <div class="text-sm text-gray-700">
+                <div class="font-medium">Swap Rule #{{ id }}</div>
+                <div class="text-xs text-gray-500">
+                    Runs in Code 2 via answerSwapper for selected triggers and optional condition.
+                </div>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
+        </div>
+
+        <!-- Triggers -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger Answers:</label>
+            <div class="flex items-center gap-2">
+                <select v-model.number="triggerToAdd" class="border rounded p-1 text-sm">
+                    <option :value="null" disabled>Select answer...</option>
+                    <option v-for="a in answers" :key="a.pk" :value="a.pk">
+                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
+                    </option>
+                </select>
+                <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1">
+                <span v-for="pk in rule.triggers" :key="'t-'+pk" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                    #{{ pk }}
+                    <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
+                </span>
+            </div>
+        </div>
+
+        <!-- Optional Condition -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Optional Condition:</label>
+            <div class="grid grid-cols-3 gap-2 items-center">
+                <select :value="rule.condition.variable" @change="updateCondition('variable', $event.target.value)" class="border rounded p-1 text-sm">
+                    <option value="">(none)</option>
+                    <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
+                </select>
+                <select :value="rule.condition.comparator" @change="updateCondition('comparator', $event.target.value)" class="border rounded p-1 text-sm" :disabled="!rule.condition.variable">
+                    <option value=">=">>=</option>
+                    <option value="<="><=</option>
+                    <option value=">">></option>
+                    <option value="<"><</option>
+                    <option value="==">==</option>
+                    <option value="!=">!=</option>
+                </select>
+                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded p-1 text-sm" :disabled="!rule.condition.variable">
+            </div>
+            <div v-if="rule.condition.variable" class="text-xs text-gray-500 mt-1">
+                Condition: {{ rule.condition.variable }} {{ rule.condition.comparator }} {{ rule.condition.value }}
+            </div>
+        </div>
+
+        <!-- Swaps -->
+        <div class="mb-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Swaps to Apply:</label>
+            <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 1</label>
+                    <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded p-1 text-sm w-full">
+                        <option :value="null" disabled>Select answer...</option>
+                        <option v-for="a in answers" :key="'pk1-'+a.pk" :value="a.pk">
+                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
+                        </option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 2</label>
+                    <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded p-1 text-sm w-full">
+                        <option :value="null" disabled>Select answer...</option>
+                        <option v-for="a in answers" :key="'pk2-'+a.pk" :value="a.pk">
+                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
+                        </option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="inline-flex items-center text-xs">
+                        <input type="checkbox" :checked="s.takeEffects" @change="updateSwap(idx,'takeEffects',$event.target.checked)" class="mr-1">
+                        Take effects
+                    </label>
+                    <button class="text-red-600 hover:text-red-800 text-xs" @click="removeSwap(idx)">✕</button>
+                </div>
+            </div>
+            <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs" @click="addSwap">Add another swap</button>
+        </div>
+    </div>
+    `
 })
