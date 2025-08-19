@@ -441,12 +441,15 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         injectAnswerSwapIntoCode2(code) {
             let out = String(code || '');
 
-            // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
-            out = this.insertSwapperAfterHelper(out);
+            // Only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
+            if (this.enabled) {
+                // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
+                out = this.insertSwapperAfterHelper(out);
 
-            // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
-            const blocks = this.buildAnswerSwapBlocks();
-            out = this.insertSwapsInsideCyoAdventure(out, blocks);
+                // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
+                const blocks = this.buildAnswerSwapBlocks();
+                out = this.insertSwapsInsideCyoAdventure(out, blocks);
+            }
 
             return out;
         }
@@ -652,12 +655,15 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     injectAnswerSwapIntoCode2(code) {
         let out = String(code || '');
 
-        // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
-        out = this.insertSwapperAfterHelper(out);
+        // Only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
+        if (Vue.prototype.$TCT.jet_data.cyoa_enabled) {
+            // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
+            out = this.insertSwapperAfterHelper(out);
 
-        // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
-        const blocks = this.buildAnswerSwapBlocks();
-        out = this.insertSwapsInsideCyoAdventure(out, blocks);
+            // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
+            const blocks = this.buildAnswerSwapBlocks();
+            out = this.insertSwapsInsideCyoAdventure(out, blocks);
+        }
 
         return out;
     }
