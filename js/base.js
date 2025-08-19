@@ -327,6 +327,28 @@ class TCTData {
         return out;
     }
 
+    getAllCyoaVariables() {
+        if (this.jet_data.cyoa_variables == null) {
+            this.jet_data.cyoa_variables = {};
+        }
+
+        // ensure deterministic ordering
+        const out = Object.values(this.jet_data.cyoa_variables);
+        out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
+        return out;
+    }
+
+    getAllCyoaVariableEffects() {
+        if (this.jet_data.cyoa_variable_effects == null) {
+            this.jet_data.cyoa_variable_effects = {};
+        }
+
+        // ensure deterministic ordering
+        const out = Object.values(this.jet_data.cyoa_variable_effects);
+        out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
+        return out;
+    }
+
     getAllEndings() {
         if (this.jet_data.endings_enabled == null) {
             this.jet_data.endings_enabled = false;
@@ -845,29 +867,68 @@ campaignTrail_temp.cyoa = true;
 
 function getQuestionNumberFromPk(pk) {
     return campaignTrail_temp.questions_json.map(q=>q.pk).indexOf(pk)-1;
-}
+}`
 
-cyoAdventure = function (a) {
+            // Add variable declarations
+            const variables = this.getAllCyoaVariables();
+            if (variables.length > 0) {
+                f += "\n\n// CYOA Variables\n";
+                for (let variable of variables) {
+                    f += `var ${variable.name} = ${variable.defaultValue};\n`;
+                }
+            }
+
+            f += `\ncyoAdventure = function (a) {
     ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length-1];\n`
+
+            // Add variable effects grouped by answers
+            const variableEffects = this.getAllCyoaVariableEffects();
+            if (variableEffects.length > 0) {
+                // Group effects by answer and operation
+                const effectGroups = {};
+                for (let effect of variableEffects) {
+                    const key = `${effect.variable}_${effect.operation}_${effect.amount}`;
+                    if (!effectGroups[key]) {
+                        effectGroups[key] = {
+                            variable: effect.variable,
+                            operation: effect.operation,
+                            amount: effect.amount,
+                            answers: []
+                        };
+                    }
+                    effectGroups[key].answers.push(effect.answer);
+                }
+
+                // Generate effect code
+                for (let groupKey in effectGroups) {
+                    const group = effectGroups[groupKey];
+                    const operator = group.operation === 'add' ? '+=' : '-=';
+                    const answersList = group.answers.join(' || ans == ');
+                    f += `\n    // ${group.operation === 'add' ? '+' : '-'}${group.amount} ${group.variable}\n`;
+                    f += `    if (ans == ${answersList}) {\n`;
+                    f += `        ${group.variable} ${operator} ${group.amount};\n`;
+                    f += `    }\n`;
+                }
+            }
 
             // sort rules for consistent generation (by answer pk)
             let events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
 
-            for (let i = 0; i < events.length; i++) {
-                f += `
-    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
-        campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
-    }`
-            }
-
             if (events.length > 0) {
+                f += "\n    // Branching Logic\n";
+                for (let i = 0; i < events.length; i++) {
+                    f += `    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
+        campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
+    }\n`
+                }
+
                 f +=
-                    `\n    else {
+                    `    else {
         return false;
-    }`
+    }\n`
             }
 
-            f += "\n}\n\n"
+            f += "}\n\n"
         }
         return f;
     }
