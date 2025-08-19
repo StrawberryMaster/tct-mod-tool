@@ -196,6 +196,7 @@ window.defineComponent('question', {
                                 <span v-if="hasFeedback(answer.pk)" class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Feedback</span>
                                 <span v-if="hasIssueScores(answer.pk)" class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Issues</span>
                                 <span v-if="hasStateScores(answer.pk)" class="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs rounded-full">States</span>
+                                <span v-if="hasVariableEffects(answer.pk)" class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Variables</span>
                             </div>
                         </li>
                     </ul>
@@ -253,6 +254,16 @@ window.defineComponent('question', {
                                     <span class="flex items-center">
                                         <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2" v-if="hasStateScores(activeAnswer)"></span>
                                         States
+                                    </span>
+                                </button>
+                                <button @click="activeTab = 'variables'"
+                                    :class="{'border-blue-500 text-blue-600': activeTab === 'variables', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'variables'}"
+                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    role="tab"
+                                    :aria-selected="activeTab === 'variables' ? 'true' : 'false'">
+                                    <span class="flex items-center">
+                                        <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-2" v-if="hasVariableEffects(activeAnswer)"></span>
+                                        Variables
                                     </span>
                                 </button>
                             </nav>
@@ -326,6 +337,25 @@ window.defineComponent('question', {
                                 </div>
                                 <div v-else class="text-gray-500 text-sm text-center py-4">
                                     Select an answer to edit state effects
+                                </div>
+                            </div>
+
+                            <!-- Variables Tab -->
+                            <div v-if="activeTab === 'variables'">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-medium text-sm">Variable Effects</h4>
+                                    <button @click="addVariableEffect(activeAnswer)" class="bg-purple-500 text-white px-2 py-1 text-xs rounded hover:bg-purple-600" :disabled="!hasCyoaVariables">
+                                        Add Variable Effect
+                                    </button>
+                                </div>
+                                <variable-effect-card
+                                    v-for="effect in getVariableEffectsForAnswer(activeAnswer)"
+                                    :pk="effect.pk"
+                                    :key="effect.pk"
+                                    @deleteVariableEffect="deleteVariableEffect">
+                                </variable-effect-card>
+                                <div v-if="!hasVariableEffects(activeAnswer)" class="text-gray-500 text-sm text-center py-4">
+                                    {{ hasCyoaVariables ? 'No variable effects configured yet' : 'Create CYOA variables first to add effects' }}
                                 </div>
                             </div>
                         </div>
@@ -626,6 +656,43 @@ window.defineComponent('question', {
 
         hasStateScores(pk) {
             return this.getStateScoresForAnswer(pk).length > 0;
+        },
+
+        getVariableEffectsForAnswer(pk) {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) return [];
+            return Object.values(Vue.prototype.$TCT.jet_data.cyoa_variable_effects).filter(effect => effect.answer === pk);
+        },
+
+        hasVariableEffects(pk) {
+            return this.getVariableEffectsForAnswer(pk).length > 0;
+        },
+
+        addVariableEffect(answerPk) {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) {
+                Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
+            }
+            
+            const variables = Vue.prototype.$TCT.getAllCyoaVariables();
+            if (variables.length === 0) return; // No variables to affect
+            
+            const newPk = Vue.prototype.$TCT.getNewPk();
+            Vue.prototype.$TCT.jet_data.cyoa_variable_effects[newPk] = {
+                id: newPk,
+                answer: answerPk,
+                variable: variables[0].name,
+                operation: 'add',
+                amount: 1
+            };
+            this.temp_answers = [Date.now()];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
+        },
+
+        deleteVariableEffect(pk) {
+            delete Vue.prototype.$TCT.jet_data.cyoa_variable_effects[pk];
+            this.temp_answers = [Date.now()];
+            this.markDirty();
+            this.quickAutosaveIfEnabled();
         }
     },
 
@@ -647,6 +714,10 @@ window.defineComponent('question', {
         likelihood: function () {
             this.temp_answers;
             return Vue.prototype.$TCT.questions.get(this.pk).fields.likelihood;
+        },
+
+        hasCyoaVariables: function () {
+            return Vue.prototype.$TCT.getAllCyoaVariables().length > 0;
         },
 
         getAnswerDescription: function () {
@@ -2062,4 +2133,74 @@ window.defineComponent('integrated-state-effect-visualizer', {
         </div>
     </div>
     `
+});
+
+// Variable Effect Card Component
+window.defineComponent('variable-effect-card', {
+    props: ['pk'],
+
+    template: `
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+        <div class="flex justify-between">
+            <h4 class="text-sm font-medium text-gray-700">Variable Effect #{{pk}}</h4>
+            <button @click="$emit('deleteVariableEffect', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete variable effect #' + pk" :title="'Delete variable effect #' + pk">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 mt-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-700" :for="'ve-variable-' + pk">Variable:</label>
+                <select @change="onInput($event)" :value="variable" name="variable" :id="'ve-variable-' + pk"
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                    <option v-for="variable in availableVariables" :key="variable.name" :value="variable.name">{{ variable.name }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700" :for="'ve-operation-' + pk">Operation:</label>
+                <select @change="onInput($event)" :value="operation" name="operation" :id="'ve-operation-' + pk"
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                    <option value="add">Add (+)</option>
+                    <option value="subtract">Subtract (-)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700" :for="'ve-amount-' + pk">Amount:</label>
+                <input @input="onInput($event)" :value="amount" name="amount" type="number" min="1" :id="'ve-amount-' + pk"
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+            </div>
+        </div>
+        
+        <div class="mt-2 text-xs text-gray-500">
+            Effect: <span class="font-medium">{{ variable }} {{ operation === 'add' ? '+' : '-' }}= {{ amount }}</span>
+        </div>
+    </div>
+    `,
+
+    methods: {
+        onInput(evt) {
+            const val = evt.target.name === 'amount' ? Number(evt.target.value) : evt.target.value;
+            Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk][evt.target.name] = val;
+        }
+    },
+
+    computed: {
+        availableVariables() {
+            return Vue.prototype.$TCT.getAllCyoaVariables();
+        },
+
+        variable: function () {
+            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.variable || '';
+        },
+
+        operation: function () {
+            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.operation || 'add';
+        },
+
+        amount: function () {
+            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.amount || 1;
+        }
+    }
 });

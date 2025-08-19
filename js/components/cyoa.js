@@ -17,19 +17,40 @@ window.defineComponent('cyoa', {
             </div>
         </div>
 
-        <div v-if="enabled" class="mb-2 flex items-center gap-2">
-            <button 
-                class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
-                v-on:click="addCyoaEvent()" 
-                :disabled="!canAdd"
-                :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
-            >
-                Add CYOA Event
-            </button>
-            <span class="text-sm text-gray-600" v-if="cyoaEvents.length">Total: {{ cyoaEvents.length }}</span>
-        </div>
+        <div v-if="enabled" class="space-y-4">
+            <!-- Variables Section -->
+            <details open class="bg-gray-50 rounded border">
+                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Variables</summary>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button 
+                            class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600" 
+                            v-on:click="addVariable()"
+                        >
+                            Add Variable
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="cyoaVariables.length">Total: {{ cyoaVariables.length }}</span>
+                    </div>
+                    <p v-if="cyoaVariables.length === 0" class="text-gray-500 italic">No variables yet. Click "Add Variable" to create one.</p>
+                    <div v-else class="space-y-2">
+                        <cyoa-variable @deleteVariable="deleteVariable" :id="variable.id" :key="variable.id" v-for="variable in cyoaVariables"></cyoa-variable>
+                    </div>
+                </div>
+            </details>
 
-        <div v-if="enabled">
+            <!-- Branching Events Section -->
+            <div class="mb-2 flex items-center gap-2">
+                <button 
+                    class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    v-on:click="addCyoaEvent()" 
+                    :disabled="!canAdd"
+                    :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
+                >
+                    Add CYOA Event
+                </button>
+                <span class="text-sm text-gray-600" v-if="cyoaEvents.length">Total: {{ cyoaEvents.length }}</span>
+            </div>
+
             <details open class="bg-gray-50 rounded border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Events</summary>
                 <div class="p-3">
@@ -76,6 +97,31 @@ window.defineComponent('cyoa', {
             this.temp_events = [];
             this.tick++;
         },
+
+        addVariable: function() {
+            let id = Date.now();
+            Vue.prototype.$TCT.jet_data.cyoa_variables[id] = {
+                'id': id,
+                'name': `variable${Object.keys(Vue.prototype.$TCT.jet_data.cyoa_variables || {}).length + 1}`,
+                'defaultValue': 0
+            };
+            this.tick++;
+        },
+
+        deleteVariable: function(id) {
+            delete Vue.prototype.$TCT.jet_data.cyoa_variables[id];
+            // Also delete any variable effects that use this variable
+            const effects = Vue.prototype.$TCT.getAllCyoaVariableEffects();
+            const variableObj = Vue.prototype.$TCT.jet_data.cyoa_variables[id];
+            if (variableObj) {
+                for (let effect of effects) {
+                    if (effect.variable === variableObj.name) {
+                        delete Vue.prototype.$TCT.jet_data.cyoa_variable_effects[effect.id];
+                    }
+                }
+            }
+            this.tick++;
+        },
     },
 
     computed: {
@@ -85,6 +131,11 @@ window.defineComponent('cyoa', {
             return Vue.prototype.$TCT.getAllCyoaEvents();
         },
 
+        cyoaVariables: function() {
+            this.tick;
+            return Vue.prototype.$TCT.getAllCyoaVariables();
+        },
+
         enabled: function() {
             if(Vue.prototype.$TCT.jet_data.cyoa_enabled == null) {
                 Vue.prototype.$TCT.jet_data.cyoa_enabled = false;
@@ -92,6 +143,14 @@ window.defineComponent('cyoa', {
 
             if(Vue.prototype.$TCT.jet_data.cyoa_data == null) {
                 Vue.prototype.$TCT.jet_data.cyoa_data = {};
+            }
+
+            if(Vue.prototype.$TCT.jet_data.cyoa_variables == null) {
+                Vue.prototype.$TCT.jet_data.cyoa_variables = {};
+            }
+
+            if(Vue.prototype.$TCT.jet_data.cyoa_variable_effects == null) {
+                Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
             }
 
             const temp = Vue.prototype.$globalData.filename;
@@ -227,5 +286,96 @@ window.defineComponent('cyoa-event', {
         answers: function() {
             return Object.values(Vue.prototype.$TCT.answers);
         },
+    }
+})
+
+window.defineComponent('cyoa-variable', {
+
+    props: ['id'],
+
+    data() {
+        return {
+            nameVal: '',
+            defaultValueVal: 0
+        };
+    },
+
+    template: `
+    <div class="bg-white rounded shadow p-3 border-l-4 border-blue-400">
+        <div class="flex justify-between items-start mb-2">
+            <div class="text-sm text-gray-700">
+                <div class="font-medium">Variable</div>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" v-on:click="deleteVariable()" aria-label="Delete variable">
+                ✕
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Variable Name:</label>
+                <input 
+                    v-model="nameVal" 
+                    @input="onChange" 
+                    name="name" 
+                    type="text" 
+                    class="w-full border rounded p-2 text-sm"
+                    placeholder="e.g. wins, trust">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Default Value:</label>
+                <input 
+                    v-model.number="defaultValueVal" 
+                    @input="onChange" 
+                    name="defaultValue" 
+                    type="number" 
+                    class="w-full border rounded p-2 text-sm">
+            </div>
+        </div>
+    </div>
+    `,
+
+    methods: {
+        deleteVariable: function() {
+            if (confirm('Delete this variable? This will also remove all effects that use this variable.')) {
+                this.$emit('deleteVariable', this.id);
+            }
+        },
+
+        onChange: function(evt) {
+            const val = evt.target.name === 'defaultValue' ? Number(evt.target.value) : evt.target.value;
+            Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][evt.target.name] = val;
+        },
+
+        syncFromGlobal: function() {
+            const variable = Vue.prototype.$TCT.jet_data.cyoa_variables[this.id] || {};
+            this.nameVal = variable.name || '';
+            this.defaultValueVal = variable.defaultValue || 0;
+        }
+    },
+
+    mounted() {
+        this.syncFromGlobal();
+    },
+
+    watch: {
+        id() {
+            this.syncFromGlobal();
+        },
+        nameVal(val) {
+            this.updateGlobal('name', val);
+        },
+        defaultValueVal(val) {
+            this.updateGlobal('defaultValue', val);
+        }
+    },
+
+    computed: {
+        updateGlobal: function() {
+            return function(field, val) {
+                if (!Vue.prototype.$TCT.jet_data.cyoa_variables[this.id]) return;
+                Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][field] = val;
+            };
+        }
     }
 })
