@@ -350,8 +350,8 @@ window.defineComponent('question', {
                                 </div>
                                 <variable-effect-card
                                     v-for="effect in getVariableEffectsForAnswer(activeAnswer)"
-                                    :pk="effect.pk"
-                                    :key="effect.pk"
+                                    :pk="effect.id"
+                                    :key="effect.id"
                                     @deleteVariableEffect="deleteVariableEffect">
                                 </variable-effect-card>
                                 <div v-if="!hasVariableEffects(activeAnswer)" class="text-gray-500 text-sm text-center py-4">
@@ -2181,8 +2181,13 @@ window.defineComponent('variable-effect-card', {
 
     methods: {
         onInput(evt) {
+            const effectsRoot = Vue.prototype.$TCT.jet_data.cyoa_variable_effects || (Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {});
+            if (!effectsRoot[this.pk]) return;
+
             const val = evt.target.name === 'amount' ? Number(evt.target.value) : evt.target.value;
-            Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk][evt.target.name] = val;
+            effectsRoot[this.pk][evt.target.name] = val;
+
+            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 

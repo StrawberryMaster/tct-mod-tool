@@ -99,6 +99,9 @@ window.defineComponent('cyoa', {
         },
 
         addVariable: function() {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_variables) {
+                Vue.prototype.$TCT.jet_data.cyoa_variables = {};
+            }
             let id = Date.now();
             Vue.prototype.$TCT.jet_data.cyoa_variables[id] = {
                 'id': id,
@@ -109,17 +112,21 @@ window.defineComponent('cyoa', {
         },
 
         deleteVariable: function(id) {
-            delete Vue.prototype.$TCT.jet_data.cyoa_variables[id];
-            // Also delete any variable effects that use this variable
-            const effects = Vue.prototype.$TCT.getAllCyoaVariableEffects();
-            const variableObj = Vue.prototype.$TCT.jet_data.cyoa_variables[id];
-            if (variableObj) {
+            // capture name before deleting the variable
+            const variableObj = Vue.prototype.$TCT.jet_data.cyoa_variables?.[id];
+            const variableName = variableObj?.name;
+
+            if (variableName && Vue.prototype.$TCT.jet_data.cyoa_variable_effects) {
+                const effects = Vue.prototype.$TCT.getAllCyoaVariableEffects?.() || Object.values(Vue.prototype.$TCT.jet_data.cyoa_variable_effects);
                 for (let effect of effects) {
-                    if (effect.variable === variableObj.name) {
+                    if (effect?.variable === variableName) {
                         delete Vue.prototype.$TCT.jet_data.cyoa_variable_effects[effect.id];
                     }
                 }
             }
+
+            delete Vue.prototype.$TCT.jet_data.cyoa_variables[id];
+
             this.tick++;
         },
     },
