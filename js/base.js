@@ -867,6 +867,44 @@ campaignTrail_temp.cyoa = true;
 
 function getQuestionNumberFromPk(pk) {
     return campaignTrail_temp.questions_json.map(q=>q.pk).indexOf(pk)-1;
+}
+
+function answerSwapper(pk1, pk2, takeEffects = true) {
+    // hardcoded JSON data for answers
+    const answerData = campaignTrail_temp.answers_json;
+
+    // find the indices of the objects with the specified PKs
+    const index1 = answerData.findIndex(item => item.pk === pk1);
+    const index2 = answerData.findIndex(item => item.pk === pk2);
+
+    // check if objects with those PKs exist
+    if (index1 === -1 || index2 === -1) {
+        return;
+    }
+
+    // swap the question values
+    const tempQuestion = answerData[index1].fields.question;
+    answerData[index1].fields.question = answerData[index2].fields.question;
+    answerData[index2].fields.question = tempQuestion;
+
+    // if takeEffects is true, answers swap effects also
+    if (takeEffects) {
+        const otherJsons = [
+            campaignTrail_temp.answer_score_global_json,
+            campaignTrail_temp.answer_score_issue_json,
+            campaignTrail_temp.answer_score_state_json
+        ];
+
+        otherJsons.forEach(jsonData => {
+            jsonData.forEach(item => {
+                if (item.fields.answer === pk1) {
+                    item.fields.answer = pk2;
+                } else if (item.fields.answer === pk2) {
+                    item.fields.answer = pk1;
+                }
+            });
+        });
+    }
 }`
 
             // Add variable declarations
@@ -929,6 +967,27 @@ function getQuestionNumberFromPk(pk) {
             }
 
             f += "}\n\n"
+
+            // Add answer swapping examples
+            f += `// Answer swap CYOA examples
+// Use answerSwapper to conditionally swap answer destinations based on variables or conditions
+// Example usage:
+// if (ans == 12841 || ans == 12842 || ans == 12843 || ans == 12840){
+//     if(ideology >= 0){       
+//         answerSwapper(12867, 12913, false);
+//     }   
+// }
+// if (ans == 12864 || ans == 12865 || ans == 12866 || ans == 12867){
+//     if(example >= 4){       
+//         answerSwapper(12919, 12936, false);
+//     }
+// }    
+// if (ans == 12965){      // bretton woods 
+//     answerSwapper(13028, 12995, false);
+//     answerSwapper(13029, 12996, false);
+// }
+
+`;
         }
         return f;
     }
