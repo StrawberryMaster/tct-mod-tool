@@ -153,205 +153,14 @@ window.defineComponent('toolbar', {
             input.click();
         },
 
-        // Build the answerSwapper function text
-        buildAnswerSwapperFunction() {
-            return `
-function answerSwapper(pk1, pk2, takeEffects = true) {
-    // hardcoded JSON data for answers
-    const answerData = campaignTrail_temp.answers_json;
 
-    // find the indices of the objects with the specified PKs
-    const index1 = answerData.findIndex(item => item.pk === pk1);
-    const index2 = answerData.findIndex(item => item.pk === pk2);
-
-    // check if objects with those PKs exist
-    if (index1 === -1 || index2 === -1) {
-        return;
-    }
-
-    // swap the question values
-    const tempQuestion = answerData[index1].fields.question;
-    answerData[index1].fields.question = answerData[index2].fields.question;
-    answerData[index2].fields.question = tempQuestion;
-
-    // if takeEffects is true, answers swap effects also
-    if (takeEffects) {
-        const otherJsons = [
-            campaignTrail_temp.answer_score_global_json,
-            campaignTrail_temp.answer_score_issue_json,
-            campaignTrail_temp.answer_score_state_json
-        ];
-
-        otherJsons.forEach(jsonData => {
-            jsonData.forEach(item => {
-                if (item.fields.answer === pk1) {
-                    item.fields.answer = pk2;
-                }
-            });
-        });
-    }
-}
-`.trim();
-        },
-
-        // Build the rules block from jet_data.cyoa_answer_swaps
-        buildAnswerSwapBlocks() {
-            const rulesSrc = Vue.prototype.$TCT.jet_data?.cyoa_answer_swaps || {};
-            const rules = Object.values(rulesSrc);
-            if (!rules.length) return '';
-
-            const blocks = rules.map(rule => {
-                const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
-                const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
-                if (!triggers.length || !swaps.length) return '';
-
-                const triggerCond = triggers.map(pk => `ans == ${pk}`).join(' || ');
-                const swapLines = swaps.map(s => {
-                    const take = (s.takeEffects === false) ? 'false' : 'true';
-                    return `answerSwapper(${s.pk1}, ${s.pk2}, ${take});`;
-                }).join('\n        ');
-
-                const hasCond = rule.condition && rule.condition.variable;
-                if (hasCond) {
-                    const comp = rule.condition.comparator || '>=';
-                    const val = Number.isFinite(Number(rule.condition.value)) ? Number(rule.condition.value) : 0;
-                    return `if (${triggerCond}) {\n    if (${rule.condition.variable} ${comp} ${val}) {\n        ${swapLines}\n    }\n}`;
-                }
-                return `if (${triggerCond}) {\n    ${swapLines}\n}`;
-            }).filter(Boolean);
-
-            if (!blocks.length) return '';
-
-            // Keep a readable header inside the injected section
-            return `// answer swap CYOA here\n${blocks.join('\n')}`;
-        },
-
-        // Helper to indent a multi-line block with a given indent string.
-        indentBlock(block, indent) {
-            if (!block) return '';
-            return block
-                .split('\n')
-                .map(line => (line.trim().length ? indent + line : line))
-                .join('\n');
-        },
-
-        // Insert swap blocks inside cyoAdventure = function (a) { ... } body, neatly indented.
-        insertSwapsInsideCyoAdventure(out, blocks) {
-            if (!blocks.trim()) return out;
-
-            // Clean up any legacy BEGIN/END wrapped blocks from older exports
-            out = out.replace(/\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/m, '');
-
-            // Find cyoAdventure function (assignment form preferred)
-            const reAssign = /cyoAdventure\s*=\s*function\s*\(\s*a\s*\)\s*\{/m;
-            let m = reAssign.exec(out);
-            let openIdx;
-
-            if (m) {
-                openIdx = m.index + m[0].length - 1; // position of '{'
-            } else {
-                // Fallback: named function
-                const reNamed = /function\s+cyoAdventure\s*\(\s*a?\s*\)\s*\{/m;
-                m = reNamed.exec(out);
-                if (!m) {
-                    // As last resort, just append at end without indentation
-                    return out + `\n\n${blocks}\n`;
-                }
-                openIdx = m.index + m[0].length - 1;
-            }
-
-            // Find matching closing brace to get function body range
-            let i = openIdx;
-            let depth = 0;
-            let closeIdx = -1;
-            for (; i < out.length; i++) {
-                const ch = out[i];
-                if (ch === '{') depth++;
-                else if (ch === '}') {
-                    depth--;
-                    if (depth === 0) { closeIdx = i; break; }
-                }
-            }
-            if (closeIdx === -1) {
-                // malformed; append at end
-                return out + `\n\n${blocks}\n`;
-            }
-
-            const bodyStart = openIdx + 1;
-            let body = out.slice(bodyStart, closeIdx);
-
-            // Prefer to insert after the 'ans =' assignment if present
-            const ansRe = /\bans\s*=\s*campaignTrail_temp\.player_answers\s*\[\s*campaignTrail_temp\.player_answers\.length\s*-\s*1\s*\]\s*;?/m;
-            let insertPosInBody = -1;
-            let indentForInsert = '    '; // default to 4 spaces
-            const ansMatch = ansRe.exec(body);
-            if (ansMatch) {
-                insertPosInBody = ansMatch.index + ansMatch[0].length;
-                // compute indent from that line
-                const lineStart = body.lastIndexOf('\n', ansMatch.index) + 1;
-                const line = body.slice(lineStart, ansMatch.index);
-                const leadingSpaces = line.match(/^\s*/)?.[0] || '';
-                indentForInsert = leadingSpaces || indentForInsert;
-            } else {
-                // More generic fallback: first 'ans =' assignment
-                const genericAnsRe = /\bans\s*=\s*[^;]+;/m;
-                const m2 = genericAnsRe.exec(body);
-                if (m2) {
-                    insertPosInBody = m2.index + m2[0].length;
-                    const lineStart = body.lastIndexOf('\n', m2.index) + 1;
-                    const line = body.slice(lineStart, m2.index);
-                    const leadingSpaces = line.match(/^\s*/)?.[0] || '';
-                    indentForInsert = leadingSpaces || indentForInsert;
-                }
-            }
-
-            // If a previous header exists, replace from that header to the next same-indentation comment or end of body
-            const headerRe = /^(\s*)\/\/\s*answer swap CYOA here.*$/m;
-            const headerMatch = headerRe.exec(body);
-            if (headerMatch) {
-                const headerIndent = headerMatch[1] || '';
-                const afterHeader = body.slice(headerMatch.index + headerMatch[0].length);
-                // next comment at the same indentation (not our header)
-                const nextOtherCommentRe = new RegExp(`^${headerIndent}//(?!\\s*answer swap CYOA here).*`, 'm');
-                const nextOther = nextOtherCommentRe.exec(afterHeader);
-                const replaceEndInBody = headerMatch.index + headerMatch[0].length + (nextOther ? nextOther.index : afterHeader.length);
-                const newSection = this.indentBlock(blocks, headerIndent);
-                body = body.slice(0, headerMatch.index) + newSection + body.slice(replaceEndInBody);
-                return out.slice(0, bodyStart) + body + out.slice(closeIdx);
-            }
-
-            // Prepare neat, indented payload with the header included in 'blocks'
-            const indentedPayload = '\n' + this.indentBlock(blocks, indentForInsert) + '\n';
-
-            if (insertPosInBody >= 0) {
-                // Insert right after ans assignment
-                const newBody = body.slice(0, insertPosInBody) + indentedPayload + body.slice(insertPosInBody);
-                return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
-            } else {
-                // Insert at top of body
-                const newBody = '\n' + this.indentBlock(blocks, indentForInsert) + '\n' + body;
-                return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
-            }
-        },
-
-        // Inject function and blocks into exported code with precise placement.
-        injectAnswerSwapIntoCode2(code) {
-            let out = String(code || '');
-
-            // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
-            out = this.insertSwapperAfterHelper(out);
-
-            // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
-            const blocks = this.buildAnswerSwapBlocks();
-            out = this.insertSwapsInsideCyoAdventure(out, blocks);
-
-            return out;
-        },
 
         exportCode2: function () {
             let f = Vue.prototype.$TCT.exportCode2();
-            // Inject Answer Swapper code and rules
-            f = this.injectAnswerSwapIntoCode2(f);
+            // Inject Answer Swapper code and rules using the methods from cyoa namespace
+            if (window.TCTAnswerSwapHelper) {
+                f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
+            }
 
             let element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(f));
@@ -367,8 +176,10 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
 
         clipboardCode2: function () {
             let f = Vue.prototype.$TCT.exportCode2();
-            // Inject Answer Swapper code and rules
-            f = this.injectAnswerSwapIntoCode2(f);
+            // Inject Answer Swapper code and rules using the methods from cyoa namespace
+            if (window.TCTAnswerSwapHelper) {
+                f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
+            }
             navigator.clipboard.writeText(f);
         }
     }
