@@ -13,12 +13,12 @@ window.defineComponent('data-table', {
     },
 
     template: `
-    <div class="mx-auto bg-white rounded shadow p-4 mb-4">
+    <div class="mx-auto bg-white rounded-sm shadow p-4 mb-4">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-bold text-lg">{{ title }} ({{ filteredItems.length }})</h2>
             <div class="flex">
                 <input v-model="filter" placeholder="Filter items..." class="border p-1 mr-2 rounded">
-                <button @click="toggleBatchMode" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                <button @click="toggleBatchMode" class="bg-blue-500 text-white px-3 py-1 rounded-sm hover:bg-blue-600">
                     {{ batchMode ? 'Exit Batch Mode' : 'Batch Edit' }}
                 </button>
             </div>
@@ -31,7 +31,7 @@ window.defineComponent('data-table', {
                 <button 
                     v-if="deletable && selectedItems.length" 
                     @click="deleteSelected" 
-                    class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                    class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm"
                 >{{ deleteLabel || 'Delete Selected' }}</button>
             </div>
             <div v-for="col in columns" :key="col.field" class="mb-2" v-if="col.editable">
@@ -40,7 +40,7 @@ window.defineComponent('data-table', {
                     <input 
                         v-model="batchValues[col.field]" 
                         :placeholder="col.label"
-                        class="border p-1 rounded mr-2 flex-grow"
+                        class="border p-1 rounded-sm mr-2 grow"
                         :type="col.type || 'text'"
                         :min="col.min"
                         :max="col.max"
@@ -48,13 +48,13 @@ window.defineComponent('data-table', {
                         @click.stop
                         @keydown.stop
                     >
-                    <button @click="applyBatchEdit(col.field)" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Apply</button>
+                    <button @click="applyBatchEdit(col.field)" class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm">Apply</button>
                 </div>
             </div>
         </div>
         
         <!-- Table Headers -->
-        <div class="grid grid-cols-12 bg-gray-200 p-2 rounded font-bold">
+        <div class="grid grid-cols-12 bg-gray-200 p-2 rounded-sm font-bold">
             <div v-if="batchMode" class="col-span-1">
                 <input type="checkbox" @change="toggleSelectAll" :checked="selectedItems.length === filteredItems.length">
             </div>
@@ -92,7 +92,7 @@ window.defineComponent('data-table', {
                         :min="col.min"
                         :max="col.max"
                         :step="col.step"
-                        class="w-full border rounded p-1"
+                        class="w-full border rounded-sm p-1"
                         @click.stop
                         @keydown.stop
                     >
@@ -252,20 +252,20 @@ window.defineComponent('state-shift-editor', {
         }
     },
     template: `
-    <div class="mx-auto bg-white rounded shadow p-4 mb-4">
+    <div class="mx-auto bg-white rounded-sm shadow p-4 mb-4">
         <div class="flex justify-between items-end mb-3">
             <div>
                 <h2 class="font-bold text-lg">{{ title || 'State Shifts' }} ({{ items.length }})</h2>
             </div>
             <div class="flex items-center space-x-2">
-                <select v-model="newStatePk" class="border p-1 rounded min-w-[12rem]">
+                <select v-model="newStatePk" class="border p-1 rounded-sm min-w-[12rem]">
                     <option :value="null" disabled>Select state…</option>
                     <option v-for="s in availableStates" :key="s.pk" :value="s.pk">
                         {{ s.abbr }} - {{ s.name }}
                     </option>
                 </select>
-                <input v-model.number="newShiftValue" type="number" step="0.1" class="border p-1 rounded w-28" placeholder="Shift">
-                <button @click="addShift" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add</button>
+                <input v-model.number="newShiftValue" type="number" step="0.1" class="border p-1 rounded-sm w-28" placeholder="Shift">
+                <button @click="addShift" class="bg-green-500 text-white px-3 py-1 rounded-sm hover:bg-green-600">Add</button>
             </div>
         </div>
         <data-table 
@@ -326,10 +326,10 @@ window.defineComponent('state', {
                 <span class="text-gray-500">PK: {{this.pk}}</span>
             </div>
             <div class="flex space-x-2">
-                <button @click="refreshMargins" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                <button @click="refreshMargins" class="bg-blue-500 text-white px-3 py-1 rounded-sm hover:bg-blue-600">
                     Refresh Margins
                 </button>
-                <button @click="deleteState" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                <button @click="deleteState" class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600">
                     Delete State
                 </button>
             </div>
@@ -339,7 +339,7 @@ window.defineComponent('state', {
         <div class="border-b p-4 bg-gray-50">
             <h2 class="font-bold text-lg mb-2">Predicted Starting PV</h2>
             <div class="space-y-2">
-                <div v-for="info in margins" :key="info" class="p-3 bg-white rounded shadow-sm">
+                <div v-for="info in margins" :key="info" class="p-3 bg-white rounded-sm shadow-xs">
                     {{info}}
                 </div>
             </div>
@@ -371,31 +371,31 @@ window.defineComponent('state', {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">State Name</label>
-                        <input @input="onInput($event)" :value="stateName" name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="stateName" name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Abbreviation</label>
-                        <input @input="onInput($event)" :value="abbr" name="abbr" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="abbr" name="abbr" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Electoral Votes</label>
-                        <input @input="onInput($event)" :value="electoralVotes" name="electoral_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="electoralVotes" name="electoral_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Popular Votes</label>
-                        <input @input="onInput($event)" :value="popularVotes" name="popular_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="popularVotes" name="popular_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Poll Closing Time</label>
-                        <input @input="onInput($event)" :value="pollClosingTime" name="poll_closing_time" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="pollClosingTime" name="poll_closing_time" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Winner Take All (0/1)</label>
-                        <input @input="onInput($event)" :value="winnerTakeAll" name="winner_take_all_flg" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="winnerTakeAll" name="winner_take_all_flg" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700">Election PK</label>
-                        <input @input="onInput($event)" :value="election" name="election" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input @input="onInput($event)" :value="election" name="election" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                 </div>
             </div>
@@ -544,7 +544,7 @@ window.defineComponent('candidate-state-multiplier', {
     props: ['pk'],
 
     template: `
-    <li class="bg-white rounded shadow p-3 mb-2">
+    <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center">
             <div>
                 <span class="font-medium">{{stateName}}</span>
@@ -552,7 +552,7 @@ window.defineComponent('candidate-state-multiplier', {
             </div>
             <div class="flex items-center">
                 <label class="mr-2">Multiplier:</label>
-                <input @input="onInput($event)" :value="stateMultiplier" name="state_multiplier" type="number" class="border rounded p-1 w-24">
+                <input @input="onInput($event)" :value="stateMultiplier" name="state_multiplier" type="number" class="border rounded-sm p-1 w-24">
             </div>
         </div>
     </li>
@@ -594,7 +594,7 @@ window.defineComponent('state-issue-score', {
     props: ['pk', 'hideIssuePK'],
 
     template: `
-    <li class="bg-white rounded shadow p-3 mb-2">
+    <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center mb-3">
             <div>
                 <span class="font-medium">{{ stateName }}</span>
@@ -608,7 +608,7 @@ window.defineComponent('state-issue-score', {
                     v-if="!hideIssuePK" 
                     @change="onInput($event)" 
                     name="issue" 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                 >
                     <option v-for="issue in issues" :selected="issue.pk == currentIssue" :value="issue.pk" :key="issue.pk">
                         {{issue.pk}} - {{issue.fields.name}}
@@ -624,7 +624,7 @@ window.defineComponent('state-issue-score', {
                     :value="stateIssueScore" 
                     name="state_issue_score" 
                     type="number" 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                 >
                 <p class="text-xs text-gray-500 mt-1">-1.0 = Stance 1, 1.0 = Stance 7</p>
             </div>
@@ -636,7 +636,7 @@ window.defineComponent('state-issue-score', {
                     :value="weight" 
                     name="weight" 
                     type="number" 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                 >
             </div>
         </div>
@@ -694,14 +694,14 @@ window.defineComponent('issue', {
     props: ['pk'],
 
     template: `
-    <div class="bg-white rounded-lg shadow">
+    <div class="bg-white rounded-lg shadow-sm">
         <!-- Header -->
         <div class="border-b p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
                 <span class="text-gray-500">PK: {{ pk }}</span>
             </div>
-            <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" v-on:click="deleteIssue()">Delete Issue</button>
+            <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteIssue()">Delete Issue</button>
         </div>
 
         <!-- Content -->
@@ -715,7 +715,7 @@ window.defineComponent('issue', {
                         :value="name" 
                         name="name" 
                         type="text" 
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                     >
                 </div>
                 <div class="md:col-span-2">
@@ -724,7 +724,7 @@ window.defineComponent('issue', {
                         @input="onInput2($event)" 
                         :value="description" 
                         name="description" 
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500" 
                         rows="3"
                     ></textarea>
                 </div>
@@ -850,21 +850,21 @@ window.defineComponent('stance', {
     props: ['pk', 'n'],
 
     template: `
-    <div class="bg-white rounded shadow p-3">
+    <div class="bg-white rounded-sm shadow-sm p-3">
         <label class="block font-medium">Stance {{n}}</label>
         <input 
             @input="onInput($event)" 
             :value="stance" 
             name="stance" 
             type="text" 
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
         >
         <label class="block font-medium mt-3">Stance {{n}} Description (Optional)</label>
         <textarea 
             @input="onInput2($event)" 
             :value="stance_desc" 
             name="stance_desc" 
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
             rows="2"
         ></textarea>
     </div>
@@ -901,7 +901,7 @@ window.defineComponent('candidate-issue-score', {
     props: ['pk', 'isRunning'],
 
     template: `
-    <li class="bg-white rounded shadow p-3 mb-2">
+    <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block font-medium">
@@ -913,7 +913,7 @@ window.defineComponent('candidate-issue-score', {
                     :value="candidate" 
                     name="candidate" 
                     type="number"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                 >
             </div>
             <div>
@@ -923,7 +923,7 @@ window.defineComponent('candidate-issue-score', {
                     :value="issueScore" 
                     name="issue_score" 
                     type="number"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                 >
                 <p class="text-xs text-gray-500 mt-1">(-1.0 = Stance 1, 1.0 = Stance 7)</p>
             </div>
@@ -990,7 +990,7 @@ window.defineComponent('candidate', {
     template: `
     <div class="mx-auto bg-gray-100 p-4">
 
-        <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteCandidate()">Delete Candidate</button><br>
+        <button class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="deleteCandidate()">Delete Candidate</button><br>
 
         <h1 class="font-bold">Candidate PK {{this.pk}} <span v-if="nickname" class="italic text-gray-400">({{this.nickname}})</span></h1><br>
 
@@ -1001,7 +1001,7 @@ window.defineComponent('candidate', {
 
         <details open>
         <summary>Candidate State Multipliers ({{this.stateMultipliersForCandidate.length}})</summary>
-        <button @click="generateStateMultipliers()" class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-if="stateMultipliersForCandidate.length == 0">Generate Missing State Multipliers</button>
+        <button @click="generateStateMultipliers()" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-if="stateMultipliersForCandidate.length == 0">Generate Missing State Multipliers</button>
         <ul>
             <candidate-state-multiplier v-for="c in stateMultipliersForCandidate" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
         </ul>

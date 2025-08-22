@@ -15,8 +15,8 @@ window.defineComponent('mapping', {
 
         <h1>Mapping Settings</h1>
 
-        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Map</button>
-        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Map</button><br>
+        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Map</button>
+        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Map</button><br>
 
         <div v-if="enabled">
 
@@ -27,7 +27,7 @@ window.defineComponent('mapping', {
             <input @input="onInput($event)" :value="electionPk" name="electionPk" type="number"><br>
             <p class="text-sm text-gray-700 italic">NOTE: Set this to the pk of your election so all states have this filled out automatically. Otherwise you will need to fill it in for each state yourself.</p>
 
-            <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="loadMapFromSVG()">Load Map From SVG</button><br>
+            <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="loadMapFromSVG()">Load Map From SVG</button><br>
             <p class="text-sm text-gray-700 italic">WARNING: If you click this all your states and anything referencing your states will be deleted from your code 2 and replaced from what the tool gets from your SVG. You should only be doing this once when starting to make the mod.</p>
 
             <div v-if="mapSvg">

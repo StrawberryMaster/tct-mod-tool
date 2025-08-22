@@ -9,11 +9,11 @@ window.defineComponent('toolbar', {
     template: `
     <div class="flex flex-wrap mx-auto p-4">
         <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
-        <button class="bg-gray-300 p-2 m-2 rounded hover:bg-gray-500" v-on:click="importCode2()">Import Code 2</button>
-        <button class="bg-gray-300 p-2 m-2 rounded hover:bg-gray-500" v-on:click="exportCode2()">Export Code 2</button>
-        <button class="bg-gray-300 p-2 m-2 rounded hover:bg-gray-500" v-on:click="clipboardCode2()">Copy to Clipboard</button>
-        <button class="bg-gray-300 p-2 m-2 rounded hover:bg-gray-500" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
-        <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 m-2 rounded hover:bg-gray-500">Code 1 Tool Here</a>
+        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="importCode2()">Import Code 2</button>
+        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="exportCode2()">Export Code 2</button>
+        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="clipboardCode2()">Copy to Clipboard</button>
+        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
+        <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500">Code 1 Tool Here</a>
     </div>
     `,
 

@@ -17,17 +17,17 @@ window.defineComponent('banner-settings', {
     },
 
     template: `
-    <div class="mx-auto bg-white rounded-lg shadow p-4">
+    <div class="mx-auto bg-white rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between mb-4">
             <h1 class="font-bold text-xl">Banner Settings</h1>
             <div class="space-x-2">
                 <button v-if="!enabled"
-                        class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600"
+                        class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600"
                         @click="toggleEnabled">
                     Enable
                 </button>
                 <button v-else
-                        class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600"
+                        class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600"
                         @click="toggleEnabled">
                     Disable
                 </button>
@@ -35,7 +35,7 @@ window.defineComponent('banner-settings', {
         </div>
 
         <div v-if="enabled" class="space-y-6">
-            <details open class="bg-gray-50 rounded border">
+            <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Configuration</summary>
                 <div class="p-4 space-y-6">
                     <div class="grid gap-6 md:grid-cols-2">
@@ -43,17 +43,17 @@ window.defineComponent('banner-settings', {
                             <div>
                                 <label class="block text-sm font-medium mb-1" for="canName">Candidate Last Name</label>
                                 <input id="canName" v-model="formCanName" type="text"
-                                       class="w-full border rounded p-2 focus:outline-none focus:ring focus:border-blue-400"
+                                       class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="e.g. Johnson">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1" for="canImage">Candidate Image URL</label>
                                 <input id="canImage" v-model="formCanImage" type="text"
-                                       class="w-full border rounded p-2 focus:outline-none focus:ring focus:border-blue-400"
+                                       class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="https://...">
                                 <p class="text-xs text-gray-500 mt-1">Recommended size: multiple of 210x240.</p>
                             </div>
-                            <div class="relative border rounded p-2 bg-white flex items-center justify-center h-48 overflow-hidden">
+                            <div class="relative border rounded-sm p-2 bg-white flex items-center justify-center h-48 overflow-hidden">
                                 <template v-if="formCanImage">
                                     <img
                                         v-if="!canImageFailed"
@@ -82,17 +82,17 @@ window.defineComponent('banner-settings', {
                             <div>
                                 <label class="block text-sm font-medium mb-1" for="runName">Running Mate Last Name</label>
                                 <input id="runName" v-model="formRunName" type="text"
-                                       class="w-full border rounded p-2 focus:outline-none focus:ring focus:border-blue-400"
+                                       class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="e.g. Smith">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1" for="runImage">Running Mate Image URL</label>
                                 <input id="runImage" v-model="formRunImage" type="text"
-                                       class="w-full border rounded p-2 focus:outline-none focus:ring focus:border-blue-400"
+                                       class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="https://...">
                                 <p class="text-xs text-gray-500 mt-1">Recommended size: multiple of 210x240.</p>
                             </div>
-                            <div class="relative border rounded p-2 bg-white flex items-center justify-center h-48 overflow-hidden">
+                            <div class="relative border rounded-sm p-2 bg-white flex items-center justify-center h-48 overflow-hidden">
                                 <template v-if="formRunImage">
                                     <img
                                         v-if="!runImageFailed"
@@ -124,15 +124,15 @@ window.defineComponent('banner-settings', {
                             <label class="text-sm flex items-center gap-2">
                                 Question #
                                 <input type="number" min="1" v-model.number="previewQuestion"
-                                       class="w-20 border rounded p-1 focus:outline-none focus:ring focus:border-blue-400">
+                                       class="w-20 border rounded-sm p-1 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400">
                             </label>
                             <label class="text-sm flex items-center gap-2">
                                 Total
                                 <input type="number" min="1" v-model.number="previewTotal"
-                                       class="w-20 border rounded p-1 focus:outline-none focus:ring focus:border-blue-400">
+                                       class="w-20 border rounded-sm p-1 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400">
                             </label>
                             <button type="button"
-                                    class="ml-auto bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600"
+                                    class="ml-auto bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600"
                                     @click="refreshPreview">
                                 Refresh Preview
                             </button>
@@ -141,12 +141,12 @@ window.defineComponent('banner-settings', {
                 </div>
             </details>
 
-            <details open class="bg-gray-50 rounded border">
+            <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Live Preview</summary>
                 <div class="p-4">
-                    <div class="flex items-stretch justify-center gap-4 bg-orange-50 p-4 rounded border relative overflow-hidden">
+                    <div class="flex items-stretch justify-center gap-4 bg-orange-50 p-4 rounded-sm border relative overflow-hidden">
 
-                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded shadow-inner relative">
+                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded-sm shadow-inner relative">
                             <template v-if="formCanImage">
                                 <img v-if="!canImageFailed"
                                      :key="'live-'+canImageKey"
@@ -162,13 +162,13 @@ window.defineComponent('banner-settings', {
 
                         <div class="flex flex-col items-center justify-center px-6">
                             <div class="text-sm font-semibold mb-2">Question {{ safePreviewQuestion }} of {{ safePreviewTotal }}</div>
-                            <div class="border-4 border-yellow-400 rounded-sm px-6 py-4 bg-[#75948F] text-white font-bold text-center leading-tight">
+                            <div class="border-4 border-yellow-400 rounded-xs px-6 py-4 bg-[#75948F] text-white font-bold text-center leading-tight">
                                 <div class="text-3xl tracking-wide">{{ formCanName || 'Candidate' }}</div>
                                 <div v-if="formRunName" class="text-xl font-medium mt-1 opacity-90">{{ formRunName }}</div>
                             </div>
                         </div>
 
-                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded shadow-inner relative">
+                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded-sm shadow-inner relative">
                             <template v-if="formRunImage">
                                 <img v-if="!runImageFailed"
                                      :key="'live-'+runImageKey"

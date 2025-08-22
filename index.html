@@ -29,6 +29,28 @@
             right: 16px;
             max-width: 500px;
         }
+
+        @layer base {  *,  ::after,  ::before,  ::backdrop,  ::file-selector-button {    border-color: var(--color-gray-200, currentColor);  }}
+
+        @layer base {  button:not(:disabled),  [role="button"]:not(:disabled) {    cursor: pointer;  }}
+
+        .mt-2 select {
+            background: #e9e9ed;
+        }
+        .mt-2 textarea {
+            background: #fff;
+        }
+        .mt-2 select, .mt-2 textarea {
+            border-color: #d1d5db;
+            box-shadow: none;
+        }
+
+        .border-blue-500 {
+            --tw-border-opacity: 1;
+            border-color: rgb(59 130 246 / var(--tw-border-opacity
+        , 1));
+        }
+        
     </style>
 </head>
 

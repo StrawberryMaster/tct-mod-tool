@@ -8,23 +8,23 @@ window.defineComponent('cyoa', {
     },
 
     template: `
-    <div class="mx-auto bg-white rounded-lg shadow p-4">
+    <div class="mx-auto bg-white rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between mb-3">
             <h1 class="font-bold text-xl">CYOA Options</h1>
             <div class="space-x-2">
-                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="toggleEnabled()" aria-label="Enable CYOA">Enable</button>
-                <button v-else class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600" v-on:click="toggleEnabled()" aria-label="Disable CYOA">Disable</button>
+                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()" aria-label="Enable CYOA">Enable</button>
+                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()" aria-label="Disable CYOA">Disable</button>
             </div>
         </div>
 
         <div v-if="enabled" class="space-y-4">
             <!-- Variables Section -->
-            <details open class="bg-gray-50 rounded border">
+            <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Variables</summary>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button 
-                            class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600" 
+                            class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600" 
                             v-on:click="addVariable()"
                         >
                             Add Variable
@@ -41,7 +41,7 @@ window.defineComponent('cyoa', {
             <!-- Branching Events Section -->
             <div class="mb-2 flex items-center gap-2">
                 <button 
-                    class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
                     v-on:click="addCyoaEvent()" 
                     :disabled="!canAdd"
                     :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
@@ -51,7 +51,7 @@ window.defineComponent('cyoa', {
                 <span class="text-sm text-gray-600" v-if="cyoaEvents.length">Total: {{ cyoaEvents.length }}</span>
             </div>
 
-            <details open class="bg-gray-50 rounded border">
+            <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Events</summary>
                 <div class="p-3">
                     <p v-if="cyoaEvents.length === 0" class="text-gray-500 italic">No CYOA events yet. Click "Add CYOA Event" to create one.</p>
@@ -62,11 +62,11 @@ window.defineComponent('cyoa', {
             </details>
 
             <!-- Answer Swap Rules Section -->
-            <details open class="bg-gray-50 rounded border">
+            <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Answer Swap Rules</summary>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
-                        <button class="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600" @click="addAnswerSwapRule">
+                        <button class="bg-purple-500 text-white px-3 py-2 rounded-sm hover:bg-purple-600" @click="addAnswerSwapRule">
                             Add Swap Rule
                         </button>
                         <span class="text-sm text-gray-600" v-if="cyoaAnswerSwaps.length">Total: {{ cyoaAnswerSwaps.length }}</span>
@@ -681,23 +681,23 @@ window.defineComponent('cyoa-event', {
     },
 
     template: `
-    <div class="bg-white rounded shadow p-4">
+    <div class="bg-white rounded-sm shadow-sm p-4">
         <div class="flex justify-between items-start mb-3">
             <div class="text-sm text-gray-700">
                 <div class="font-medium">Branch Summary</div>
                 <div class="mt-1">
-                    If Answer <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>
-                    then jump to Question <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
+                    If Answer <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>
+                    then jump to Question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
                 </div>
             </div>
-            <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" v-on:click="deleteEvent()">Delete</button>
+            <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteEvent()">Delete</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <p class="text-sm text-gray-700 italic mb-1">Answer that triggers the jump:</p>
                 <label class="block text-sm font-medium mb-1" for="answer">Answer</label>
-                <select v-model.number="answerVal" name="answer" class="w-full border rounded p-2">
+                <select v-model.number="answerVal" name="answer" class="w-full border rounded-sm p-2">
                     <option v-for="answer in answers" :value="answer.pk" :key="answer.pk">
                         {{answer.pk}} - {{description(answer)}}
                     </option>
@@ -707,7 +707,7 @@ window.defineComponent('cyoa-event', {
             <div>
                 <p class="text-sm text-gray-700 italic mb-1">Question to jump to:</p>
                 <label class="block text-sm font-medium mb-1" for="question">Question</label>
-                <select v-model.number="questionVal" name="question" class="w-full border rounded p-2">
+                <select v-model.number="questionVal" name="question" class="w-full border rounded-sm p-2">
                     <option v-for="question in questions" :value="question.pk" :key="question.pk">
                         {{question.pk}} - {{description(question)}}
                     </option>
@@ -801,7 +801,7 @@ window.defineComponent('cyoa-variable', {
     },
 
     template: `
-    <div class="bg-white rounded shadow p-3 border-l-4 border-blue-400">
+    <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-blue-400">
         <div class="flex justify-between items-start mb-2">
             <div class="text-sm text-gray-700">
                 <div class="font-medium">Variable</div>
@@ -819,7 +819,7 @@ window.defineComponent('cyoa-variable', {
                     @input="onChange" 
                     name="name" 
                     type="text" 
-                    class="w-full border rounded p-2 text-sm"
+                    class="w-full border rounded-sm p-2 text-sm"
                     placeholder="e.g. wins, trust">
             </div>
             <div>
@@ -829,7 +829,7 @@ window.defineComponent('cyoa-variable', {
                     @input="onChange" 
                     name="defaultValue" 
                     type="number" 
-                    class="w-full border rounded p-2 text-sm">
+                    class="w-full border rounded-sm p-2 text-sm">
             </div>
         </div>
     </div>
@@ -970,7 +970,7 @@ window.defineComponent('cyoa-answer-swap', {
     },
 
     template: `
-    <div class="bg-white rounded shadow p-3 border-l-4 border-purple-400">
+    <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-purple-400">
         <div class="flex justify-between items-start mb-2">
             <div class="text-sm text-gray-700">
                 <div class="font-medium">Swap Rule #{{ id }}</div>
@@ -985,16 +985,16 @@ window.defineComponent('cyoa-answer-swap', {
         <div class="mb-3">
             <label class="block text-xs font-medium text-gray-600 mb-1">Trigger Answers:</label>
             <div class="flex items-center gap-2">
-                <select v-model.number="triggerToAdd" class="border rounded p-1 text-sm">
+                <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
                     <option v-for="a in answers" :key="a.pk" :value="a.pk">
                         {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
                     </option>
                 </select>
-                <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
+                <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
-                <span v-for="pk in rule.triggers" :key="'t-'+pk" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                <span v-for="pk in rule.triggers" :key="'t-'+pk" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
                     #{{ pk }}
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
@@ -1005,11 +1005,11 @@ window.defineComponent('cyoa-answer-swap', {
         <div class="mb-3">
             <label class="block text-xs font-medium text-gray-600 mb-1">Optional Condition:</label>
             <div class="grid grid-cols-3 gap-2 items-center">
-                <select :value="rule.condition.variable" @change="updateCondition('variable', $event.target.value)" class="border rounded p-1 text-sm">
+                <select :value="rule.condition.variable" @change="updateCondition('variable', $event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="">(none)</option>
                     <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
                 </select>
-                <select :value="rule.condition.comparator" @change="updateCondition('comparator', $event.target.value)" class="border rounded p-1 text-sm" :disabled="!rule.condition.variable">
+                <select :value="rule.condition.comparator" @change="updateCondition('comparator', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
                     <option value=">=">>=</option>
                     <option value="<="><=</option>
                     <option value=">">></option>
@@ -1017,7 +1017,7 @@ window.defineComponent('cyoa-answer-swap', {
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                 </select>
-                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded p-1 text-sm" :disabled="!rule.condition.variable">
+                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
             </div>
             <div v-if="rule.condition.variable" class="text-xs text-gray-500 mt-1">
                 Condition: {{ rule.condition.variable }} {{ rule.condition.comparator }} {{ rule.condition.value }}
@@ -1030,7 +1030,7 @@ window.defineComponent('cyoa-answer-swap', {
             <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
                 <div class="md:col-span-2">
                     <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 1</label>
-                    <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded p-1 text-sm w-full">
+                    <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk1-'+a.pk" :value="a.pk">
                             {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
@@ -1039,7 +1039,7 @@ window.defineComponent('cyoa-answer-swap', {
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 2</label>
-                    <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded p-1 text-sm w-full">
+                    <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk2-'+a.pk" :value="a.pk">
                             {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
@@ -1054,7 +1054,7 @@ window.defineComponent('cyoa-answer-swap', {
                     <button class="text-red-600 hover:text-red-800 text-xs" @click="removeSwap(idx)">✕</button>
                 </div>
             </div>
-            <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs" @click="addSwap">Add another swap</button>
+            <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-sm text-xs" @click="addSwap">Add another swap</button>
         </div>
     </div>
     `

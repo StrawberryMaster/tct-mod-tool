@@ -11,10 +11,10 @@ window.defineComponent('endings', {
 
         <h1>Custom Endings</h1>
 
-        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Endings</button>
-        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Endings</button><br>
+        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Endings</button>
+        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Endings</button><br>
 
-        <button v-if="enabled" class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addEnding()">Add Custom Ending</button>
+        <button v-if="enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addEnding()">Add Custom Ending</button>
 
         <details open v-if="enabled">
         <summary>Custom Endings</summary>

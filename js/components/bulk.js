@@ -28,16 +28,16 @@ window.defineComponent('bulk', {
         <label for="name">Affected Candidate PK:</label><br>
         <input v-model="affectedCandidate" name="name" type="number"><br><br>
 
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="checkAll()">Check All</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAll()">Check All</button>
         <br>
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="invertAll()">Invert All Values</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="invertAll()">Invert All Values</button>
         <br>
         
         <ul>
             <bulk-state v-for="state in states" :pk="state.pk" :key="state.pk" :stateObject="state"></bulk-state>
         </ul>
 
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
 
     </details>
 
@@ -55,15 +55,15 @@ window.defineComponent('bulk', {
         <label for="name">Issue Weight:</label><br>
         <input v-model="issueWeight" name="name" type="number"><br><br>
 
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="checkAllIssues()">Check All</button>
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="uncheckAllIssues()">Uncheck All</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllIssues()">Check All</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllIssues()">Uncheck All</button>
         <br>
         
         <ul>
             <bulk-issue v-for="stateIssueScore in stateIssueScores" :pk="stateIssueScore.pk" :key="stateIssueScore.pk" :issueScoreObject="stateIssueScore"></bulk-issue>
         </ul>
 
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
 
     </details>
 
@@ -78,21 +78,21 @@ window.defineComponent('bulk', {
         <label for="stateMultiplier">State Multiplier:</label><br>
         <input v-model="stateMultiplier" name="stateMultiplier" type="number"><br><br>
 
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="checkAllStates()">Check All</button>
-        <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="uncheckAllStates()">Uncheck All</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllStates()">Check All</button>
+        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllStates()">Uncheck All</button>
         <br>
         
         <ul>
             <bulk-state-multiplier v-for="stateMultiplier in stateMultipliers" :pk="stateMultiplier.pk" :key="stateMultiplier.pk" :stateMultiplierObject="stateMultiplier"></bulk-state-multiplier>
         </ul>
 
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
 
         <br>
         <br>
         <label for="multiplier">Multiply All Checked State Multipliers By:</label><br>
         <input v-model="multiplier" name="multiplier" type="number"><br>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply State Multipliers</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply State Multipliers</button>
 
     </details>
 

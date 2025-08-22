@@ -21,30 +21,30 @@ window.defineComponent('question-picker', {
         <option v-for="question in questions" :value="question.pk" :key="question.pk" :selected="currentQuestion == question.pk">{{question.pk}} - {{questionDescription(question)}}</option>
     </select>
     <div v-else class="my-1 flex items-center gap-2">
-        <button class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" @click="openManageModal('select')">Select Question...</button>
+        <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="openManageModal('select')">Select Question...</button>
         <span class="text-xs text-gray-600">Using modal due to many questions ({{numberOfQuestions}})</span>
     </div>
     <br>
 
     <div class="flex flex-wrap gap-2">
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
-        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
-        <button class="bg-gray-500 text-white p-2 my-2 rounded hover:bg-gray-600" @click="openManageModal('reorder')">
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded-sm hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
+        <button class="bg-gray-500 text-white p-2 my-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
             Manage Questions
         </button>
     </div>
 
     <!-- Question Manager -->
     <div v-if="showManageModal" class="fixed inset-0 z-50">
-        <div class="absolute inset-0 bg-black bg-opacity-50" @click="closeManageModal()"></div>
+        <div class="absolute inset-0 bg-black/50" @click="closeManageModal()"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="bg-white rounded shadow-lg w-full max-w-3xl max-h-[80vh] flex flex-col">
+            <div class="bg-white rounded-sm shadow-lg w-full max-w-3xl max-h-[80vh] flex flex-col">
                 <div class="p-3 border-b flex justify-between items-center">
                     <div class="flex gap-2">
-                        <button class="px-3 py-1 rounded text-sm"
+                        <button class="px-3 py-1 rounded-sm text-sm"
                                 :class="manageTab==='select' ? 'bg-gray-800 text-white' : 'bg-gray-200 hover:bg-gray-300'"
                                 @click="manageTab='select'">Select</button>
-                        <button class="px-3 py-1 rounded text-sm"
+                        <button class="px-3 py-1 rounded-sm text-sm"
                                 :class="manageTab==='reorder' ? 'bg-gray-800 text-white' : 'bg-gray-200 hover:bg-gray-300'"
                                 @click="manageTab==='reorder' || resetOrderFromMap(); manageTab='reorder'">Reorder</button>
                     </div>
@@ -55,7 +55,7 @@ window.defineComponent('question-picker', {
                     <!-- Select tab -->
                     <div v-if="manageTab==='select'">
                         <div class="flex items-center gap-2 mb-2">
-                            <input class="border rounded px-2 py-1 w-full" v-model="searchSelect" placeholder="Search by #pk or description...">
+                            <input class="border rounded-sm px-2 py-1 w-full" v-model="searchSelect" placeholder="Search by #pk or description...">
                         </div>
                         <ul class="divide-y">
                             <li v-for="q in filteredQuestions" :key="q.pk"
@@ -65,7 +65,7 @@ window.defineComponent('question-picker', {
                                     <span class="font-mono text-gray-700">#{{ q.pk }}</span>
                                     <span class="text-gray-700"> - {{ questionDescription(q) }}</span>
                                 </span>
-                                <button class="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" @click.stop="gotoSelect(q.pk)">Open</button>
+                                <button class="text-xs bg-blue-500 text-white px-2 py-1 rounded-sm hover:bg-blue-600" @click.stop="gotoSelect(q.pk)">Open</button>
                             </li>
                         </ul>
                     </div>
@@ -75,8 +75,8 @@ window.defineComponent('question-picker', {
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="font-semibold text-sm">Drag to reorder (top = asked first)</h3>
                             <div class="flex gap-2">
-                                <button class="bg-gray-200 px-2 py-1 rounded text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
-                                <button class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+                                <button class="bg-gray-200 px-2 py-1 rounded-sm text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
+                                <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
                             </div>
                         </div>
                         <ul class="divide-y">
@@ -292,7 +292,7 @@ window.defineComponent('state-picker', {
     </select>
 
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addState()">Add State</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addState()">Add State</button>
 
     <p class="text-xs text-gray-700 italic">WARNING: If you add a state with the Add State button the abbreviation will need to exist in your map svg. Also change the election pk to your election. Use only if you know what you're doing.</p>
 
@@ -385,7 +385,7 @@ window.defineComponent('candidate-picker', {
         <option v-for="c in candidates" :selected="currentCandidate == c[0]" :value="c[0]" :key="c[0]">{{c[1]}}</option>
     </select>
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addCandidate()">Add Candidate</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addCandidate()">Add Candidate</button>
 
     </div>
     `,
@@ -430,7 +430,7 @@ window.defineComponent('cyoa-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="gotoCyoa()">CYOA</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoCyoa()">CYOA</button>
 
     </div>
     `,
@@ -447,7 +447,7 @@ window.defineComponent('banner-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="gotoBanner()">Banner Settings</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBanner()">Banner Settings</button>
 
     </div>
     `,
@@ -497,7 +497,7 @@ window.defineComponent('ending-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="gotoEndings()">Custom Endings</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoEndings()">Custom Endings</button>
 
     </div>
     `,
@@ -514,7 +514,7 @@ window.defineComponent('mapping-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="gotoMapping()">Custom Map Tools</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoMapping()">Custom Map Tools</button>
 
     </div>
     `,
@@ -531,7 +531,7 @@ window.defineComponent('bulk-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded hover:bg-gray-500" v-on:click="gotoBulk()">Bulk Tools</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBulk()">Bulk Tools</button>
 
     </div>
     `,

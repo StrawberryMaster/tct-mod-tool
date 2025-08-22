@@ -89,7 +89,7 @@ window.defineComponent('question', {
     template: `
     <div class="mx-auto p-4">
         <!-- Header with actions -->
-        <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow">
+        <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
             <h1 class="font-bold text-xl">Question #{{this.pk}}</h1>
             <div class="flex space-x-2 items-center">
                 <button class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center"
@@ -110,19 +110,19 @@ window.defineComponent('question', {
         </div>
 
         <!-- Question details card -->
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
+        <div class="bg-white rounded-lg shadow-sm mb-6 p-4">
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label :for="'priority-' + pk" class="block text-sm font-medium text-gray-700">Priority:</label>
                     <input @input="onInput($event)" :value="priority" name="priority" type="number"
                         :id="'priority-' + pk"
-                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 </div>
                 <div>
                     <label :for="'likelihood-' + pk" class="block text-sm font-medium text-gray-700">Likelihood:</label>
                     <input @input="onInput($event)" :value="likelihood" name="likelihood" type="number"
                         :id="'likelihood-' + pk"
-                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="text-xs text-gray-500 mt-1">Higher values = more likely to appear</div>
                 </div>
             </div>
@@ -135,12 +135,12 @@ window.defineComponent('question', {
                     v-model="localDescription"
                     :id="'description-' + pk"
                     rows="4"
-                    class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500"></textarea>
             </div>
         </div>
 
         <!-- Answer management section -->
-        <div class="bg-white rounded-lg shadow mb-6">
+        <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="p-4 border-b flex justify-between items-center">
                 <h2 class="font-bold text-lg">Answers ({{this.answers.length}})</h2>
                 <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 flex items-center" v-on:click="addAnswer()">
@@ -210,7 +210,7 @@ window.defineComponent('question', {
                             v-model="localAnswerDescription"
                             :id="'answer-desc-' + activeAnswer"
                             :aria-labelledby="'answer-heading-' + activeAnswer"
-                            class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full p-2 border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500"
                             rows="4" placeholder="Answer text..."></textarea>
 
                         <!-- Tabs for different answer settings -->
@@ -918,7 +918,7 @@ window.defineComponent('answer-feedback-card', {
     props: ['pk'],
 
     template: `
-    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Feedback #{{pk}}</h4>
             <button @click="$emit('deleteFeedback', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete feedback #' + pk" :title="'Delete feedback #' + pk">
@@ -932,7 +932,7 @@ window.defineComponent('answer-feedback-card', {
             <label class="block text-xs font-medium text-gray-700" :for="'af-candidate-' + pk">Candidate:</label>
             <div class="flex items-center mt-1">
                 <select @change="onInput($event)" :value="candidate" name="candidate" :id="'af-candidate-' + pk"
-                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
                 </select>
             </div>
@@ -941,7 +941,7 @@ window.defineComponent('answer-feedback-card', {
         <div class="mt-2">
             <label class="block text-xs font-medium text-gray-700" :for="'af-text-' + pk">Feedback Text:</label>
             <textarea @input="onInput($event)" :value="answerFeedback" name="answer_feedback" rows="3" :id="'af-text-' + pk"
-                class="mt-1 p-2 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                class="mt-1 p-2 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500"></textarea>
         </div>
     </div>
     `,
@@ -982,7 +982,7 @@ window.defineComponent('global-score-card', {
     props: ['pk'],
 
     template: `
-    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Global Score #{{pk}}</h4>
             <button @click="$emit('deleteGlobalScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete global score #' + pk" :title="'Delete global score #' + pk">
@@ -997,7 +997,7 @@ window.defineComponent('global-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'gsc-candidate-' + pk">Candidate:</label>
                 <div class="flex items-center mt-1">
                     <select @change="onInput($event)" :value="candidate" name="candidate" :id="'gsc-candidate-' + pk"
-                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                         <option v-for="c in candidates" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
                     </select>
                 </div>
@@ -1007,7 +1007,7 @@ window.defineComponent('global-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'gsc-affected-' + pk">Affected Candidate:</label>
                 <div class="flex items-center mt-1">
                     <select @change="onInput($event)" :value="affected" name="affected_candidate" :id="'gsc-affected-' + pk"
-                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                         <option v-for="c in candidates" :key="'aff-'+c[0]" :value="c[0]">{{ c[1] }}</option>
                     </select>
                 </div>
@@ -1018,7 +1018,7 @@ window.defineComponent('global-score-card', {
             <label class="block text-xs font-medium text-gray-700" :for="'gsc-mult-' + pk">Global Multiplier:</label>
             <div class="flex items-center mt-1">
                 <input @input="onInput($event)" :value="multiplier" name="global_multiplier" type="number" step="0.001" :id="'gsc-mult-' + pk"
-                    class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                     <div class="h-full rounded"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
@@ -1074,7 +1074,7 @@ window.defineComponent('issue-score-card', {
     props: ['pk'],
 
     template: `
-    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Issue Score #{{pk}}</h4>
             <button @click="$emit('deleteIssueScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete issue score #' + pk" :title="'Delete issue score #' + pk">
@@ -1087,7 +1087,7 @@ window.defineComponent('issue-score-card', {
         <div class="mt-2">
             <label class="block text-xs font-medium text-gray-700" :for="'isc-issue-' + pk">Issue:</label>
             <select @change="onInput($event)" name="issue" :id="'isc-issue-' + pk"
-                class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <option v-for="i in issues" :selected="i.pk == issue" :value="i.pk" :key="i.pk">
                     {{i.pk}} - {{i.fields.name}}
                 </option>
@@ -1099,7 +1099,7 @@ window.defineComponent('issue-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'isc-score-' + pk">Issue Score:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" step="0.1" :id="'isc-score-' + pk"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                         <div class="h-full rounded bg-green-500"
                             :style="{ width: Math.min(Math.max((parseFloat(issueScoreDisplay) + 1) * 50, 0), 100) + '%' }">
@@ -1113,7 +1113,7 @@ window.defineComponent('issue-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'isc-importance-' + pk">Issue Importance:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="issueImportanceDisplay" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                         <div class="h-full rounded bg-blue-500"
                             :style="{ width: Math.min(Math.max(parseFloat(issueImportanceDisplay) * 20, 0), 100) + '%' }">
@@ -1169,7 +1169,7 @@ window.defineComponent('state-score-card', {
     props: ['pk'],
 
     template: `
-    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">State Score #{{pk}}</h4>
             <button @click="$emit('deleteStateScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete state score #' + pk" :title="'Delete state score #' + pk">
@@ -1182,7 +1182,7 @@ window.defineComponent('state-score-card', {
         <div class="mt-2">
             <label class="block text-xs font-medium text-gray-700" :for="'ssc-state-' + pk">State:</label>
             <select @change="onInput($event)" name="state" :id="'ssc-state-' + pk"
-                class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <option v-for="s in states" :selected="s.pk == state" :value="s.pk" :key="s.pk">
                     {{s.pk}} - {{s.fields.name}} ({{s.fields.abbr}})
                 </option>
@@ -1194,7 +1194,7 @@ window.defineComponent('state-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'ssc-candidate-' + pk">Candidate:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="candidate" name="candidate" type="number" :id="'ssc-candidate-' + pk"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <span v-if="candidateNickname" class="ml-2 text-xs text-gray-500">({{candidateNickname}})</span>
                 </div>
             </div>
@@ -1203,7 +1203,7 @@ window.defineComponent('state-score-card', {
                 <label class="block text-xs font-medium text-gray-700" :for="'ssc-affected-' + pk">Affected Candidate:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="affected" name="affected_candidate" type="number" :id="'ssc-affected-' + pk"
-                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <span v-if="affectedNickname" class="ml-2 text-xs text-gray-500">({{affectedNickname}})</span>
                 </div>
             </div>
@@ -1213,7 +1213,7 @@ window.defineComponent('state-score-card', {
             <label class="block text-xs font-medium text-gray-700" :for="'ssc-mult-' + pk">State Multiplier:</label>
             <div class="flex items-center mt-1">
                 <input @input="onInput($event)" :value="multiplier" name="state_multiplier" type="number" step="0.001" :id="'ssc-mult-' + pk"
-                    class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                     <div class="h-full rounded"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
@@ -1388,7 +1388,7 @@ window.defineComponent('state-effect-presets', {
             State Presets
         </button>
 
-        <div v-if="showPresets" id="state-presets-panel" class="mt-2 bg-gray-50 p-3 rounded shadow-sm">
+        <div v-if="showPresets" id="state-presets-panel" class="mt-2 bg-gray-50 p-3 rounded shadow-xs">
             <h4 class="font-medium text-sm mb-2">Select Region:</h4>
             <div class="grid grid-cols-2 gap-1 mb-2">
                 <button @click="selectPreset('swing')" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded hover:bg-purple-200">Swing States</button>
@@ -1917,7 +1917,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                     Candidate:
                 </label>
                 <select v-model="candidateId" @change="loadStateEffects"
-                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm">
+                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs">
                     <option v-for="candidate in candidates" :key="candidate[0]" :value="candidate[0]">
                         {{ candidate[1] }}
                     </option>
@@ -1929,7 +1929,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                     Affected Candidate:
                 </label>
                 <select v-model="affectedCandidateId" @change="loadStateEffects"
-                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm">
+                    class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs">
                     <option v-for="candidate in candidates" :key="candidate[0]" :value="candidate[0]">
                         {{ candidate[1] }}
                     </option>
@@ -2054,7 +2054,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                     <label class="block text-xs font-medium text-gray-700 mb-1">Select State</label>
                     <div class="flex items-center gap-2">
                         <select v-model="stateDropdownPk"
-                                class="p-1 text-sm block w-full border border-gray-300 rounded shadow-sm">
+                                class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs">
                             <option :value="null" disabled>Select a state...</option>
                             <option v-for="s in states" :key="'dd-' + s.pk" :value="s.pk">
                                 {{ s.fields.abbr }} - {{ s.fields.name }}
@@ -2140,7 +2140,7 @@ window.defineComponent('variable-effect-card', {
     props: ['pk'],
 
     template: `
-    <div class="bg-gray-50 rounded p-3 mb-3 shadow-sm hover:shadow transition-shadow">
+    <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
             <h4 class="text-sm font-medium text-gray-700">Variable Effect #{{pk}}</h4>
             <button @click="$emit('deleteVariableEffect', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete variable effect #' + pk" :title="'Delete variable effect #' + pk">
@@ -2154,14 +2154,14 @@ window.defineComponent('variable-effect-card', {
             <div>
                 <label class="block text-xs font-medium text-gray-700" :for="'ve-variable-' + pk">Variable:</label>
                 <select @change="onInput($event)" :value="variable" name="variable" :id="'ve-variable-' + pk"
-                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-purple-500 focus:border-purple-500">
                     <option v-for="variable in availableVariables" :key="variable.name" :value="variable.name">{{ variable.name }}</option>
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700" :for="'ve-operation-' + pk">Operation:</label>
                 <select @change="onInput($event)" :value="operation" name="operation" :id="'ve-operation-' + pk"
-                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-purple-500 focus:border-purple-500">
                     <option value="add">Add (+)</option>
                     <option value="subtract">Subtract (-)</option>
                 </select>
@@ -2169,7 +2169,7 @@ window.defineComponent('variable-effect-card', {
             <div>
                 <label class="block text-xs font-medium text-gray-700" :for="'ve-amount-' + pk">Amount:</label>
                 <input @input="onInput($event)" :value="amount" name="amount" type="number" min="1" :id="'ve-amount-' + pk"
-                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                    class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-purple-500 focus:border-purple-500">
             </div>
         </div>
         
