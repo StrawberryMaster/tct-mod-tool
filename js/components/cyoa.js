@@ -89,6 +89,29 @@ window.defineComponent('cyoa', {
     `,
 
     methods: {
+        initStores() {
+            const TCT = Vue.prototype.$TCT;
+            const jet = TCT.jet_data || (TCT.jet_data = {});
+
+            if (jet.cyoa_enabled == null) jet.cyoa_enabled = false;
+            if (jet.cyoa_data == null) jet.cyoa_data = {};
+            if (jet.cyoa_variables == null) jet.cyoa_variables = {};
+            if (jet.cyoa_variable_effects == null) jet.cyoa_variable_effects = {};
+            if (jet.cyoa_answer_swaps == null) jet.cyoa_answer_swaps = {};
+
+            // poke filename to refresh bindings
+            const temp = Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.filename = "";
+            Vue.prototype.$globalData.filename = temp;
+        },
+
+        // simple collision-safe ID generator for all CYOA stores
+        generateId(stores = []) {
+            let id = Date.now();
+            // bump until free in any target store
+            while (stores.some(store => store && store[id])) id++;
+            return id;
+        },
 
         toggleEnabled: function(evt) {
             Vue.prototype.$TCT.jet_data.cyoa_enabled = !Vue.prototype.$TCT.jet_data.cyoa_enabled;
@@ -96,6 +119,7 @@ window.defineComponent('cyoa', {
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
             this.tick++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         addCyoaEvent: function(evt) {
@@ -106,33 +130,38 @@ window.defineComponent('cyoa', {
                 console.warn("CYOA: cannot add event without at least one answer and one question.");
                 return;
             }
-            let id = Date.now();
-            Vue.prototype.$TCT.jet_data.cyoa_data[id] = {
+            const jet = Vue.prototype.$TCT.jet_data;
+            const id = this.generateId([jet.cyoa_data]);
+            jet.cyoa_data[id] = {
                 'answer': answers[0].pk,
                 'question': questions[0].pk,
                 'id': id
             };
             this.temp_events = [];
             this.tick++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         deleteEvent: function(id) {
             delete Vue.prototype.$TCT.jet_data.cyoa_data[id];
             this.temp_events = [];
             this.tick++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         addVariable: function() {
             if (!Vue.prototype.$TCT.jet_data.cyoa_variables) {
                 Vue.prototype.$TCT.jet_data.cyoa_variables = {};
             }
-            let id = Date.now();
-            Vue.prototype.$TCT.jet_data.cyoa_variables[id] = {
+            const jet = Vue.prototype.$TCT.jet_data;
+            const id = this.generateId([jet.cyoa_variables]);
+            jet.cyoa_variables[id] = {
                 'id': id,
-                'name': `variable${Object.keys(Vue.prototype.$TCT.jet_data.cyoa_variables || {}).length + 1}`,
+                'name': `variable${Object.keys(jet.cyoa_variables || {}).length + 1}`,
                 'defaultValue': 0
             };
             this.tick++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         deleteVariable: function(id) {
@@ -152,6 +181,7 @@ window.defineComponent('cyoa', {
             delete Vue.prototype.$TCT.jet_data.cyoa_variables[id];
 
             this.tick++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         // Answer swap rules
@@ -159,28 +189,23 @@ window.defineComponent('cyoa', {
             if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) {
                 Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
             }
-            const id = Date.now();
-            Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[id] = {
+            const jet = Vue.prototype.$TCT.jet_data;
+            const id = this.generateId([jet.cyoa_answer_swaps]);
+            jet.cyoa_answer_swaps[id] = {
                 id,
-                triggers: [],                 // array of answer PKs that trigger the swap block
-                condition: {                  // optional condition; empty variable = no condition
-                    variable: '',
-                    comparator: '>=',
-                    value: 0
-                },
-                swaps: [                      // one or more swaps to apply
-                    { pk1: null, pk2: null, takeEffects: true }
-                ]
+                triggers: [],
+                condition: { variable: '', comparator: '>=', value: 0 },
+                swaps: [{ pk1: null, pk2: null, takeEffects: true }]
             };
             this.tick++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
 
         deleteAnswerSwapRule(id) {
             if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) return;
             delete Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[id];
             this.tick++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
     },
 
@@ -197,30 +222,8 @@ window.defineComponent('cyoa', {
         },
 
         enabled: function() {
-            if(Vue.prototype.$TCT.jet_data.cyoa_enabled == null) {
-                Vue.prototype.$TCT.jet_data.cyoa_enabled = false;
-            }
-
-            if(Vue.prototype.$TCT.jet_data.cyoa_data == null) {
-                Vue.prototype.$TCT.jet_data.cyoa_data = {};
-            }
-
-            if(Vue.prototype.$TCT.jet_data.cyoa_variables == null) {
-                Vue.prototype.$TCT.jet_data.cyoa_variables = {};
-            }
-
-            if(Vue.prototype.$TCT.jet_data.cyoa_variable_effects == null) {
-                Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
-            }
-            // initialize answer swap rules store
-            if(Vue.prototype.$TCT.jet_data.cyoa_answer_swaps == null) {
-                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
-            }
-
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
-
+            // centralize initialization
+            this.initStores();
             return Vue.prototype.$TCT.jet_data.cyoa_enabled;
         },
 
@@ -238,225 +241,33 @@ window.defineComponent('cyoa', {
             return Object.values(src).sort((a,b) => a.id - b.id);
         },
 
-        // Build the answerSwapper function text
         buildAnswerSwapperFunction() {
-            return `
-function answerSwapper(pk1, pk2, takeEffects = true) {
-    // hardcoded JSON data for answers
-    const answerData = campaignTrail_temp.answers_json;
-
-    // find the indices of the objects with the specified PKs
-    const index1 = answerData.findIndex(item => item.pk === pk1);
-    const index2 = answerData.findIndex(item => item.pk === pk2);
-
-    // check if objects with those PKs exist
-    if (index1 === -1 || index2 === -1) {
-        return;
-    }
-
-    // swap the question values
-    const tempQuestion = answerData[index1].fields.question;
-    answerData[index1].fields.question = answerData[index2].fields.question;
-    answerData[index2].fields.question = tempQuestion;
-
-    // if takeEffects is true, answers swap effects also
-    if (takeEffects) {
-        const otherJsons = [
-            campaignTrail_temp.answer_score_global_json,
-            campaignTrail_temp.answer_score_issue_json,
-            campaignTrail_temp.answer_score_state_json
-        ];
-
-        otherJsons.forEach(jsonData => {
-            jsonData.forEach(item => {
-                if (item.fields.answer === pk1) {
-                    item.fields.answer = pk2;
-                }
-            });
-        });
-    }
-}
-`.trim();
+            return window.TCTAnswerSwapHelper.buildAnswerSwapperFunction();
         },
 
-        // Build the rules block from jet_data.cyoa_answer_swaps
         buildAnswerSwapBlocks() {
-            const rulesSrc = Vue.prototype.$TCT.jet_data?.cyoa_answer_swaps || {};
-            const rules = Object.values(rulesSrc);
-            if (!rules.length) return '';
-
-            const blocks = rules.map(rule => {
-                const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
-                const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
-                if (!triggers.length || !swaps.length) return '';
-
-                const triggerCond = triggers.map(pk => `ans == ${pk}`).join(' || ');
-                const swapLines = swaps.map(s => {
-                    const take = (s.takeEffects === false) ? 'false' : 'true';
-                    return `answerSwapper(${s.pk1}, ${s.pk2}, ${take});`;
-                }).join('\n        ');
-
-                const hasCond = rule.condition && rule.condition.variable;
-                if (hasCond) {
-                    const comp = rule.condition.comparator || '>=';
-                    const val = Number.isFinite(Number(rule.condition.value)) ? Number(rule.condition.value) : 0;
-                    return `if (${triggerCond}) {\n    if (${rule.condition.variable} ${comp} ${val}) {\n        ${swapLines}\n    }\n}`;
-                }
-                return `if (${triggerCond}) {\n    ${swapLines}\n}`;
-            }).filter(Boolean);
-
-            if (!blocks.length) return '';
-
-            // Keep a readable header inside the injected section
-            return `// answer swap CYOA here\n${blocks.join('\n')}`;
+            return window.TCTAnswerSwapHelper.buildAnswerSwapBlocks();
         },
 
-        // Helper to indent a multi-line block with a given indent string.
         indentBlock(block, indent) {
-            if (!block) return '';
-            return block
-                .split('\n')
-                .map(line => (line.trim().length ? indent + line : line))
-                .join('\n');
+            return window.TCTAnswerSwapHelper.indentBlock(block, indent);
         },
 
-        // Insert swap blocks inside cyoAdventure = function (a) { ... } body, neatly indented.
         insertSwapsInsideCyoAdventure(out, blocks) {
-            if (!blocks.trim()) return out;
-
-            // Clean up any legacy BEGIN/END wrapped blocks from older exports
-            out = out.replace(/\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/m, '');
-
-            // Find cyoAdventure function (assignment form preferred)
-            const reAssign = /cyoAdventure\s*=\s*function\s*\(\s*a\s*\)\s*\{/m;
-            let m = reAssign.exec(out);
-            let openIdx;
-
-            if (m) {
-                openIdx = m.index + m[0].length - 1; // position of '{'
-            } else {
-                // Fallback: named function
-                const reNamed = /function\s+cyoAdventure\s*\(\s*a?\s*\)\s*\{/m;
-                m = reNamed.exec(out);
-                if (!m) {
-                    // As last resort, just append at end without indentation
-                    return out + `\n\n${blocks}\n`;
-                }
-                openIdx = m.index + m[0].length - 1;
-            }
-
-            // Find matching closing brace to get function body range
-            let i = openIdx;
-            let depth = 0;
-            let closeIdx = -1;
-            for (; i < out.length; i++) {
-                const ch = out[i];
-                if (ch === '{') depth++;
-                else if (ch === '}') {
-                    depth--;
-                    if (depth === 0) { closeIdx = i; break; }
-                }
-            }
-            if (closeIdx === -1) {
-                // malformed; append at end
-                return out + `\n\n${blocks}\n`;
-            }
-
-            const bodyStart = openIdx + 1;
-            let body = out.slice(bodyStart, closeIdx);
-
-            // Prefer to insert after the 'ans =' assignment if present
-            const ansRe = /\bans\s*=\s*campaignTrail_temp\.player_answers\s*\[\s*campaignTrail_temp\.player_answers\.length\s*-\s*1\s*\]\s*;?/m;
-            let insertPosInBody = -1;
-            let indentForInsert = '    '; // default to 4 spaces
-            const ansMatch = ansRe.exec(body);
-            if (ansMatch) {
-                insertPosInBody = ansMatch.index + ansMatch[0].length;
-                // compute indent from that line
-                const lineStart = body.lastIndexOf('\n', ansMatch.index) + 1;
-                const line = body.slice(lineStart, ansMatch.index);
-                const leadingSpaces = line.match(/^\s*/)?.[0] || '';
-                indentForInsert = leadingSpaces || indentForInsert;
-            } else {
-                // More generic fallback: first 'ans =' assignment
-                const genericAnsRe = /\bans\s*=\s*[^;]+;/m;
-                const m2 = genericAnsRe.exec(body);
-                if (m2) {
-                    insertPosInBody = m2.index + m2[0].length;
-                    const lineStart = body.lastIndexOf('\n', m2.index) + 1;
-                    const line = body.slice(lineStart, m2.index);
-                    const leadingSpaces = line.match(/^\s*/)?.[0] || '';
-                    indentForInsert = leadingSpaces || indentForInsert;
-                }
-            }
-
-            // If a previous header exists, replace from that header to the next same-indentation comment or end of body
-            const headerRe = /^(\s*)\/\/\s*answer swap CYOA here.*$/m;
-            const headerMatch = headerRe.exec(body);
-            if (headerMatch) {
-                const headerIndent = headerMatch[1] || '';
-                const afterHeader = body.slice(headerMatch.index + headerMatch[0].length);
-                // next comment at the same indentation (not our header)
-                const nextOtherCommentRe = new RegExp(`^${headerIndent}//(?!\\s*answer swap CYOA here).*`, 'm');
-                const nextOther = nextOtherCommentRe.exec(afterHeader);
-                const replaceEndInBody = headerMatch.index + headerMatch[0].length + (nextOther ? nextOther.index : afterHeader.length);
-                const newSection = this.indentBlock(blocks, headerIndent);
-                body = body.slice(0, headerMatch.index) + newSection + body.slice(replaceEndInBody);
-                return out.slice(0, bodyStart) + body + out.slice(closeIdx);
-            }
-
-            // Prepare neat, indented payload with the header included in 'blocks'
-            const indentedPayload = '\n' + this.indentBlock(blocks, indentForInsert) + '\n';
-
-            if (insertPosInBody >= 0) {
-                // Insert right after ans assignment
-                const newBody = body.slice(0, insertPosInBody) + indentedPayload + body.slice(insertPosInBody);
-                return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
-            } else {
-                // Insert at top of body
-                const newBody = '\n' + this.indentBlock(blocks, indentForInsert) + '\n' + body;
-                return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
-            }
+            return window.TCTAnswerSwapHelper.insertSwapsInsideCyoAdventure(out, blocks);
         },
 
-        // Insert the answerSwapper function after getQuestionNumberFromPk function or at the beginning
         insertSwapperAfterHelper(out) {
-            const func = this.buildAnswerSwapperFunction();
-            
-            // Try to find getQuestionNumberFromPk function
-            const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
-            const match = helperRe.exec(out);
-            
-            if (match) {
-                // Insert after the helper function
-                const insertPos = match.index + match[0].length;
-                return out.slice(0, insertPos) + '\n\n' + func + out.slice(insertPos);
-            } else {
-                // Fallback: insert at the beginning of the file
-                return func + '\n\n' + out;
-            }
+            return window.TCTAnswerSwapHelper.insertSwapperAfterHelper(out);
         },
 
-        // Inject function and blocks into exported code with precise placement.
         injectAnswerSwapIntoCode2(code) {
-            let out = String(code || '');
-
-            // Only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
-            if (this.enabled) {
-                // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
-                out = this.insertSwapperAfterHelper(out);
-
-                // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
-                const blocks = this.buildAnswerSwapBlocks();
-                out = this.insertSwapsInsideCyoAdventure(out, blocks);
-            }
-
-            return out;
+            return window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(code);
         }
     }
 })
 
-// Create a global helper object that can be accessed from other components
+// create a global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
     buildAnswerSwapperFunction() {
         return `
@@ -525,7 +336,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
 
         if (!blocks.length) return '';
 
-        // Keep a readable header inside the injected section
+        // keep a readable header inside the injected section
         return `// answer swap CYOA here\n${blocks.join('\n')}`;
     },
 
@@ -540,10 +351,10 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     insertSwapsInsideCyoAdventure(out, blocks) {
         if (!blocks.trim()) return out;
 
-        // Clean up any legacy BEGIN/END wrapped blocks from older exports
+        // clean up any legacy BEGIN/END wrapped blocks from older exports
         out = out.replace(/\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/m, '');
 
-        // Find cyoAdventure function (assignment form preferred)
+        // find cyoAdventure function (assignment form preferred)
         const reAssign = /cyoAdventure\s*=\s*function\s*\(\s*a\s*\)\s*\{/m;
         let m = reAssign.exec(out);
         let openIdx;
@@ -551,17 +362,16 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         if (m) {
             openIdx = m.index + m[0].length - 1; // position of '{'
         } else {
-            // Fallback: named function
             const reNamed = /function\s+cyoAdventure\s*\(\s*a?\s*\)\s*\{/m;
             m = reNamed.exec(out);
             if (!m) {
-                // As last resort, just append at end without indentation
+                // as last resort, just append at end without indentation
                 return out + `\n\n${blocks}\n`;
             }
             openIdx = m.index + m[0].length - 1;
         }
 
-        // Find matching closing brace to get function body range
+        // find matching closing brace to get function body range
         let i = openIdx;
         let depth = 0;
         let closeIdx = -1;
@@ -581,7 +391,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const bodyStart = openIdx + 1;
         let body = out.slice(bodyStart, closeIdx);
 
-        // Prefer to insert after the 'ans =' assignment if present
+        // prefer to insert after the 'ans =' assignment if present
         const ansRe = /\bans\s*=\s*campaignTrail_temp\.player_answers\s*\[\s*campaignTrail_temp\.player_answers\.length\s*-\s*1\s*\]\s*;?/m;
         let insertPosInBody = -1;
         let indentForInsert = '    '; // default to 4 spaces
@@ -594,7 +404,6 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             const leadingSpaces = line.match(/^\s*/)?.[0] || '';
             indentForInsert = leadingSpaces || indentForInsert;
         } else {
-            // More generic fallback: first 'ans =' assignment
             const genericAnsRe = /\bans\s*=\s*[^;]+;/m;
             const m2 = genericAnsRe.exec(body);
             if (m2) {
@@ -606,7 +415,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             }
         }
 
-        // If a previous header exists, replace from that header to the next same-indentation comment or end of body
+        // if a previous header exists, replace from that header to the next same-indentation comment or end of body
         const headerRe = /^(\s*)\/\/\s*answer swap CYOA here.*$/m;
         const headerMatch = headerRe.exec(body);
         if (headerMatch) {
@@ -621,15 +430,15 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             return out.slice(0, bodyStart) + body + out.slice(closeIdx);
         }
 
-        // Prepare neat, indented payload with the header included in 'blocks'
+        // prepare neat, indented payload with the header included in 'blocks'
         const indentedPayload = '\n' + this.indentBlock(blocks, indentForInsert) + '\n';
 
         if (insertPosInBody >= 0) {
-            // Insert right after ans assignment
+            // insert right after ans assignment
             const newBody = body.slice(0, insertPosInBody) + indentedPayload + body.slice(insertPosInBody);
             return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
         } else {
-            // Insert at top of body
+            // insert at top of body
             const newBody = '\n' + this.indentBlock(blocks, indentForInsert) + '\n' + body;
             return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
         }
@@ -638,16 +447,15 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     insertSwapperAfterHelper(out) {
         const func = this.buildAnswerSwapperFunction();
         
-        // Try to find getQuestionNumberFromPk function
+        // try to find getQuestionNumberFromPk function
         const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
         const match = helperRe.exec(out);
         
         if (match) {
-            // Insert after the helper function
+            // insert after the helper function
             const insertPos = match.index + match[0].length;
             return out.slice(0, insertPos) + '\n\n' + func + out.slice(insertPos);
         } else {
-            // Fallback: insert at the beginning of the file
             return func + '\n\n' + out;
         }
     },
@@ -655,12 +463,12 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     injectAnswerSwapIntoCode2(code) {
         let out = String(code || '');
 
-        // Only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
+        // only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
         if (Vue.prototype.$TCT.jet_data.cyoa_enabled) {
-            // 1) Ensure function is added right after getQuestionNumberFromPk (or fallback)
+            // ensure function is added right after getQuestionNumberFromPk (or fallback)
             out = this.insertSwapperAfterHelper(out);
 
-            // 2) Build blocks and insert inside cyoAdventure with clean indentation (header only, no BEGIN/END)
+            // build blocks and insert inside cyoAdventure
             const blocks = this.buildAnswerSwapBlocks();
             out = this.insertSwapsInsideCyoAdventure(out, blocks);
         }
@@ -880,6 +688,13 @@ window.defineComponent('cyoa-variable', {
     }
 })
 
+// small global helper to trigger autosave only when enabled
+window.requestAutosaveIfEnabled = function() {
+    if (localStorage.getItem("autosaveEnabled") === "true") {
+        window.requestAutosaveDebounced?.();
+    }
+};
+
 // Single Answer Swap Rule editor
 window.defineComponent('cyoa-answer-swap', {
     props: ['id'],
@@ -905,28 +720,28 @@ window.defineComponent('cyoa-answer-swap', {
             if (!rule.triggers.includes(val)) {
                 rule.triggers.push(val);
                 this.triggerToAdd = null;
-                if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+                window.requestAutosaveIfEnabled?.();
             }
         },
 
         removeTrigger(pk) {
             const rule = this.getRule();
             rule.triggers = rule.triggers.filter(x => x !== pk);
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
 
         addSwap() {
             const rule = this.getRule();
             rule.swaps.push({ pk1: null, pk2: null, takeEffects: true });
             this.swapRowsTick++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
 
         removeSwap(index) {
             const rule = this.getRule();
             rule.swaps.splice(index, 1);
             this.swapRowsTick++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
 
         updateCondition(field, value) {
@@ -936,7 +751,7 @@ window.defineComponent('cyoa-answer-swap', {
             } else {
                 rule.condition[field] = value;
             }
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         },
 
         updateSwap(index, field, value) {
@@ -948,7 +763,7 @@ window.defineComponent('cyoa-answer-swap', {
                 rule.swaps[index][field] = Number(value) || null;
             }
             this.swapRowsTick++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            window.requestAutosaveIfEnabled?.();
         }
     },
 
