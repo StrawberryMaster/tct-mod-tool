@@ -1102,7 +1102,7 @@ window.defineComponent('issue-score-card', {
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                         <div class="h-full rounded bg-green-500"
-                            :style="{ width: Math.min(Math.max((parseFloat(issueScoreDisplay) + 1) * 50, 0), 100) + '%' }">
+                            :style="{ width: Math.min(Math.max((parseFloat(issueScore) + 1) * 50, 0), 100) + '%' }">
                         </div>
                     </div>
                 </div>
@@ -1112,11 +1112,11 @@ window.defineComponent('issue-score-card', {
             <div>
                 <label class="block text-xs font-medium text-gray-700" :for="'isc-importance-' + pk">Issue Importance:</label>
                 <div class="flex items-center mt-1">
-                    <input @input="onInput($event)" :value="issueImportanceDisplay" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
+                    <input @input="onInput($event)" :value="issueImportance" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                         <div class="h-full rounded bg-blue-500"
-                            :style="{ width: Math.min(Math.max(parseFloat(issueImportanceDisplay) * 20, 0), 100) + '%' }">
+                            :style="{ width: Math.min(Math.max(parseFloat(issueImportance) * 20, 0), 100) + '%' }">
                         </div>
                     </div>
                 </div>
@@ -1895,16 +1895,38 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
             this.effectListVersion;
             console.log("allStateEffectsForAnswer computed property recalculated, version:", this.effectListVersion); // Debugging
-            const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
-            return stateScores.map(score => {
-                return {
-                    pk: score.pk,
-                    stateName: Vue.prototype.$TCT.states[score.fields.state].fields.name,
-                    candidateNickname: Vue.prototype.$TCT.getNicknameForCandidate(score.fields.candidate),
-                    affectedCandidateNickname: Vue.prototype.$TCT.getNicknameForCandidate(score.fields.affected_candidate),
-                    multiplier: score.fields.state_multiplier
-                };
-            });
+
+            // ensure we always have an array to work with
+            const stateScores = (typeof Vue.prototype.$TCT.getStateScoreForAnswer === 'function')
+                ? Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId) || []
+                : [];
+
+            if (!Array.isArray(stateScores) || stateScores.length === 0) {
+                return [];
+            }
+
+            // map safely, skipping any malformed entries
+            return stateScores
+                .map(score => {
+                    try {
+                        const stateObj = Vue.prototype.$TCT.states?.[score.fields.state];
+                        const stateName = stateObj?.fields?.name || `State ${score.fields.state}`;
+                        const candidateNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.candidate) || null;
+                        const affectedNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.affected_candidate) || null;
+                        const multiplier = Number(score.fields.state_multiplier) || 0;
+                        return {
+                            pk: score.pk,
+                            stateName,
+                            candidateNickname: candidateNick,
+                            affectedCandidateNickname: affectedNick,
+                            multiplier
+                        };
+                    } catch (err) {
+                        console.warn("Skipping malformed stateScore entry in allStateEffectsForAnswer:", err, score);
+                        return null;
+                    }
+                })
+                .filter(Boolean); // remove any nulls caused by malformed entries
         }
     },
 

@@ -980,10 +980,88 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             alert(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it, but the editor may be missing some features because the section is missing. Please check your base scenario.`);
         }
         return fallback;
-    } else if (start.includes("JSON.parse")) {
-        f = f.replaceAll('\\"', '"').replaceAll("\\'", "'").replaceAll("\\\\", "\\");
     }
 
+    // better handling for JSON.parse
+    if (start.includes("JSON.parse")) {
+        // get portion after the start marker (preserve original spacing)
+        let startString = f.split(start)[1] || "";
+
+        // trim leading whitespace but keep the rest for parsing
+        let s = startString.trimStart();
+
+        // if the next char is a quote, extract the JS string literal robustly,
+        // respecting backslash escapes so we don't prematurely end on an escaped quote
+        const firstChar = s[0];
+        if (firstChar === '"' || firstChar === "'") {
+            const quote = firstChar;
+            let i = 1;
+            let escaped = false;
+            let literalContent = "";
+            for (; i < s.length; i++) {
+                const ch = s[i];
+                if (escaped) {
+                    // include the escape char and the escaped char so JSON.parse can handle it
+                    literalContent += "\\" + ch;
+                    escaped = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    escaped = true;
+                    continue;
+                }
+                if (ch === quote) {
+                    // found closing quote
+                    break;
+                }
+                literalContent += ch;
+            }
+
+            if (i < s.length && s[i] === quote) {
+                // reconstruct full quoted literal exactly as in source so JSON.parse can unescape it
+                const fullQuotedLiteral = quote + literalContent + quote;
+                let jsonText;
+                try {
+                    // use JSON.parse on the quoted literal to obtain the unescaped inner string
+                    jsonText = JSON.parse(fullQuotedLiteral);
+                } catch (e) {
+                    console.warn(`Failed to unescape JS string literal for ${start}:`, e);
+                    // replace common escapes
+                    jsonText = literalContent.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n");
+                }
+
+                // now try to parse the JSON text extracted from the JS literal
+                try {
+                    let candidate = jsonText;
+                    if (end == "]") candidate = "[" + candidate + "]";
+                    res = JSON.parse(candidate);
+                    console.log("Found valid JSON via JSON.parse-string extraction for " + start + "!");
+                    return res;
+                } catch (parseErr) {
+                    console.warn(`Initial JSON.parse of extracted content failed for ${start}:`, parseErr);
+                    // minimal cleanup and try again
+                    try {
+                        let cleaned = jsonText.replace(/,\s*([}\]])/g, "$1");
+                        if (end == "]") cleaned = "[" + cleaned + "]";
+                        res = JSON.parse(cleaned);
+                        console.log("Parsed after minimal cleanup for " + start + "!");
+                        return res;
+                    } catch (cleanErr) {
+                        console.error(`Failed to parse JSON for ${start} after cleanup:`, cleanErr);
+                        return fallback;
+                    }
+                }
+            } else {
+                console.log(`Could not locate a closing quote for JSON.parse argument after ${start}. Falling back to legacy probing.`);
+                // fall through to legacy probing below
+            }
+        } else {
+            console.log(`No quoted literal immediately after ${start}; falling back to legacy probing.`);
+            // fall through to legacy probing below
+        }
+    }
+
+    // legacy behavior for non-JSON.parse or probe fallback when extraction failed
     let startString = f.trim().split(start)[1];
     const possibleEndings = getAllIndexes(startString, end);
     let foundValidJSON = false;
@@ -992,6 +1070,15 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
         let raw = startString.slice(0, possibleEndings[i]);
         if (raw[0] == '"' || raw[0] == "'") raw = raw.substring(1);
         if (raw.slice(-1) == '"' || raw.slice(-1) == "'") raw = raw.substring(0, raw.length - 1);
+
+        // minimal cleaning for array/object literal style: strip JS comments and trailing commas,
+        // but avoid aggressive whitespace/newline removals which may break valid content
+        if (start.includes("JSON.parse")) {
+            // kept as a safety net but should rarely be used now (?)
+            raw = raw.replace(/\/\*[\s\S]*?\*\//g, "");
+            raw = raw.replace(/\/\/.*$/gm, "");
+            raw = raw.replace(/,\s*([}\]])/g, "$1");
+        }
 
         try {
             if (end == "]") raw = "[" + raw + "]";
@@ -1064,19 +1151,71 @@ function loadDataFromFile(raw_json) {
         return extractJSON(raw_json, startPrimary, endPrimary, startBackup, endBackup, required, fallback);
     }
 
-    // helper to remap duplicates safely (only for objects needing auto-remap)
-    function ensureUniqueAndStore(container, obj, autoRemap = false) {
-        if (obj.pk in container) {
-            const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
-            console.log(msg);
-            duplicates = true;
-            if (autoRemap) {
-                highest_pk = Math.max(highest_pk, obj.pk);
-                obj.pk = ++highest_pk;
-            }
+    // sanitize/normalize PKs to avoid insane values (e.g. scientific-notation randoms)
+    function normalizePk(obj) {
+        // coerce to a number
+        const raw = obj.pk;
+        const pkNum = Number(raw);
+        // invalid or non-integer or non-finite
+        if (!Number.isFinite(pkNum) || !Number.isInteger(pkNum) || pkNum <= 0) {
+            console.log(`Normalizing invalid PK (${raw}) for model ${obj.model || '<unknown>'}; assigning new pk`);
+            obj.pk = ++highest_pk;
+            return;
         }
-        highest_pk = Math.max(highest_pk, obj.pk);
-        container[obj.pk] = obj;
+        // floor to integer (defensive)
+        let pk = Math.floor(pkNum);
+
+        // if PK exceeds safe JS integer range, remap
+        const SAFE_MAX = Number.MAX_SAFE_INTEGER; // ~9e15
+        if (pk > SAFE_MAX) {
+            console.log(`PK ${pk} exceeds Number.MAX_SAFE_INTEGER; remapping to avoid unsafe integer.`);
+            obj.pk = ++highest_pk;
+            return;
+        }
+
+        // avoid huge jumps (someone scrambled PKs); if new pk is far above current highest, remap
+        const MAX_GAP = 1_000_000; // conservative threshold
+        if (pk - highest_pk > MAX_GAP) {
+            console.log(`PK ${pk} is far above current highest_pk ${highest_pk}; remapping to avoid huge gaps`);
+            obj.pk = ++highest_pk;
+            return;
+        }
+
+        obj.pk = pk;
+        // update highest_pk (safe)
+        if (pk > highest_pk) highest_pk = pk;
+    }
+
+    // helper to remap duplicates safely (supports both plain objects and Map containers)
+    function ensureUniqueAndStore(container, obj, autoRemap = false) {
+        // normalize before storing so insane values don't blow up highest_pk
+        normalizePk(obj);
+
+        if (container instanceof Map) {
+            if (container.has(obj.pk)) {
+                const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
+                console.log(msg);
+                duplicates = true;
+                if (autoRemap) {
+                    highest_pk = Math.max(highest_pk, obj.pk);
+                    obj.pk = ++highest_pk;
+                }
+            }
+            highest_pk = Math.max(highest_pk, obj.pk);
+            container.set(obj.pk, obj);
+        } else {
+            if (obj.pk in container) {
+                const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
+                console.log(msg);
+                duplicates = true;
+                if (autoRemap) {
+                    highest_pk = Math.max(highest_pk, obj.pk);
+                    obj.pk = ++highest_pk;
+                }
+            }
+            highest_pk = Math.max(highest_pk, obj.pk);
+            container[obj.pk] = obj;
+        }
     }
 
     // STATES
@@ -1088,29 +1227,20 @@ function loadDataFromFile(raw_json) {
     // QUESTIONS
     const questions_json = getSection("questions_json");
     questions_json.forEach(question => {
-        if (questions.has(question.pk)) {
-            console.log(`WARNING: Found duplicate pk ${question.pk} in questions already`);
-            duplicates = true;
-        }
-        highest_pk = Math.max(highest_pk, question.pk);
-        if (question.fields.description) {
+        if (question.fields && question.fields.description) {
             question.fields.description = question.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
-        questions.set(question.pk, question);
+        // use unified helper (autoRemap = true to remap duplicates)
+        ensureUniqueAndStore(questions, question, true);
     });
 
     // ANSWERS
     const answers_json = getSection("answers_json");
     answers_json.forEach(answer => {
-        if (answer.pk in answers) {
-            console.log(`WARNING: Found duplicate pk ${answer.pk} in answers already`);
-            duplicates = true;
-        }
-        highest_pk = Math.max(highest_pk, answer.pk);
-        if (answer.fields.description) {
+        if (answer.fields && answer.fields.description) {
             answer.fields.description = answer.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
         }
-        answers[answer.pk] = answer;
+        ensureUniqueAndStore(answers, answer, true);
     });
 
     // FEEDBACKS (auto-remap duplicates)
