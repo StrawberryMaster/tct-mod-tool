@@ -358,7 +358,53 @@ class TCTData {
             this.jet_data.ending_data = {};
         }
 
-        return Object.values(this.jet_data.ending_data);
+        // ensure deterministic ordering by id
+        const out = Object.values(this.jet_data.ending_data);
+        out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
+        return out;
+    }
+
+    // reorder endings by array of IDs (in desired order)
+    reorderEndings(newOrderIds) {
+        try {
+            if (this.jet_data.ending_data == null) {
+                this.jet_data.ending_data = {};
+                return;
+            }
+
+            const current = Object.values(this.jet_data.ending_data);
+            if (!Array.isArray(newOrderIds) || newOrderIds.length !== current.length) {
+                console.warn("reorderEndings: new order length mismatch");
+            }
+
+            // validate that provided IDs are all present
+            for (const id of newOrderIds) {
+                if (!this.jet_data.ending_data[id]) {
+                    console.warn("reorderEndings: id not found in current data:", id);
+                }
+            }
+
+            // rebuild the ending_data object in the new order
+            const newEndingData = {};
+            for (const id of newOrderIds) {
+                const ending = this.jet_data.ending_data[id];
+                if (ending) {
+                    newEndingData[id] = ending;
+                }
+            }
+
+            // append any stragglers not in newOrderIds
+            for (const ending of current) {
+                if (!newOrderIds.includes(ending.id)) {
+                    newEndingData[ending.id] = ending;
+                }
+            }
+
+            this.jet_data.ending_data = newEndingData;
+        } catch (e) {
+            console.error("Error in reorderEndings:", e);
+            throw e;
+        }
     }
 
     getFirstStatePK() {
