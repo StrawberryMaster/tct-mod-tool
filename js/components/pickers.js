@@ -21,24 +21,24 @@ window.defineComponent('question-picker', {
         <option v-for="question in questions" :value="question.pk" :key="question.pk" :selected="currentQuestion == question.pk">{{question.pk}} - {{questionDescription(question)}}</option>
     </select>
     <div v-else class="my-1 flex items-center gap-2">
-        <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="openManageModal('select')">Select Question...</button>
+        <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="openManageModal('select')">Select question...</button>
         <span class="text-xs text-gray-600">Using modal due to many questions ({{numberOfQuestions}})</span>
     </div>
     <br>
 
     <div class="flex flex-wrap gap-2">
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addQuestion()">Add Question</button>
-        <button class="bg-blue-500 text-white p-2 my-2 rounded-sm hover:bg-blue-600" v-on:click="cloneQuestion()">Clone Question</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addQuestion()">Add question</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded-sm hover:bg-blue-600" v-on:click="cloneQuestion()">Clone question</button>
         <button class="bg-gray-500 text-white p-2 my-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
-            Manage Questions
+            Manage questions
         </button>
     </div>
 
-    <!-- Question Manager -->
+    <!-- Question Manager (left rail) -->
     <div v-if="showManageModal" class="fixed inset-0 z-50">
-        <div class="absolute inset-0 bg-black/50" @click="closeManageModal()"></div>
-        <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="bg-white rounded-sm shadow-lg w-full max-w-3xl max-h-[80vh] flex flex-col">
+        <div class="absolute inset-0 bg-black/50" @click="closeManageModal()" aria-hidden="true"></div>
+        <div class="absolute inset-0 flex">
+            <div class="bg-white h-full w-full sm:max-w-lg shadow-xl flex flex-col" role="dialog" aria-modal="true" aria-label="Manage questions">
                 <div class="p-3 border-b flex justify-between items-center">
                     <div class="flex gap-2">
                         <button class="px-3 py-1 rounded-sm text-sm"
@@ -48,11 +48,11 @@ window.defineComponent('question-picker', {
                                 :class="manageTab==='reorder' ? 'bg-gray-800 text-white' : 'bg-gray-200 hover:bg-gray-300'"
                                 @click="manageTab==='reorder' || resetOrderFromMap(); manageTab='reorder'">Reorder</button>
                     </div>
-                    <button class="text-gray-600 hover:text-black text-xl leading-none" @click="closeManageModal()">✕</button>
+                    <button class="text-gray-600 hover:text-black text-xl leading-none" @click="closeManageModal()" aria-label="Close">✕</button>
                 </div>
 
-                <div class="p-3 overflow-auto">
-                    <!-- Select tab -->
+                <div class="p-3 overflow-y-auto flex-1">
+                    <!-- Select tab (unchanged content) -->
                     <div v-if="manageTab==='select'">
                         <div class="flex items-center gap-2 mb-2">
                             <input class="border rounded-sm px-2 py-1 w-full" v-model="searchSelect" placeholder="Search by #pk or description...">
@@ -70,13 +70,13 @@ window.defineComponent('question-picker', {
                         </ul>
                     </div>
 
-                    <!-- Reorder tab -->
+                    <!-- Reorder tab (unchanged content) -->
                     <div v-else>
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="font-semibold text-sm">Drag to reorder (top = asked first)</h3>
                             <div class="flex gap-2">
                                 <button class="bg-gray-200 px-2 py-1 rounded-sm text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
-                                <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+                                <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save order</button>
                             </div>
                         </div>
                         <ul class="divide-y">
@@ -112,6 +112,17 @@ window.defineComponent('question-picker', {
 
     </div>
     `,
+
+    // enable Esc-to-close for the drawer
+    mounted() {
+        this._onKeydown = (e) => {
+            if (e.key === 'Escape' && this.showManageModal) this.closeManageModal();
+        };
+        window.addEventListener('keydown', this._onKeydown);
+    },
+    beforeDestroy() {
+        window.removeEventListener('keydown', this._onKeydown);
+    },
 
     methods: {
 
