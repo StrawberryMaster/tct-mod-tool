@@ -175,18 +175,19 @@ window.defineComponent('endings', {
 
         applyOrder() {
             // create ordered array of IDs
-            const orderedIds = this.orderList.map(x => x.id);
+            const orderedIds = this.orderList.map(x => {
+                const n = Number(x.id);
+                return Number.isFinite(n) ? n : x.id;
+            });
+
             try {
-                // reorder the internal data
-                if (typeof Vue.prototype.$TCT.reorderEndings === 'function') {
-                    Vue.prototype.$TCT.reorderEndings(orderedIds);
-                } else {
-                    console.warn("reorderEndings method not found");
-                }
-                // force re-render
-                const temp = Vue.prototype.$globalData.filename;
-                Vue.prototype.$globalData.filename = "";
-                Vue.prototype.$globalData.filename = temp;
+                // persist explicit ordering to jet_data.endings_order
+                // this avoids relying on object insertion order
+                if (!Vue.prototype.$TCT.jet_data) Vue.prototype.$TCT.jet_data = {};
+                Vue.prototype.$TCT.jet_data.endings_order = orderedIds;
+
+                // force re-render of the component list by clearing any temp cache
+                this.temp_endings = [];
 
                 // autosave if enabled
                 if (localStorage.getItem("autosaveEnabled") === "true") {
@@ -205,16 +206,13 @@ window.defineComponent('endings', {
         autoOrder() {
             // Sort endings by variable type priority and amount in descending order
             const priorityMap = { 0: 3, 1: 2, 2: 1 }; // EVs=3, Pop%=2, Raw=1
-            
             const sorted = [...this.endings].sort((a, b) => {
                 const aPriority = priorityMap[a.variable] || 0;
                 const bPriority = priorityMap[b.variable] || 0;
-                
                 // First sort by variable type priority
                 if (aPriority !== bPriority) {
                     return bPriority - aPriority;
                 }
-                
                 // Then by amount in descending order
                 return (b.amount || 0) - (a.amount || 0);
             });
@@ -224,10 +222,8 @@ window.defineComponent('endings', {
                 text: this.endingDescription(ending)
             }));
 
-            // If not in modal, apply immediately
-            if (!this.showManageModal) {
-                this.applyOrder();
-            }
+            // apply the new order
+            this.applyOrder();
         },
 
         endingDescription(ending) {

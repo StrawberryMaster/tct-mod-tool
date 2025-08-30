@@ -358,10 +358,49 @@ class TCTData {
             this.jet_data.ending_data = {};
         }
 
-        // ensure deterministic ordering by id
-        const out = Object.values(this.jet_data.ending_data);
-        out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
-        return out;
+        const data = this.jet_data.ending_data || {};
+
+        // if an explicit order is present, respect it
+        const orderedIdsRaw = this.jet_data.endings_order;
+        const orderedIds = Array.isArray(orderedIdsRaw) && orderedIdsRaw.length > 0
+            ? orderedIdsRaw.map(id => {
+                // coerce strings like "123" and numbers to Number if possible
+                const n = Number(id);
+                return Number.isFinite(n) ? n : id;
+            })
+            : null;
+
+        if (orderedIds && orderedIds.length > 0) {
+            const out = [];
+            const seen = new Set();
+
+            // try numeric key, then string key
+            for (const id of orderedIds) {
+                let entry = data[id];
+                if (!entry) {
+                    const sKey = String(id);
+                    entry = data[sKey];
+                }
+                if (entry) {
+                    out.push(entry);
+                    seen.add(Number(entry.id));
+                }
+            }
+
+            // append any remaining endings that were not in the order array
+            for (const entry of Object.values(data)) {
+                if (!seen.has(Number(entry.id))) {
+                    out.push(entry);
+                }
+            }
+
+            return out;
+        }
+
+        // fallback: sort by numeric id for deterministic behaviour
+        const arr = Object.values(data);
+        arr.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
+        return arr;
     }
 
     // reorder endings by array of IDs (in desired order)
