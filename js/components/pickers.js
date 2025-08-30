@@ -292,7 +292,7 @@ window.defineComponent('state-picker', {
     </select>
 
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addState()">Add State</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addState()">Add state</button>
 
     <p class="text-xs text-gray-700 italic">WARNING: If you add a state with the Add State button the abbreviation will need to exist in your map svg. Also change the election pk to your election. Use only if you know what you're doing.</p>
 
@@ -385,7 +385,7 @@ window.defineComponent('candidate-picker', {
         <option v-for="c in candidates" :selected="currentCandidate == c[0]" :value="c[0]" :key="c[0]">{{c[1]}}</option>
     </select>
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addCandidate()">Add Candidate</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addCandidate()">Add candidate</button>
 
     </div>
     `,
@@ -447,7 +447,7 @@ window.defineComponent('banner-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBanner()">Banner Settings</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBanner()">Banner settings</button>
 
     </div>
     `,
@@ -464,7 +464,7 @@ window.defineComponent('template-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <label for="templatePicker">Choose a Template:</label><br>
+    <label for="templatePicker">Choose a template:</label><br>
 
     <select @change="onChange" name="templatePicker" id="templatePicker">
         <option v-for="template in templates" :value="template">{{trimmedName(template)}}</option>

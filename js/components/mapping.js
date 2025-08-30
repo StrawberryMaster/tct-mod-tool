@@ -15,8 +15,8 @@ window.defineComponent('mapping', {
 
         <h1>Mapping Settings</h1>
 
-        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Map</button>
-        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Map</button><br>
+        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable custom map</button>
+        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable custom map</button><br>
 
         <div v-if="enabled">
 

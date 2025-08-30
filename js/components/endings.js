@@ -13,18 +13,18 @@ window.defineComponent('endings', {
     template: `
     <div class="mx-auto p-3">
 
-        <h1 class="text-xl font-semibold mb-3">Custom Endings</h1>
+        <h1 class="text-xl font-semibold mb-3">Custom endings</h1>
 
         <div class="flex flex-wrap gap-2 mb-4">
-            <button v-if="!enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable Custom Endings</button>
-            <button v-if="enabled" class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable Custom Endings</button>
-            
-            <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="addEnding()">Add Custom Ending</button>
+            <button v-if="!enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable custom endings</button>
+            <button v-if="enabled" class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable custom endings</button>
+
+            <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="addEnding()">Add custom ending</button>
             <button v-if="enabled && endings.length > 1" class="bg-gray-500 text-white p-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
-                Manage Endings
+                Manage endings
             </button>
             <button v-if="enabled && endings.length > 1" class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="autoOrder()">
-                Auto Order
+                Auto order
             </button>
         </div>
 
@@ -33,7 +33,7 @@ window.defineComponent('endings', {
         </div>
 
         <div v-if="enabled && endings.length === 0" class="text-gray-500 italic p-4 text-center">
-            No custom endings yet. Click "Add Custom Ending" to get started.
+            No custom endings yet. Click "Add custom ending" to get started.
         </div>
 
         <!-- Endings Manager Modal -->
@@ -74,8 +74,8 @@ window.defineComponent('endings', {
                                 <h3 class="font-semibold text-sm">Drag to reorder (top = highest priority)</h3>
                                 <div class="flex gap-2">
                                     <button class="bg-gray-200 px-2 py-1 rounded-sm text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
-                                    <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-blue-600" @click="autoOrder()">Auto Order</button>
-                                    <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save Order</button>
+                                    <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-blue-600" @click="autoOrder()">Auto order</button>
+                                    <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save order</button>
                                 </div>
                             </div>
                             <ul class="divide-y">
@@ -100,7 +100,7 @@ window.defineComponent('endings', {
                                     </span>
                                 </li>
                             </ul>
-                            <div class="text-xs text-gray-500 mt-2">Tip: Auto Order sorts by variable type and amount in descending order for optimal game logic.</div>
+                            <div class="text-xs text-gray-500 mt-2">Tip: Auto order sorts by variable type and amount in descending order. This is to avoid most issues with broken or unobtainable endings.</div>
                         </div>
                     </div>
                 </div>
@@ -276,29 +276,29 @@ window.defineComponent('ending', {
         
         <div class="grid grid-cols-3 gap-2 mb-3">
             <select @change="onChange($event)" :value="getVariable" name="variable" class="border rounded-sm px-2 py-1">
-                <option value="0">Player Electoral Votes</option>
-                <option value="1">Player Popular Vote %</option>
-                <option value="2">Player Raw Vote Total</option>
+                <option value="0">Player electoral votes (EVs)</option>
+                <option value="1">Player popular vote (%)</option>
+                <option value="2">Player raw vote total</option>
             </select>
 
             <select @change="onChange($event)" :value="getOperator" name="operator" class="border rounded-sm px-2 py-1">
-                <option value=">">Greater Than</option>
-                <option value="==">Equal To</option>
-                <option value="<">Less Than</option>
+                <option value=">">Greater than</option>
+                <option value="==">Equal to</option>
+                <option value="<">Less than</option>
             </select>
 
             <input @input="onInput($event)" :value="getAmount" name="amount" type="number" class="border rounded-sm px-2 py-1">
         </div>
 
         <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Ending Text:</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ending text:</label>
             <textarea @input="onInput($event)" :value="getEndingText" name="endingText" rows="4" 
                       class="w-full border rounded-sm px-2 py-1" 
                       placeholder="Put ending text here, you can and should use HTML tags!"></textarea>
         </div>
 
         <div class="mb-3">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Custom Ending Image (Optional):</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom ending image (optional):</label>
             <input @input="onInput($event)" :value="endingImage" name="endingImage" type="url" 
                    class="w-full border rounded-sm px-2 py-1" placeholder="Enter image URL">
         </div>

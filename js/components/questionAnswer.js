@@ -128,7 +128,7 @@ window.defineComponent('question', {
             </div>
 
             <div>
-                <label :for="'description-' + pk" class="block text-sm font-medium text-gray-700">Question Text:</label>
+                <label :for="'description-' + pk" class="block text-sm font-medium text-gray-700">Question text:</label>
                 <textarea
                     :key="'question-desc-' + pk"
                     autocomplete="off"
@@ -147,7 +147,7 @@ window.defineComponent('question', {
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Answer
+                    Add answer
                 </button>
             </div>
 
@@ -205,7 +205,7 @@ window.defineComponent('question', {
                 <!-- Right side: Selected answer details -->
                 <div class="md:w-1/2" v-if="activeAnswer">
                     <div class="p-4">
-                        <h3 class="font-bold text-md mb-3" :id="'answer-heading-' + activeAnswer">Edit Answer #{{activeAnswer}}</h3>
+                        <h3 class="font-bold text-md mb-3" :id="'answer-heading-' + activeAnswer">Edit answer #{{activeAnswer}}</h3>
                         <textarea
                             v-model="localAnswerDescription"
                             :id="'answer-desc-' + activeAnswer"
@@ -274,9 +274,9 @@ window.defineComponent('question', {
                             <!-- Feedback Tab -->
                             <div v-if="activeTab === 'feedback'">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h4 class="font-medium text-sm">Answer Feedback</h4>
+                                    <h4 class="font-medium text-sm">Answer feedback</h4>
                                     <button @click="addFeedback(activeAnswer)" class="bg-blue-500 text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
-                                        Add Feedback
+                                        Add feedback
                                     </button>
                                 </div>
                                 <answer-feedback-card
@@ -293,9 +293,9 @@ window.defineComponent('question', {
                             <!-- Global Scores Tab -->
                             <div v-if="activeTab === 'global'">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h4 class="font-medium text-sm">Global Scores</h4>
+                                    <h4 class="font-medium text-sm">Global scores</h4>
                                     <button @click="addGlobalScore(activeAnswer)" class="bg-purple-500 text-white px-2 py-1 text-xs rounded hover:bg-purple-600">
-                                        Add Global Score
+                                        Add global score
                                     </button>
                                 </div>
                                 <global-score-card
@@ -312,9 +312,9 @@ window.defineComponent('question', {
                             <!-- Issue Scores Tab -->
                             <div v-if="activeTab === 'issues'">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h4 class="font-medium text-sm">Issue Scores</h4>
+                                    <h4 class="font-medium text-sm">Issue scores</h4>
                                     <button @click="addIssueScore(activeAnswer)" class="bg-green-500 text-white px-2 py-1 text-xs rounded hover:bg-green-600">
-                                        Add Issue Score
+                                        Add issue score
                                     </button>
                                 </div>
                                 <issue-score-card
@@ -343,9 +343,9 @@ window.defineComponent('question', {
                             <!-- Variables Tab -->
                             <div v-if="activeTab === 'variables'">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h4 class="font-medium text-sm">Variable Effects</h4>
+                                    <h4 class="font-medium text-sm">Variable effects</h4>
                                     <button @click="addVariableEffect(activeAnswer)" class="bg-purple-500 text-white px-2 py-1 text-xs rounded hover:bg-purple-600" :disabled="!hasCyoaVariables">
-                                        Add Variable Effect
+                                        Add variable effect
                                     </button>
                                 </div>
                                 <variable-effect-card
@@ -750,36 +750,36 @@ window.defineComponent('answer', {
         <label for="description">Description:</label><br>
         <textarea @input="onInput($event)" :value="description" name="description" rows="4" cols="50"></textarea><br>
         
-        <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteAnswer()">Delete Answer</button>
-        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneAnswer()">Clone Answer</button>
+        <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteAnswer()">Delete answer</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneAnswer()">Clone answer</button>
 
         <details>
-        <summary>Answer Feedback ({{this.feedbacks.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addFeedback()">Add Feedback</button>
+        <summary>Answer feedback ({{this.feedbacks.length}})</summary>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addFeedback()">Add feedback</button>
         <ul>
             <answer-feedback @deleteFeedback="deleteFeedback" v-for="feedback in feedbacks" :pk="feedback.pk" :key="feedback.pk"></answer-feedback>
         </ul>
         </details>
 
         <details>
-        <summary>Global Scores ({{this.globalScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addGlobalScore()">Add Global Scores</button>
+        <summary>Global scores ({{this.globalScores.length}})</summary>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addGlobalScore()">Add global scores</button>
         <ul>
             <global-score @deleteGlobalScore="deleteGlobalScore" v-for="x in globalScores" :pk="x.pk" :key="x.pk"></global-score>
         </ul>
         </details>
 
         <details>
-        <summary>Issue Scores ({{this.issueScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addIssueScore()">Add Issue Score</button>
+        <summary>Issue scores ({{this.issueScores.length}})</summary>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addIssueScore()">Add issue score</button>
         <ul>
             <issue-score @deleteIssueScore="deleteIssueScore" v-for="x in issueScores" :pk="x.pk" :key="x.pk"></issue-score>
         </ul>
         </details>
 
         <details>
-        <summary>State Scores ({{this.stateScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addStateScore()">Add State Score</button>
+        <summary>State scores ({{this.stateScores.length}})</summary>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addStateScore()">Add state score</button>
         <ul>
             <state-score @deleteStateScore="deleteStateScore" v-for="x in stateScores" :pk="x.pk" :key="x.pk"></state-score>
         </ul>
@@ -939,7 +939,7 @@ window.defineComponent('answer-feedback-card', {
         </div>
 
         <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-700" :for="'af-text-' + pk">Feedback Text:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'af-text-' + pk">Feedback text:</label>
             <textarea @input="onInput($event)" :value="answerFeedback" name="answer_feedback" rows="3" :id="'af-text-' + pk"
                 class="mt-1 p-2 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500"></textarea>
         </div>
@@ -984,7 +984,7 @@ window.defineComponent('global-score-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Global Score #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Global score #{{pk}}</h4>
             <button @click="$emit('deleteGlobalScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete global score #' + pk" :title="'Delete global score #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1004,7 +1004,7 @@ window.defineComponent('global-score-card', {
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-gray-700" :for="'gsc-affected-' + pk">Affected Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'gsc-affected-' + pk">Affected candidate:</label>
                 <div class="flex items-center mt-1">
                     <select @change="onInput($event)" :value="affected" name="affected_candidate" :id="'gsc-affected-' + pk"
                         class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1015,7 +1015,7 @@ window.defineComponent('global-score-card', {
         </div>
 
         <div class="mt-3">
-            <label class="block text-xs font-medium text-gray-700" :for="'gsc-mult-' + pk">Global Multiplier:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'gsc-mult-' + pk">Global multiplier:</label>
             <div class="flex items-center mt-1">
                 <input @input="onInput($event)" :value="multiplier" name="global_multiplier" type="number" step="0.001" :id="'gsc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1076,7 +1076,7 @@ window.defineComponent('issue-score-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Issue Score #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Issue score #{{pk}}</h4>
             <button @click="$emit('deleteIssueScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete issue score #' + pk" :title="'Delete issue score #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1096,7 +1096,7 @@ window.defineComponent('issue-score-card', {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
             <div>
-                <label class="block text-xs font-medium text-gray-700" :for="'isc-score-' + pk">Issue Score:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'isc-score-' + pk">Issue score:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" step="0.1" :id="'isc-score-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1110,7 +1110,7 @@ window.defineComponent('issue-score-card', {
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-gray-700" :for="'isc-importance-' + pk">Issue Importance:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'isc-importance-' + pk">Issue importance:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="issueImportance" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1200,7 +1200,7 @@ window.defineComponent('state-score-card', {
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-gray-700" :for="'ssc-affected-' + pk">Affected Candidate:</label>
+                <label class="block text-xs font-medium text-gray-700" :for="'ssc-affected-' + pk">Affected candidate:</label>
                 <div class="flex items-center mt-1">
                     <input @input="onInput($event)" :value="affected" name="affected_candidate" type="number" :id="'ssc-affected-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1210,7 +1210,7 @@ window.defineComponent('state-score-card', {
         </div>
 
         <div class="mt-3">
-            <label class="block text-xs font-medium text-gray-700" :for="'ssc-mult-' + pk">State Multiplier:</label>
+            <label class="block text-xs font-medium text-gray-700" :for="'ssc-mult-' + pk">State multiplier:</label>
             <div class="flex items-center mt-1">
                 <input @input="onInput($event)" :value="multiplier" name="state_multiplier" type="number" step="0.001" :id="'ssc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
@@ -1385,21 +1385,21 @@ window.defineComponent('state-effect-presets', {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            State Presets
+            State presets
         </button>
 
         <div v-if="showPresets" id="state-presets-panel" class="mt-2 bg-gray-50 p-3 rounded shadow-xs">
             <h4 class="font-medium text-sm mb-2">Select Region:</h4>
             <div class="grid grid-cols-2 gap-1 mb-2">
-                <button @click="selectPreset('swing')" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded hover:bg-purple-200">Swing States</button>
+                <button @click="selectPreset('swing')" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded hover:bg-purple-200">Swing states</button>
                 <button @click="selectPreset('south')" class="bg-red-100 text-red-800 px-2 py-1 text-xs rounded hover:bg-red-200">South</button>
                 <button @click="selectPreset('midwest')" class="bg-yellow-100 text-yellow-800 px-2 py-1 text-xs rounded hover:bg-yellow-200">Midwest</button>
                 <button @click="selectPreset('northeast')" class="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded hover:bg-blue-200">Northeast</button>
                 <button @click="selectPreset('west')" class="bg-green-100 text-green-800 px-2 py-1 text-xs rounded hover:bg-green-200">West</button>
-                <button @click="selectPreset('blue')" class="bg-blue-300 text-blue-800 px-2 py-1 text-xs rounded hover:bg-blue-400">Blue States</button>
-                <button @click="selectPreset('red')" class="bg-red-300 text-red-800 px-2 py-1 text-xs rounded hover:bg-red-400">Red States</button>
-                <button @click="selectPreset('small')" class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-300">Small States</button>
-                <button @click="selectPreset('large')" class="bg-gray-300 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-400">Large States</button>
+                <button @click="selectPreset('blue')" class="bg-blue-300 text-blue-800 px-2 py-1 text-xs rounded hover:bg-blue-400">Blue states</button>
+                <button @click="selectPreset('red')" class="bg-red-300 text-red-800 px-2 py-1 text-xs rounded hover:bg-red-400">Red states</button>
+                <button @click="selectPreset('small')" class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-300">Small states</button>
+                <button @click="selectPreset('large')" class="bg-gray-300 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-400">Large states</button>
             </div>
         </div>
     </div>
@@ -1948,7 +1948,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Affected Candidate:
+                    Affected candidate:
                 </label>
                 <select v-model="affectedCandidateId" @change="loadStateEffects"
                     class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs">
@@ -2056,8 +2056,8 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 </div>
 
                 <div class="flex justify-between mt-2">
-                    <button @click="selectAll" class="bg-blue-500 text-white px-2 py-1 text-xs rounded hover:bg-blue-600">Select All</button>
-                    <button @click="clearSelection" class="bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600">Clear Selection</button>
+                    <button @click="selectAll" class="bg-blue-500 text-white px-2 py-1 text-xs rounded hover:bg-blue-600">Select all</button>
+                    <button @click="clearSelection" class="bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600">Clear selection</button>
                 </div>
             </div>
 
@@ -2073,7 +2073,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
                 <!-- Fallback State Dropdown -->
                 <div class="mb-4" v-if="useListEditor || !mapLoaded">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Select State</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Select state</label>
                     <div class="flex items-center gap-2">
                         <select v-model="stateDropdownPk"
                                 class="p-1 text-sm block w-full border border-gray-300 rounded shadow-xs">
@@ -2091,7 +2091,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
                 <!-- Effect Value Editor -->
                 <div class="mb-4">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Effect Value</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Effect value</label>
                     <div class="flex items-center">
                         <button @click="decreaseValue" class="bg-gray-200 px-2 py-1 rounded-l hover:bg-gray-300 text-sm">-</button>
                         <input type="number" v-model="editValue" step="0.001" min="-1" max="1"
@@ -2107,7 +2107,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                             class="w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             :disabled="selectedStatesCount === 0"
                             :aria-disabled="selectedStatesCount === 0 ? 'true' : 'false'">
-                        Apply to Selected ({{ selectedStatesCount }})
+                        Apply to selected ({{ selectedStatesCount }})
                     </button>
                 </div>
 
@@ -2126,7 +2126,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 <!-- All State Effects List -->
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-1">
-                        <label class="block text-xs font-medium text-gray-700">All State Effects for Question #{{answerId}}</label>
+                        <label class="block text-xs font-medium text-gray-700">All state effects for question #{{answerId}}</label>
                         </div>
                     <div class="max-h-64 overflow-y-auto bg-gray-50 p-2 rounded border text-xs">
                         <ul class="divide-y divide-gray-200">
@@ -2164,7 +2164,7 @@ window.defineComponent('variable-effect-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Variable Effect #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Variable effect #{{pk}}</h4>
             <button @click="$emit('deleteVariableEffect', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete variable effect #' + pk" :title="'Delete variable effect #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

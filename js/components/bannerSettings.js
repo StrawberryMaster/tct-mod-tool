@@ -8,7 +8,6 @@ window.defineComponent('banner-settings', {
             canImageFailed: false,
             runImageLoading: false,
             runImageFailed: false,
-            // NEW: local reactive form fields
             formCanName: '',
             formCanImage: '',
             formRunName: '',
@@ -19,7 +18,7 @@ window.defineComponent('banner-settings', {
     template: `
     <div class="mx-auto bg-white rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between mb-4">
-            <h1 class="font-bold text-xl">Banner Settings</h1>
+            <h1 class="font-bold text-xl">Banner settings</h1>
             <div class="space-x-2">
                 <button v-if="!enabled"
                         class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600"
@@ -41,13 +40,13 @@ window.defineComponent('banner-settings', {
                     <div class="grid gap-6 md:grid-cols-2">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium mb-1" for="canName">Candidate Last Name</label>
+                                <label class="block text-sm font-medium mb-1" for="canName">Candidate last name</label>
                                 <input id="canName" v-model="formCanName" type="text"
                                        class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="e.g. Johnson">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1" for="canImage">Candidate Image URL</label>
+                                <label class="block text-sm font-medium mb-1" for="canImage">Candidate image URL</label>
                                 <input id="canImage" v-model="formCanImage" type="text"
                                        class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="https://...">
@@ -66,27 +65,27 @@ window.defineComponent('banner-settings', {
                                         @error="onImgError('can')"
                                     />
                                     <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
-                                        Failed to load Candidate Image
+                                        Failed to load candidate image
                                     </div>
                                     <div v-if="canImageLoading" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm bg-white/60">
                                         Loading...
                                     </div>
                                 </template>
                                 <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
-                                    No Candidate Image
+                                    No candidate image
                                 </div>
                             </div>
                         </div>
 
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium mb-1" for="runName">Running Mate Last Name</label>
+                                <label class="block text-sm font-medium mb-1" for="runName">Running mate last name</label>
                                 <input id="runName" v-model="formRunName" type="text"
                                        class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="e.g. Smith">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1" for="runImage">Running Mate Image URL</label>
+                                <label class="block text-sm font-medium mb-1" for="runImage">Running mate image URL</label>
                                 <input id="runImage" v-model="formRunImage" type="text"
                                        class="w-full border rounded-sm p-2 focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
                                        placeholder="https://...">
@@ -105,14 +104,14 @@ window.defineComponent('banner-settings', {
                                         @error="onImgError('run')"
                                     />
                                     <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
-                                        Failed to load Running Mate Image
+                                        Failed to load running mate image
                                     </div>
                                     <div v-if="runImageLoading" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm bg-white/60">
                                         Loading...
                                     </div>
                                 </template>
                                 <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
-                                    No Running Mate Image
+                                    No running mate image
                                 </div>
                             </div>
                         </div>
@@ -134,7 +133,7 @@ window.defineComponent('banner-settings', {
                             <button type="button"
                                     class="ml-auto bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600"
                                     @click="refreshPreview">
-                                Refresh Preview
+                                Refresh preview
                             </button>
                         </div>
                     </div>
@@ -142,7 +141,7 @@ window.defineComponent('banner-settings', {
             </details>
 
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">Live Preview</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">Live preview</summary>
                 <div class="p-4">
                     <div class="flex items-stretch justify-center gap-4 bg-orange-50 p-4 rounded-sm border relative overflow-hidden">
 
