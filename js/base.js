@@ -1216,6 +1216,27 @@ function loadDataFromFile(raw_json) {
 
     var duplicates = false;
 
+    // duplicate PK logging control to avoid console spam
+    const DUP_LOG_THRESHOLD = 5; // log at most this many individual messages per model
+    const duplicateCounters = new Map(); // label -> { total, replaced }
+    function _labelForObj(obj) {
+        const m = obj && obj.model ? obj.model : 'collection';
+        if (typeof m === 'string' && m.includes('.')) return m.split('.').pop();
+        return m;
+    }
+    function _recordDuplicate(obj, replaced) {
+        const label = _labelForObj(obj);
+        let c = duplicateCounters.get(label);
+        if (!c) {
+            c = { total: 0, replaced: 0 };
+            duplicateCounters.set(label, c);
+        }
+        c.total += 1;
+        if (replaced) c.replaced += 1;
+        const count = c.total;
+        return { label, count, replaced: c.replaced };
+    }
+
     raw_json = raw_json.replaceAll("\n", "");
     raw_json = raw_json.replaceAll("\r", "");
     raw_json = raw_json.replaceAll(/ +/g, " ");
@@ -1278,8 +1299,12 @@ function loadDataFromFile(raw_json) {
 
         if (container instanceof Map) {
             if (container.has(obj.pk)) {
-                const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
-                console.log(msg);
+                const rec = _recordDuplicate(obj, autoRemap);
+                if (rec.count <= DUP_LOG_THRESHOLD) {
+                    console.log(`WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`);
+                } else if (rec.count === DUP_LOG_THRESHOLD + 1) {
+                    console.log(`Note: multiple duplicate PKs detected in ${rec.label}; suppressing further logs. A summary will be printed at the end.`);
+                }
                 duplicates = true;
                 if (autoRemap) {
                     highest_pk = Math.max(highest_pk, obj.pk);
@@ -1290,8 +1315,12 @@ function loadDataFromFile(raw_json) {
             container.set(obj.pk, obj);
         } else {
             if (obj.pk in container) {
-                const msg = `WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`;
-                console.log(msg);
+                const rec = _recordDuplicate(obj, autoRemap);
+                if (rec.count <= DUP_LOG_THRESHOLD) {
+                    console.log(`WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`);
+                } else if (rec.count === DUP_LOG_THRESHOLD + 1) {
+                    console.log(`Note: multiple duplicate PKs detected in ${rec.label}; suppressing further logs. A summary will be printed at the end.`);
+                }
                 duplicates = true;
                 if (autoRemap) {
                     highest_pk = Math.max(highest_pk, obj.pk);
@@ -1351,19 +1380,23 @@ function loadDataFromFile(raw_json) {
 
     // CANDIDATE ISSUE SCORES
     const candidate_issue_scores_json = getSection("candidate_issue_score_json");
-    candidate_issue_scores_json.forEach(x => ensureUniqueAndStore(candidate_issue_scores, x));
+    // Auto-remap duplicates; base scenarios often reuse PK ranges per issue/candidate
+    candidate_issue_scores_json.forEach(x => ensureUniqueAndStore(candidate_issue_scores, x, true));
 
     // CANDIDATE STATE MULTIPLIERS
     const candidate_state_multipliers_json = getSection("candidate_state_multiplier_json");
-    candidate_state_multipliers_json.forEach(x => ensureUniqueAndStore(candidate_state_multipliers, x));
+    // Auto-remap duplicates; multipliers commonly reuse PK ranges across states
+    candidate_state_multipliers_json.forEach(x => ensureUniqueAndStore(candidate_state_multipliers, x, true));
 
     // RUNNING MATE ISSUE SCORES
     const running_mate_issue_scores_json = getSection("running_mate_issue_score_json");
-    running_mate_issue_scores_json.forEach(x => ensureUniqueAndStore(running_mate_issue_scores, x));
+    // Auto-remap duplicates for running mate issue scores as well
+    running_mate_issue_scores_json.forEach(x => ensureUniqueAndStore(running_mate_issue_scores, x, true));
 
     // STATE ISSUE SCORES
     const state_issue_scores_json = getSection("state_issue_score_json");
-    state_issue_scores_json.forEach(x => ensureUniqueAndStore(state_issue_scores, x));
+    // auto-remap duplicates because scenarios may reuse PK ranges per state
+    state_issue_scores_json.forEach(x => ensureUniqueAndStore(state_issue_scores, x, true));
 
     // ISSUES
     const issues_json = getSection("issues_json");
@@ -1378,6 +1411,19 @@ function loadDataFromFile(raw_json) {
     jet_data.code_to_add = code;
 
     let data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
+
+    // print concise summaries for models with many duplicates
+    for (const [label, c] of duplicateCounters) {
+        if (c.total > DUP_LOG_THRESHOLD) {
+            const suppressed = c.total - DUP_LOG_THRESHOLD;
+            const rep = c.replaced || 0;
+            if (rep > 0) {
+                console.log(`Note: replaced ${rep} duplicate PK${rep !== 1 ? 's' : ''} in ${label} (suppressed ${suppressed} logs)`);
+            } else {
+                console.log(`Note: found ${c.total} duplicate PK${c.total !== 1 ? 's' : ''} in ${label} (suppressed ${suppressed} logs)`);
+            }
+        }
+    }
     return data;
 }
 
