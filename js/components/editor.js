@@ -24,32 +24,32 @@ window.defineComponent('toolbar', {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
             </svg>
-            Mod Presets
+            Mod presets
         </button>
         <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
         <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500">Code 1 Tool Here</a>
         
-        <!-- Mod Presets Panel -->
+        <!-- Mod presets panel -->
         <div v-if="showModPresets" class="fixed inset-0 z-50">
             <div class="absolute inset-0 bg-black/50" @click="closeModPresets()" aria-hidden="true"></div>
             <div class="absolute inset-0 flex items-center justify-center p-4">
-                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 flex flex-col" role="dialog" aria-modal="true" aria-label="Mod Presets">
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 flex flex-col" role="dialog" aria-modal="true" aria-label="Mod presets">
                     <div class="p-4 border-b flex justify-between items-center">
-                        <h2 class="text-lg font-semibold">Mod Presets</h2>
+                        <h2 class="text-lg font-semibold">Mod presets</h2>
                         <button class="text-gray-600 hover:text-black text-xl leading-none" @click="closeModPresets()" aria-label="Close">✕</button>
                     </div>
                     
                     <div class="p-4 flex-1 overflow-y-auto">
-                        <!-- Save Current Mod Section -->
+                        <!-- Save current mod section -->
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-medium">Save Current Mod</h3>
+                                <h3 class="font-medium">Save current mod</h3>
                                 <button @click="showAddPreset = !showAddPreset" 
                                         class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                     </svg>
-                                    Save Current
+                                    Save current
                                 </button>
                             </div>
                             
@@ -80,9 +80,9 @@ window.defineComponent('toolbar', {
                             </div>
                         </div>
                         
-                        <!-- Saved Presets List -->
+                        <!-- Saved presets list -->
                         <div>
-                            <h3 class="font-medium mb-2">Saved Presets ({{ modPresets.length }})</h3>
+                            <h3 class="font-medium mb-2">Saved presets ({{ modPresets.length }})</h3>
                             
                             <div v-if="modPresets.length === 0" class="text-gray-500 italic text-center py-4">
                                 No mod presets saved yet. Import or create a mod, then save it as a preset.
