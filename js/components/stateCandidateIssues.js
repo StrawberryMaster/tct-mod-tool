@@ -19,7 +19,7 @@ window.defineComponent('data-table', {
             <div class="flex">
                 <input v-model="filter" placeholder="Filter items..." class="border p-1 mr-2 rounded">
                 <button @click="toggleBatchMode" class="bg-blue-500 text-white px-3 py-1 rounded-sm hover:bg-blue-600">
-                    {{ batchMode ? 'Exit Batch Mode' : 'Batch Edit' }}
+                    {{ batchMode ? 'Exit batch mode' : 'Batch edit' }}
                 </button>
             </div>
         </div>
@@ -27,14 +27,14 @@ window.defineComponent('data-table', {
         <!-- Batch Edit Mode -->
         <div v-if="batchMode" class="bg-gray-100 p-3 mb-4 rounded">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="font-bold">Batch Edit {{ selectedItems.length }} items</h3>
+                <h3 class="font-bold">Batch edit {{ selectedItems.length }} items</h3>
                 <button 
                     v-if="deletable && selectedItems.length" 
                     @click="deleteSelected" 
                     class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm"
-                >{{ deleteLabel || 'Delete Selected' }}</button>
+                >{{ deleteLabel || 'Delete selected' }}</button>
             </div>
-            <div v-for="col in columns" :key="col.field" class="mb-2" v-if="col.editable">
+            <div v-for="(col, idx) in safeColumns" :key="col.field || idx" class="mb-2" v-if="col && col.editable">
                 <label class="block text-sm">{{ col.label }}</label>
                 <div class="flex items-center">
                     <input 
@@ -56,11 +56,11 @@ window.defineComponent('data-table', {
         <!-- Table Headers -->
         <div class="grid grid-cols-12 bg-gray-200 p-2 rounded-sm font-bold">
             <div v-if="batchMode" class="col-span-1">
-                <input type="checkbox" @change="toggleSelectAll" :checked="selectedItems.length === filteredItems.length">
+                <input type="checkbox" v-model="allSelected">
             </div>
             <div 
-                v-for="col in columns" 
-                :key="col.field"
+                v-for="(col, idx) in safeColumns" 
+                :key="col.field || idx"
                 :class="['col-span-' + (col.width || '2'), 'cursor-pointer']"
                 @click="sortBy(col.field)"
             >
@@ -82,10 +82,10 @@ window.defineComponent('data-table', {
                     v-model="selectedItems"
                 >
             </div>
-            <template v-for="col in columns">
-                <div :class="['col-span-' + (col.width || '2')]" :key="col.field">
+            <template v-for="(col, idx) in safeColumns">
+                <div :class="['col-span-' + (col.width || '2')]" :key="col.field || idx">
                     <input 
-                        v-if="col.editable"
+                        v-if="col && col.editable"
                         :value="item[col.field]" 
                         @input="updateItem($event, item, col.field)"
                         :type="col.type || 'text'"
@@ -130,15 +130,14 @@ window.defineComponent('data-table', {
 
         toggleBatchMode() {
             this.batchMode = !this.batchMode;
-            if (!this.batchMode) {
-                this.selectedItems = [];
-                this.batchValues = {};
-            }
+            this.selectedItems = [];
+            this.batchValues = {};
         },
 
-        toggleSelectAll(event) {
-            if (event.target.checked) {
-                this.selectedItems = this.filteredItems.map(item => item[this.keyField]);
+        toggleSelectAll(checked) {
+            const items = this.filteredItems || [];
+            if (checked) {
+                this.selectedItems = items.map(item => item[this.keyField]);
             } else {
                 this.selectedItems = [];
             }
@@ -147,28 +146,47 @@ window.defineComponent('data-table', {
         applyBatchEdit(field) {
             if (this.batchValues[field] === undefined) return;
 
-            this.selectedItems.forEach(itemKey => {
-                const item = this.items.find(i => i[this.keyField] === itemKey);
+            const itemsList = Array.isArray(this.selectedItems) ? this.selectedItems : [];
+            const items = Array.isArray(this.items) ? this.items : Object.values(this.items || {});
+
+            itemsList.forEach(itemKey => {
+                const item = items.find(i => i[this.keyField] === itemKey);
                 if (item) {
                     this.$emit('update-item', item, field, this.batchValues[field]);
                 }
             });
         },
         deleteSelected() {
-            this.$emit('delete-items', this.selectedItems.slice());
+            this.$emit('delete-items', (Array.isArray(this.selectedItems) ? this.selectedItems : []).slice());
             this.selectedItems = [];
         }
     },
 
     computed: {
+        allSelected: {
+            get() {
+                const filtered = this.filteredItems || [];
+                if (!filtered.length) return false;
+                return Array.isArray(this.selectedItems) && this.selectedItems.length === filtered.length;
+            },
+            set(val) {
+                this.toggleSelectAll(!!val);
+            }
+        },
+
+        safeColumns() {
+            return Array.isArray(this.columns) ? this.columns.filter(c => c && typeof c === 'object') : [];
+        },
+
         filteredItems() {
-            let result = this.items;
+            let result = Array.isArray(this.items) ? this.items : (this.items ? Object.values(this.items) : []);
 
             // Apply filter
             if (this.filter) {
                 const lowerFilter = this.filter.toLowerCase();
                 result = result.filter(item => {
-                    return this.columns.some(col => {
+                    return this.safeColumns.some(col => {
+                        if (!col) return false;
                         const value = item[col.field];
                         return value !== null &&
                             value !== undefined &&
