@@ -1276,19 +1276,13 @@ window.defineComponent('state-score-card', {
 window.defineComponent('state-effect-presets', {
     props: {
         onSelectPreset: Function,
-        selectedStatesCount: Number,
-        selectedStates: Object
+        selectedStatesCount: Number
     },
 
     data() {
         return {
             showPresets: false,
-            presetValue: 0.001,
-            customPresets: this.loadCustomPresets(),
-            newPresetName: '',
-            showAddPreset: false,
-            editingPreset: null,
-            editPresetName: ''
+            presetValue: 0.001
         };
     },
 
@@ -1381,90 +1375,6 @@ window.defineComponent('state-effect-presets', {
         applyPresetValue(value) {
             this.presetValue = value;
             this.$emit('applyValue', value);
-        },
-
-        loadCustomPresets() {
-            try {
-                const saved = localStorage.getItem('tct-custom-presets');
-                return saved ? JSON.parse(saved) : [];
-            } catch (error) {
-                console.warn('Failed to load custom presets:', error);
-                return [];
-            }
-        },
-
-        saveCustomPresets() {
-            try {
-                localStorage.setItem('tct-custom-presets', JSON.stringify(this.customPresets));
-            } catch (error) {
-                console.warn('Failed to save custom presets:', error);
-            }
-        },
-
-        getCurrentSelectedStates() {
-            // Get currently selected state PKs from the parent component
-            if (!this.selectedStates) return [];
-            return Object.keys(this.selectedStates).filter(pk => this.selectedStates[pk]).map(pk => parseInt(pk));
-        },
-
-        saveCurrentAsPreset() {
-            if (!this.newPresetName.trim()) {
-                alert('Please enter a preset name');
-                return;
-            }
-
-            const currentStates = this.getCurrentSelectedStates();
-            if (currentStates.length === 0) {
-                alert('Please select some states first');
-                return;
-            }
-
-            const newPreset = {
-                id: Date.now().toString(),
-                name: this.newPresetName.trim(),
-                states: currentStates,
-                created: new Date().toISOString()
-            };
-
-            this.customPresets.push(newPreset);
-            this.saveCustomPresets();
-            this.newPresetName = '';
-            this.showAddPreset = false;
-        },
-
-        selectCustomPreset(preset) {
-            this.onSelectPreset(preset.states);
-        },
-
-        deleteCustomPreset(presetId) {
-            if (confirm('Are you sure you want to delete this preset?')) {
-                this.customPresets = this.customPresets.filter(p => p.id !== presetId);
-                this.saveCustomPresets();
-            }
-        },
-
-        startEditPreset(preset) {
-            this.editingPreset = preset.id;
-            this.editPresetName = preset.name;
-        },
-
-        savePresetEdit() {
-            if (!this.editPresetName.trim()) {
-                alert('Please enter a preset name');
-                return;
-            }
-
-            const preset = this.customPresets.find(p => p.id === this.editingPreset);
-            if (preset) {
-                preset.name = this.editPresetName.trim();
-                this.saveCustomPresets();
-            }
-            this.cancelEditPreset();
-        },
-
-        cancelEditPreset() {
-            this.editingPreset = null;
-            this.editPresetName = '';
         }
     },
 
@@ -1479,8 +1389,8 @@ window.defineComponent('state-effect-presets', {
         </button>
 
         <div v-if="showPresets" id="state-presets-panel" class="mt-2 bg-gray-50 p-3 rounded shadow-xs">
-            <h4 class="font-medium text-sm mb-2">Built-in Regions:</h4>
-            <div class="grid grid-cols-2 gap-1 mb-3">
+            <h4 class="font-medium text-sm mb-2">Select Region:</h4>
+            <div class="grid grid-cols-2 gap-1 mb-2">
                 <button @click="selectPreset('swing')" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded hover:bg-purple-200">Swing states</button>
                 <button @click="selectPreset('south')" class="bg-red-100 text-red-800 px-2 py-1 text-xs rounded hover:bg-red-200">South</button>
                 <button @click="selectPreset('midwest')" class="bg-yellow-100 text-yellow-800 px-2 py-1 text-xs rounded hover:bg-yellow-200">Midwest</button>
@@ -1490,93 +1400,6 @@ window.defineComponent('state-effect-presets', {
                 <button @click="selectPreset('red')" class="bg-red-300 text-red-800 px-2 py-1 text-xs rounded hover:bg-red-400">Red states</button>
                 <button @click="selectPreset('small')" class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-300">Small states</button>
                 <button @click="selectPreset('large')" class="bg-gray-300 text-gray-800 px-2 py-1 text-xs rounded hover:bg-gray-400">Large states</button>
-            </div>
-
-            <!-- Custom Presets Section -->
-            <div class="border-t pt-3">
-                <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-medium text-sm">Custom Presets:</h4>
-                    <button @click="showAddPreset = !showAddPreset" 
-                            class="bg-green-500 text-white px-2 py-1 text-xs rounded hover:bg-green-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Save Current
-                    </button>
-                </div>
-
-                <!-- Add New Preset Form -->
-                <div v-if="showAddPreset" class="mb-3 p-2 bg-white rounded border">
-                    <div class="flex gap-2">
-                        <input v-model="newPresetName" 
-                               placeholder="Enter preset name..." 
-                               class="flex-1 px-2 py-1 text-xs border rounded"
-                               @keyup.enter="saveCurrentAsPreset"
-                               maxlength="30">
-                        <button @click="saveCurrentAsPreset" 
-                                class="bg-blue-500 text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
-                            Save
-                        </button>
-                        <button @click="showAddPreset = false; newPresetName = ''" 
-                                class="bg-gray-500 text-white px-2 py-1 text-xs rounded hover:bg-gray-600">
-                            Cancel
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-600 mt-1">Select states first, then save as a custom preset</p>
-                </div>
-
-                <!-- Custom Presets List -->
-                <div v-if="customPresets.length === 0 && !showAddPreset" class="text-xs text-gray-500 italic">
-                    No custom presets yet. Select some states and click "Save Current" to create one.
-                </div>
-                
-                <div v-else class="space-y-1">
-                    <div v-for="preset in customPresets" :key="preset.id" 
-                         class="flex items-center justify-between bg-white p-2 rounded border">
-                        <div v-if="editingPreset !== preset.id" class="flex-1">
-                            <button @click="selectCustomPreset(preset)" 
-                                    class="text-left text-xs hover:text-blue-600 font-medium">
-                                {{ preset.name }}
-                            </button>
-                            <div class="text-xs text-gray-500">
-                                {{ preset.states.length }} states • {{ new Date(preset.created).toLocaleDateString() }}
-                            </div>
-                        </div>
-                        
-                        <div v-else class="flex-1 flex gap-1">
-                            <input v-model="editPresetName" 
-                                   class="flex-1 px-1 py-1 text-xs border rounded"
-                                   @keyup.enter="savePresetEdit"
-                                   @keyup.escape="cancelEditPreset"
-                                   maxlength="30">
-                            <button @click="savePresetEdit" 
-                                    class="bg-green-500 text-white px-1 py-1 text-xs rounded hover:bg-green-600">
-                                ✓
-                            </button>
-                            <button @click="cancelEditPreset" 
-                                    class="bg-gray-500 text-white px-1 py-1 text-xs rounded hover:bg-gray-600">
-                                ✗
-                            </button>
-                        </div>
-
-                        <div v-if="editingPreset !== preset.id" class="flex gap-1 ml-2">
-                            <button @click="startEditPreset(preset)" 
-                                    class="text-gray-400 hover:text-blue-600 text-xs"
-                                    title="Rename preset">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </button>
-                            <button @click="deleteCustomPreset(preset.id)" 
-                                    class="text-gray-400 hover:text-red-600 text-xs"
-                                    title="Delete preset">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -2244,7 +2067,6 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 <div class="mb-4">
                     <state-effect-presets
                         :onSelectPreset="selectPresetStates"
-                        :selectedStates="selectedStates"
                         @applyValue="applyPresetValue">
                     </state-effect-presets>
                 </div>
