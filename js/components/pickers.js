@@ -553,3 +553,156 @@ window.defineComponent('bulk-picker', {
         },
     }
 })
+
+window.defineComponent('unified-tools-picker', {
+    data() {
+        return {
+            showDropdown: false,
+            selectedTemplate: ''
+        };
+    },
+
+    template: `
+    <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
+        <!-- Header -->
+        <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+            <h3 class="font-semibold text-sm">Additional Tools</h3>
+        </div>
+        
+        <div class="p-4 space-y-4">
+            <!-- Template Selection -->
+            <div>
+                <label for="templatePicker" class="block text-sm font-medium text-gray-700 mb-1">Choose a template:</label>
+                <select @change="onChange" name="templatePicker" id="templatePicker" 
+                        class="w-full p-2 border border-gray-300 rounded-sm text-sm bg-gray-50">
+                    <option>1844-Clay</option>
+                    <option>1844-Polk</option>
+                    <option>1860-Douglas</option>
+                    <option>1860-Lincoln</option>
+                    <option>1896-Bryan</option>
+                    <option>1896-McKinley</option>
+                    <option>1916-Hughes</option>
+                    <option>1916-Wilson</option>
+                    <option>1948-Dewey</option>
+                    <option>1948-Truman</option>
+                    <option>1960-Kennedy</option>
+                    <option>1960-Nixon</option>
+                    <option>1968-Humphrey</option>
+                    <option>1968-Nixon</option>
+                    <option>1968-Wallace</option>
+                    <option>1976-Carter</option>
+                    <option>1976-Ford</option>
+                    <option>1988-Bush</option>
+                    <option>1988-Dukakis</option>
+                    <option>2000-Bush</option>
+                    <option>2000-Gore</option>
+                    <option>2000-Nader</option>
+                    <option>2012-Obama</option>
+                    <option>2012-Romney</option>
+                    <option>2016-Clinton</option>
+                    <option>2016-Trump</option>
+                    <option>2020-Biden</option>
+                    <option>2020-Trump</option>
+                </select>
+                <p class="text-xs text-red-600 italic mt-1">WARNING: Choosing a new template will erase all existing progress!</p>
+            </div>
+
+            <!-- Tool Buttons Grid -->
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Specialized Tools</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-sm hover:from-blue-600 hover:to-blue-700 text-sm transition-colors" 
+                            v-on:click="gotoCyoa()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        CYOA
+                    </button>
+                    
+                    <button class="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-sm hover:from-green-600 hover:to-green-700 text-sm transition-colors" 
+                            v-on:click="gotoBanner()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Banner Settings
+                    </button>
+                    
+                    <button class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-2 rounded-sm hover:from-purple-600 hover:to-purple-700 text-sm transition-colors" 
+                            v-on:click="gotoEndings()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Custom Endings
+                    </button>
+                    
+                    <button class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-2 rounded-sm hover:from-orange-600 hover:to-orange-700 text-sm transition-colors" 
+                            v-on:click="gotoMapping()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Map Tools
+                    </button>
+                    
+                    <button class="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-sm hover:from-red-600 hover:to-red-700 text-sm transition-colors col-span-2" 
+                            v-on:click="gotoBulk()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        Bulk Tools
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `,
+
+    methods: {
+        gotoCyoa() {
+            Vue.prototype.$globalData.mode = CYOA;
+        },
+        gotoBanner() {
+            Vue.prototype.$globalData.mode = BANNER;
+        },
+        gotoEndings() {
+            Vue.prototype.$globalData.mode = ENDINGS;
+        },
+        gotoMapping() {
+            Vue.prototype.$globalData.mode = MAPPING;
+        },
+        gotoBulk() {
+            Vue.prototype.$globalData.mode = BULK;
+        },
+        onChange(evt) {
+            if (confirm("This will overwrite your existing data. Are you sure?")) {
+                window.engine.loadTemplate(evt.target.value);
+            } else {
+                evt.target.value = this.selectedTemplate;
+            }
+        }
+    }
+})
+
+window.defineComponent('unified-data-picker', {
+    template: `
+    <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
+        <!-- Header -->
+        <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+            <h3 class="font-semibold text-sm">Data Management</h3>
+        </div>
+        
+        <div class="p-4 space-y-4">
+            <!-- Questions -->
+            <question-picker></question-picker>
+            
+            <!-- States -->
+            <state-picker></state-picker>
+            
+            <!-- Issues -->
+            <issue-picker></issue-picker>
+            
+            <!-- Candidates -->
+            <candidate-picker></candidate-picker>
+        </div>
+    </div>
+    `
+})
