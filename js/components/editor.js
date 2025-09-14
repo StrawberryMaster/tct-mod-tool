@@ -11,23 +11,43 @@ window.defineComponent('toolbar', {
             showAddPreset: false,
             editingPreset: null,
             editPresetName: '',
-            editPresetDescription: ''
+            editPresetDescription: '',
+            isMinimized: false
         };
     },
     template: `
-    <div class="flex flex-wrap mx-auto p-4">
-        <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
-        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="importCode2()">Import Code 2</button>
-        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="exportCode2()">Export Code 2</button>
-        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="clipboardCode2()">Copy to Clipboard</button>
-        <button class="bg-blue-500 text-white p-2 m-2 rounded-sm hover:bg-blue-600" v-on:click="toggleModPresets()">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-            </svg>
-            Mod presets
-        </button>
-        <button class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
-        <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 m-2 rounded-sm hover:bg-gray-500">Code 1 Tool Here</a>
+    <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
+        <!-- Toolbar header with toggle -->
+        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+            <h3 class="font-semibold text-sm">Mod tools</h3>
+            <button @click="isMinimized = !isMinimized" 
+                    class="text-white hover:text-gray-200 transition-colors"
+                    :aria-label="isMinimized ? 'Expand toolbar' : 'Minimize toolbar'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" 
+                     :class="isMinimized ? 'rotate-180' : ''" 
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Collapsible content -->
+        <div v-show="!isMinimized" class="p-4">
+            <div class="flex flex-wrap gap-2">
+                <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="clipboardCode2()">Copy to Clipboard</button>
+                <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600 text-sm transition-colors" v-on:click="toggleModPresets()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                    </svg>
+                    Mod presets
+                </button>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
+                <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
+            </div>
+        </div>
         
         <!-- Mod presets panel -->
         <div v-if="showModPresets" class="fixed inset-0 z-50">
