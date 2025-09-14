@@ -575,34 +575,7 @@ window.defineComponent('unified-tools-picker', {
                 <label for="templatePicker" class="block text-sm font-medium text-gray-700 mb-1">Choose a template:</label>
                 <select @change="onChange" name="templatePicker" id="templatePicker" 
                         class="w-full p-2 border border-gray-300 rounded-sm text-sm bg-gray-50">
-                    <option>1844-Clay</option>
-                    <option>1844-Polk</option>
-                    <option>1860-Douglas</option>
-                    <option>1860-Lincoln</option>
-                    <option>1896-Bryan</option>
-                    <option>1896-McKinley</option>
-                    <option>1916-Hughes</option>
-                    <option>1916-Wilson</option>
-                    <option>1948-Dewey</option>
-                    <option>1948-Truman</option>
-                    <option>1960-Kennedy</option>
-                    <option>1960-Nixon</option>
-                    <option>1968-Humphrey</option>
-                    <option>1968-Nixon</option>
-                    <option>1968-Wallace</option>
-                    <option>1976-Carter</option>
-                    <option>1976-Ford</option>
-                    <option>1988-Bush</option>
-                    <option>1988-Dukakis</option>
-                    <option>2000-Bush</option>
-                    <option>2000-Gore</option>
-                    <option>2000-Nader</option>
-                    <option>2012-Obama</option>
-                    <option>2012-Romney</option>
-                    <option>2016-Clinton</option>
-                    <option>2016-Trump</option>
-                    <option>2020-Biden</option>
-                    <option>2020-Trump</option>
+                    <option v-for="template in templates" :value="template">{{trimmedName(template)}}</option>
                 </select>
                 <p class="text-xs text-red-600 italic mt-1">WARNING: Choosing a new template will erase all existing progress!</p>
             </div>
@@ -674,10 +647,18 @@ window.defineComponent('unified-tools-picker', {
         },
         onChange(evt) {
             if (confirm("This will overwrite your existing data. Are you sure?")) {
-                window.engine.loadTemplate(evt.target.value);
+                loadData(evt.target.value);
             } else {
                 evt.target.value = this.selectedTemplate;
             }
+        },
+        trimmedName(f) {
+            return f.replace(".txt", "")
+        }
+    },
+    computed: {
+        templates: function () {
+            return TEMPLATE_NAMES;
         }
     }
 })
