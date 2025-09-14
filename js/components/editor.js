@@ -19,7 +19,7 @@ window.defineComponent('toolbar', {
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Toolbar header with toggle -->
         <div class="flex justify-between items-center p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
-            <h3 class="font-semibold text-sm">Mod Tools</h3>
+            <h3 class="font-semibold text-sm">Mod tools</h3>
             <button @click="isMinimized = !isMinimized" 
                     class="text-white hover:text-gray-200 transition-colors"
                     :aria-label="isMinimized ? 'Expand toolbar' : 'Minimize toolbar'">

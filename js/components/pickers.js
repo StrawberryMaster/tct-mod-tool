@@ -12,14 +12,28 @@ window.defineComponent('question-picker', {
     },
 
     template: `
-    <div class="mx-auto p-3">
+    <div class="mx-auto p-2">
 
     <label for="questionPicker">Questions <span class="text-gray-700 italic">({{numberOfQuestions}})</span>:</label><br>
 
     <!-- For small sets use the classic dropdown, for large sets show a button that opens the modal -->
-    <select v-if="!useModalSelect" @click="onClick" @change="onChange($event)" name="questionPicker" id="questionPicker">
-        <option v-for="question in questions" :value="question.pk" :key="question.pk" :selected="currentQuestion == question.pk">{{question.pk}} - {{questionDescription(question)}}</option>
-    </select>
+    <div v-if="!useModalSelect" class="w-full">
+        <select
+            class="truncate w-full px-2 py-1 text-sm border rounded bg-white"
+            style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            @click="onClick"
+            @change="onChange($event)"
+            name="questionPicker"
+            id="questionPicker"
+        >
+            <option v-for="question in questions"
+                    :value="question.pk"
+                    :key="question.pk"
+                    :selected="currentQuestion == question.pk">
+                {{question.pk}} - {{questionDescription(question)}}
+            </option>
+        </select>
+    </div>
     <div v-else class="my-1 flex items-center gap-2">
         <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="openManageModal('select')">Select question...</button>
         <span class="text-xs text-gray-600">Using modal due to many questions ({{numberOfQuestions}})</span>
@@ -566,7 +580,7 @@ window.defineComponent('unified-tools-picker', {
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Header -->
         <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
-            <h3 class="font-semibold text-sm">Additional Tools</h3>
+            <h3 class="font-semibold text-sm">Additional tools</h3>
         </div>
         
         <div class="p-4 space-y-4">
@@ -582,7 +596,7 @@ window.defineComponent('unified-tools-picker', {
 
             <!-- Tool Buttons Grid -->
             <div>
-                <h4 class="text-sm font-medium text-gray-700 mb-2">Specialized Tools</h4>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Specialized tools</h4>
                 <div class="grid grid-cols-2 gap-2">
                     <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-sm hover:from-blue-600 hover:to-blue-700 text-sm transition-colors" 
                             v-on:click="gotoCyoa()">
@@ -597,7 +611,7 @@ window.defineComponent('unified-tools-picker', {
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        Banner Settings
+                        Banner settings
                     </button>
                     
                     <button class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-2 rounded-sm hover:from-purple-600 hover:to-purple-700 text-sm transition-colors" 
@@ -605,7 +619,7 @@ window.defineComponent('unified-tools-picker', {
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Custom Endings
+                        Custom endings
                     </button>
                     
                     <button class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-2 rounded-sm hover:from-orange-600 hover:to-orange-700 text-sm transition-colors" 
@@ -613,7 +627,7 @@ window.defineComponent('unified-tools-picker', {
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
-                        Map Tools
+                        Map tools
                     </button>
                     
                     <button class="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-sm hover:from-red-600 hover:to-red-700 text-sm transition-colors col-span-2" 
@@ -621,7 +635,7 @@ window.defineComponent('unified-tools-picker', {
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
-                        Bulk Tools
+                        Bulk tools
                     </button>
                 </div>
             </div>
@@ -668,10 +682,10 @@ window.defineComponent('unified-data-picker', {
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Header -->
         <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
-            <h3 class="font-semibold text-sm">Data Management</h3>
+            <h3 class="font-semibold text-sm">Data management</h3>
         </div>
         
-        <div class="p-4 space-y-4">
+        <div class="p-1 space-y-4">
             <!-- Questions -->
             <question-picker></question-picker>
             
