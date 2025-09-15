@@ -5,7 +5,7 @@ window.defineComponent('toolbar', {
         return {
             localAutosaveEnabled: autosaveEnabled,
             showModPresets: false,
-            modPresets: this.loadModPresets(),
+            modPresets: [],
             newPresetName: '',
             newPresetDescription: '',
             showAddPreset: false,
@@ -15,6 +15,13 @@ window.defineComponent('toolbar', {
             isMinimized: false
         };
     },
+
+    created() {
+        this.ensureLoadPresets().catch(err => {
+                console.warn('Failed to load mod presets on created():', err);
+        });
+    },
+
     template: `
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Toolbar header with toggle -->
@@ -342,36 +349,129 @@ window.defineComponent('toolbar', {
             navigator.clipboard.writeText(f);
         },
 
-        // Mod Presets functionality
-        toggleModPresets() {
-            this.showModPresets = !this.showModPresets;
-            if (this.showModPresets) {
-                this.modPresets = this.loadModPresets(); // Refresh presets when opening
+        // IndexedDB helpers
+        openPresetDB() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const req = indexedDB.open('tct_mod_presets_db', 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('presets')) {
+                            db.createObjectStore('presets', { keyPath: 'id' });
+                        }
+                    };
+                    req.onsuccess = (e) => resolve(e.target.result);
+                    req.onerror = (e) => reject(e.target.error || new Error('IndexedDB open error'));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        },
+
+        getAllPresetsFromDB() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const db = await this.openPresetDB();
+                    const tx = db.transaction('presets', 'readonly');
+                    const store = tx.objectStore('presets');
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error || new Error('getAll failed'));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        },
+
+        clearPresetStore() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const db = await this.openPresetDB();
+                    const tx = db.transaction('presets', 'readwrite');
+                    const store = tx.objectStore('presets');
+                    const req = store.clear();
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error || new Error('clear failed'));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        },
+
+        safeStringify(obj) {
+            try {
+                const seen = new WeakSet();
+                return JSON.stringify(obj, function (key, value) {
+                    if (typeof value === 'object' && value !== null) {
+                        if (seen.has(value)) return '[Circular]';
+                        seen.add(value);
+                    }
+                    if (typeof value === 'function') return `[Function:${value.name || 'anonymous'}]`;
+                    return value;
+                });
+            } catch (err) {
+                try {
+                    return String(obj);
+                } catch (e) {
+                    return '[Unserializable]';
+                }
             }
         },
 
-        closeModPresets() {
-            this.showModPresets = false;
-            this.cancelAddPreset();
-            this.cancelEditPreset();
+        putPresetToDB(preset) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const safePreset = {
+                        id: preset.id,
+                        name: preset.name,
+                        description: preset.description,
+                        created: preset.created,
+                        modData: null
+                    };
+
+                    if (typeof preset.modData === 'string') {
+                        safePreset.modData = preset.modData;
+                    } else {
+                        safePreset.modData = this.safeStringify(preset.modData);
+                    }
+
+                    const db = await this.openPresetDB();
+                    const tx = db.transaction('presets', 'readwrite');
+                    const store = tx.objectStore('presets');
+                    const req = store.put(safePreset);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error || new Error('put failed'));
+                } catch (err) {
+                    reject(err);
+                }
+            });
         },
 
-        loadModPresets() {
+        async saveModPresets() {
             try {
-                const saved = localStorage.getItem('tct-mod-presets');
-                return saved ? JSON.parse(saved) : [];
-            } catch (error) {
-                console.warn('Failed to load mod presets:', error);
-                return [];
-            }
-        },
+                await this.clearPresetStore();
+                for (const p of this.modPresets) {
+                    // garantir id e created
+                    if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2,8);
+                    if (!p.created) p.created = new Date().toISOString();
 
-        saveModPresets() {
-            try {
-                localStorage.setItem('tct-mod-presets', JSON.stringify(this.modPresets));
+                    await this.putPresetToDB(p).catch(err => {
+                        console.warn('putPresetToDB failed for preset', p.id, err);
+                        const fallback = {
+                            id: p.id,
+                            name: p.name,
+                            description: p.description,
+                            created: p.created,
+                            modData: typeof p.modData === 'string' ? p.modData : '[Unserializable]'
+                        };
+                        return this.putPresetToDB(fallback).catch(e => {
+                            console.error('fallback save also failed', e);
+                        });
+                    });
+                }
             } catch (error) {
                 console.warn('Failed to save mod presets:', error);
-                alert('Failed to save mod presets. Storage may be full.');
+                alert('Failed to save mod presets. Storage may be full or unavailable.');
             }
         },
 
@@ -380,7 +480,7 @@ window.defineComponent('toolbar', {
             return Vue.prototype.$TCT.exportCode2();
         },
 
-        saveCurrentAsPreset() {
+        async saveCurrentAsPreset() {
             if (!this.newPresetName.trim()) {
                 alert('Please enter a preset name');
                 return;
@@ -401,7 +501,7 @@ window.defineComponent('toolbar', {
             };
 
             this.modPresets.push(newPreset);
-            this.saveModPresets();
+            await this.saveModPresets();
             this.cancelAddPreset();
             alert(`Mod preset "${newPreset.name}" saved successfully!`);
         },
@@ -436,13 +536,17 @@ window.defineComponent('toolbar', {
             }
         },
 
-        deleteModPreset(presetId) {
+        async deleteModPreset(presetId) {
             const preset = this.modPresets.find(p => p.id === presetId);
             if (!preset) return;
 
             if (confirm(`Are you sure you want to delete the mod preset "${preset.name}"?`)) {
                 this.modPresets = this.modPresets.filter(p => p.id !== presetId);
-                this.saveModPresets();
+                try {
+                    await this.deletePresetFromDB(presetId);
+                } catch (err) {
+                    await this.saveModPresets().catch(e => console.warn('fallback save failed', e));
+                }
             }
         },
 
@@ -452,7 +556,7 @@ window.defineComponent('toolbar', {
             this.editPresetDescription = preset.description || '';
         },
 
-        savePresetEdit() {
+        async savePresetEdit() {
             if (!this.editPresetName.trim()) {
                 alert('Please enter a preset name');
                 return;
@@ -462,7 +566,7 @@ window.defineComponent('toolbar', {
             if (preset) {
                 preset.name = this.editPresetName.trim();
                 preset.description = this.editPresetDescription.trim();
-                this.saveModPresets();
+                await this.saveModPresets();
             }
             this.cancelEditPreset();
         },
@@ -485,7 +589,84 @@ window.defineComponent('toolbar', {
             } catch (error) {
                 return 'Unknown';
             }
-        }
+        },
+
+        async toggleModPresets() {
+            this.showModPresets = !this.showModPresets;
+            if (this.showModPresets) {
+                await this.ensureLoadPresets();
+            }
+        },
+
+        closeModPresets() {
+            this.showModPresets = false;
+            this.cancelAddPreset();
+            this.cancelEditPreset();
+        },
+
+        deletePresetFromDB(presetId) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const db = await this.openPresetDB();
+                    const tx = db.transaction('presets', 'readwrite');
+                    const store = tx.objectStore('presets');
+                    const req = store.delete(presetId);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error || new Error('delete failed'));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        },
+
+        async migrateFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('tct-mod-presets');
+                if (saved) {
+                    const arr = JSON.parse(saved);
+                    if (Array.isArray(arr) && arr.length > 0) {
+                        await this.clearPresetStore();
+                        for (const p of arr) {
+                            if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2,8);
+                            if (typeof p.modData !== 'string') {
+                                try {
+                                    p.modData = this.safeStringify ? this.safeStringify(p.modData) : JSON.stringify(p.modData);
+                                } catch (e) {
+                                    p.modData = String(p.modData || '[Unserializable]');
+                                }
+                            }
+                            await this.putPresetToDB(p).catch(err => {
+                                console.warn('migrate: putPresetToDB failed for', p.id, err);
+                            });
+                        }
+                    }
+                    localStorage.removeItem('tct-mod-presets');
+                }
+            } catch (err) {
+                console.warn('Failed to migrate presets from localStorage:', err);
+            }
+        },
+
+        async ensureLoadPresets() {
+            try {
+                if (typeof this.loadModPresets === 'function') {
+                    return await this.loadModPresets();
+                }
+
+                await this.migrateFromLocalStorage();
+                const presets = await this.getAllPresetsFromDB();
+                presets.sort((a, b) => {
+                    if (a.created && b.created) return new Date(b.created) - new Date(a.created);
+                    return 0;
+                });
+                this.modPresets = presets;
+                return presets;
+            } catch (err) {
+                console.warn('ensureLoadPresets failed:', err);
+                this.modPresets = [];
+                return [];
+            }
+        },
     }
 })
 
