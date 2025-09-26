@@ -719,7 +719,14 @@ window.defineComponent('issue', {
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
                 <span class="text-gray-500">PK: {{ pk }}</span>
             </div>
-            <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteIssue()">Delete Issue</button>
+            <button
+                :class="[
+                    'px-3 py-1 rounded-sm',
+                    canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed'
+                ]"
+                :disabled="!canDelete"
+                v-on:click="deleteIssue()"
+            >Delete Issue</button>
         </div>
 
         <!-- Content -->
@@ -812,28 +819,16 @@ window.defineComponent('issue', {
         },
 
         deleteIssue: function () {
-
-            x = Vue.prototype.$TCT.getCandidateIssueScoreForIssue(this.pk);
-            for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.candidate_issue_score[x[i].pk];
+            try {
+                Vue.prototype.$TCT.removeIssue(this.pk);
+                const remaining = Object.values(Vue.prototype.$TCT.issues);
+                Vue.prototype.$globalData.issue = remaining.length ? remaining[0].pk : null;
+                const temp = Vue.prototype.$globalData.filename;
+                Vue.prototype.$globalData.filename = "";
+                Vue.prototype.$globalData.filename = temp;
+            } catch (err) {
+                alert(err.message || 'Zoinks! Failed to delete issue.');
             }
-
-            x = Vue.prototype.$TCT.getStateIssueScoresForIssue(this.pk);
-            for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.state_issue_scores[x[i].pk];
-            }
-
-            x = Vue.prototype.$TCT.getRunningMateIssueScoreForIssue(this.pk);
-            for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.running_mate_issue_score[x[i].pk];
-            }
-
-            delete Vue.prototype.$TCT.issues[this.pk];
-
-            Vue.prototype.$globalData.issue = firstNonNull(Object.values(Vue.prototype.$TCT.issues)).pk;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
         }
     },
 
@@ -859,6 +854,14 @@ window.defineComponent('issue', {
 
         stateIssueScores: function () {
             return Vue.prototype.$TCT.getStateIssueScoresForIssue(this.pk);
+        },
+
+        issueCount() {
+            return Object.keys(Vue.prototype.$TCT.issues).length;
+        },
+
+        canDelete() {
+            return this.issueCount > 1;
         }
     }
 })

@@ -374,6 +374,11 @@ window.defineComponent('issue-picker', {
         <option v-for="issue in issues" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
     </select>
 
+    <div class="flex gap-2 my-2">
+        <button class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" @click="addIssue()">Clone issue</button>
+        <button class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" @click="deleteCurrentIssue()">Delete issue</button>
+    </div>
+
     </div>
     `,
 
@@ -388,6 +393,51 @@ window.defineComponent('issue-picker', {
             if(Vue.prototype.$globalData.mode != ISSUE) {
                 Vue.prototype.$globalData.mode = ISSUE;
             }
+        },
+
+        addIssue() {
+            const list = this.issues;
+            if (!list.length) {
+                alert('No issues available to clone from.');
+                return;
+            }
+            const basePk = Vue.prototype.$globalData.issue || list[0].pk;
+            try {
+                const newIssue = Vue.prototype.$TCT.cloneIssue(basePk);
+                const temp = Vue.prototype.$globalData.filename;
+                Vue.prototype.$globalData.filename = "";
+                Vue.prototype.$globalData.filename = temp;
+                Vue.prototype.$globalData.mode = ISSUE;
+                Vue.prototype.$globalData.issue = newIssue.pk;
+            } catch (err) {
+                alert(err.message || 'Jinkies! Failed to clone issue.');
+            }
+        },
+
+        deleteCurrentIssue() {
+            const current = Vue.prototype.$globalData.issue;
+            if (!current) return;
+            if (!confirm('Do you really wish to delete this issue?')) return;
+            try {
+                const next = this.proximaIssue(current);
+                Vue.prototype.$TCT.removeIssue(current);
+                const remaining = this.issues;
+                Vue.prototype.$globalData.issue = next ?? (remaining[0]?.pk ?? null);
+                const temp = Vue.prototype.$globalData.filename;
+                Vue.prototype.$globalData.filename = "";
+                Vue.prototype.$globalData.filename = temp;
+            } catch (err) {
+                alert(err.message || 'Failed to delete issue.');
+            }
+        },
+
+        nextIssue(pkcurrent) {
+            const list = this.issues;
+            const idx = list.findIndex(item => item.pk === pkcurrent);
+            if (idx === -1) return null;
+            if (idx + 1 < list.length) return list[idx + 1].pk;
+            if (idx > 0) return list[idx - 1].pk;
+            return null;
         }
     },
 

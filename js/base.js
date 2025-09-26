@@ -151,6 +151,94 @@ class TCTData {
         }
     }
 
+    cloneIssue(sourcePk) {
+        const baseIssue = this.issues[sourcePk];
+        if (!baseIssue) {
+            throw new Error('Issue base not found.');
+        }
+
+        const newPk = this.getNewPk();
+        const clonedFields = JSON.parse(JSON.stringify(baseIssue.fields || {}));
+        clonedFields.name = clonedFields.name ? `${clonedFields.name} (Copy)` : 'New issue';
+
+        const clonedIssue = {
+            model: 'campaign_trail.issue',
+            pk: newPk,
+            fields: clonedFields
+        };
+
+        this.issues[newPk] = clonedIssue;
+
+        const candidateScores = this.getCandidateIssueScoreForIssue(sourcePk);
+        candidateScores.forEach(score => {
+            const newScorePk = this.getNewPk();
+            this.candidate_issue_score[newScorePk] = {
+                model: score.model,
+                pk: newScorePk,
+                fields: {
+                    ...score.fields,
+                    issue: newPk
+                }
+            };
+        });
+
+        const runningMateScores = this.getRunningMateIssueScoreForIssue(sourcePk);
+        runningMateScores.forEach(score => {
+            const newScorePk = this.getNewPk();
+            this.running_mate_issue_score[newScorePk] = {
+                model: score.model,
+                pk: newScorePk,
+                fields: {
+                    ...score.fields,
+                    issue: newPk
+                }
+            };
+        });
+
+        const stateScores = this.getStateIssueScoresForIssue(sourcePk);
+        stateScores.forEach(score => {
+            const newScorePk = this.getNewPk();
+            this.state_issue_scores[newScorePk] = {
+                model: score.model,
+                pk: newScorePk,
+                fields: {
+                    ...score.fields,
+                    issue: newPk
+                }
+            };
+        });
+
+        return clonedIssue;
+    }
+
+    removeIssue(pk) {
+        if (!this.issues[pk]) {
+            throw new Error('Issue not found.');
+        }
+
+        if (Object.keys(this.issues).length <= 1) {
+            throw new Error('Mods should have at least once issue defined.');
+        }
+
+        const candidateScores = this.getCandidateIssueScoreForIssue(pk);
+        const runningMateScores = this.getRunningMateIssueScoreForIssue(pk);
+        const stateScores = this.getStateIssueScoresForIssue(pk);
+
+        delete this.issues[pk];
+
+        candidateScores.forEach(score => {
+            delete this.candidate_issue_score[score.pk];
+        });
+
+        runningMateScores.forEach(score => {
+            delete this.running_mate_issue_score[score.pk];
+        });
+
+        stateScores.forEach(score => {
+            delete this.state_issue_scores[score.pk];
+        });
+    }
+
     cloneAnswer(toClone, newQuestionPk) {
         let newPk = this.getNewPk();
         let answer = {
