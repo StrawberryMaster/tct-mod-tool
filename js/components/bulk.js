@@ -2,14 +2,14 @@ window.defineComponent('bulk', {
 
     data() {
         return {
-            answerPk : "",
+            answerPk: "",
             candidate: "",
             affectedCandidate: "",
             issuePk: Object.keys(Vue.prototype.$TCT.issues)[0],
-            stateIssueScore : "",
-            issueWeight : "",
-            bulkCandidatePk : Vue.prototype.$TCT.getAllCandidatePKs()[0],
-            stateMultiplier : "",
+            stateIssueScore: "",
+            issueWeight: "",
+            bulkCandidatePk: Vue.prototype.$TCT.getAllCandidatePKs()[0],
+            stateMultiplier: "",
             multiplier: 1,
             stateItems: [],
             issueItems: [],
@@ -18,94 +18,139 @@ window.defineComponent('bulk', {
     },
 
     template: `
-    <div class="mx-auto bg-gray-100 p-4">
+    <div class="mx-auto p-4 bg-white rounded-lg shadow-sm">
 
-    <details>
-    <summary class="font-bold">Bulk State Answer Score Utility</summary>
+        <h2 class="font-bold text-lg mb-3">Bulk Utilities</h2>
 
-        <label for="name">Answer PK:</label><br>
-        <input v-model="answerPk" name="name" type="number"><br><br>
+        <details class="mb-4">
+            <summary class="font-semibold cursor-pointer p-2 bg-gray-50 rounded">Bulk State Answer Score Utility</summary>
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Answer PK</label>
+                        <input v-model="answerPk" name="name" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
 
-        <label for="name">Candidate PK:</label><br>
-        <input v-model="candidate" name="name" type="number"><br><br>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Candidate PK</label>
+                        <input v-model="candidate" name="name" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
 
-        <label for="name">Affected Candidate PK:</label><br>
-        <input v-model="affectedCandidate" name="name" type="number"><br><br>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Affected Candidate PK</label>
+                        <input v-model="affectedCandidate" name="name" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
+                </div>
 
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAll()">Check All</button>
-        <br>
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="invertAll()">Invert All Values</button>
-        <br>
-        
-        <ul>
-            <li v-for="item in stateItems" :key="item.pk" class="bulkStateScore">
-                <input type="checkbox" v-model="item.include"> {{ item.name }}
-                <input v-model.number="item.amount" name="amount" type="number" class="ml-2 w-24">
-            </li>
-        </ul>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAll()">Check All</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="invertAll()">Invert All Values</button>
+                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
+                </div>
 
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
+                <ul class="divide-y border rounded overflow-hidden">
+                    <li v-for="item in stateItems" :key="item.pk" class="flex items-center justify-between p-2">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" v-model="item.include" class="h-4 w-4">
+                            <span class="text-sm text-gray-700">{{ item.name }}</span>
+                        </div>
+                        <input v-model.number="item.amount" name="amount" type="number" class="ml-4 w-28 p-1 border border-gray-300 rounded-md text-sm">
+                    </li>
+                </ul>
+            </div>
+        </details>
 
-    </details>
+        <details class="mb-4">
+            <summary class="font-semibold cursor-pointer p-2 bg-gray-50 rounded">Bulk State Issue Score Utility</summary>
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Issue</label>
+                        <select @change="setIssuePk($event)" name="issue" v-model.number="issuePk"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                            <option v-for="issue in issues" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
+                        </select>
+                    </div>
 
-    <details>
-    <summary class="font-bold">Bulk State Issue Score Utility</summary>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">State Issue Score</label>
+                        <input v-model.number="stateIssueScore" name="name" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
 
-        <label for="issue">Issue:</label><br>
-        <select @change="setIssuePk($event)" name="issue" v-model.number="issuePk">
-            <option v-for="issue in issues" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
-        </select><br>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Issue Weight</label>
+                        <input v-model.number="issueWeight" name="name" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
+                </div>
 
-        <label for="name">State Issue Score:</label><br>
-        <input v-model.number="stateIssueScore" name="name" type="number"><br><br>
+                <div class="flex gap-2 mb-3">
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAllIssues()">Check All</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="uncheckAllIssues()">Uncheck All</button>
+                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
+                </div>
 
-        <label for="name">Issue Weight:</label><br>
-        <input v-model.number="issueWeight" name="name" type="number"><br><br>
+                <ul class="divide-y border rounded overflow-hidden">
+                    <li v-for="item in issueItems" :key="item.pk" class="flex items-center justify-between p-2">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" v-model="item.include" class="h-4 w-4">
+                            <span class="text-sm text-gray-700">{{ item.name }}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </details>
 
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllIssues()">Check All</button>
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllIssues()">Uncheck All</button>
-        <br>
-        
-        <ul>
-            <li v-for="item in issueItems" :key="item.pk" class="bulkStateIssue">
-                <input type="checkbox" v-model="item.include"> {{ item.name }}
-            </li>
-        </ul>
+        <details>
+            <summary class="font-semibold cursor-pointer p-2 bg-gray-50 rounded">Bulk Candidate State Multiplier Utility</summary>
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Candidate</label>
+                        <select @change="setCandidatePk($event)" name="issue" v-model.number="bulkCandidatePk"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                            <option v-for="candidate in candidates" :value="candidate.pk" :key="candidate.pk">{{candidate.pk}} {{candidate.nickname}}</option>
+                        </select>
+                    </div>
 
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">State Multiplier</label>
+                        <input v-model.number="stateMultiplier" name="stateMultiplier" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
+                </div>
 
-    </details>
+                <div class="flex gap-2 mb-3">
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAllStates()">Check All</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="uncheckAllStates()">Uncheck All</button>
+                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
+                </div>
 
-    <details>
-    <summary class="font-bold">Bulk Candidate State Multiplier Utility</summary>
+                <ul class="divide-y border rounded overflow-hidden mb-3">
+                    <li v-for="item in multiplierItems" :key="item.pk" class="flex items-center justify-between p-2">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" v-model="item.include" class="h-4 w-4">
+                            <span class="text-sm text-gray-700">{{ item.name }}</span>
+                        </div>
+                    </li>
+                </ul>
 
-        <label for="bulkCandidatePk">Candidate PK:</label><br>
-        <select @change="setCandidatePk($event)" name="issue" v-model.number="bulkCandidatePk">
-            <option v-for="candidate in candidates" :value="candidate.pk" :key="candidate.pk">{{candidate.pk}} {{candidate.nickname}}</option>
-        </select><br>
-
-        <label for="stateMultiplier">State Multiplier:</label><br>
-        <input v-model.number="stateMultiplier" name="stateMultiplier" type="number"><br><br>
-
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllStates()">Check All</button>
-        <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllStates()">Uncheck All</button>
-        <br>
-        
-        <ul>
-            <li v-for="item in multiplierItems" :key="item.pk" class="bulkStateMultiplier">
-                <input type="checkbox" v-model="item.include"> {{ item.name }}
-            </li>
-        </ul>
-
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
-
-        <br>
-        <br>
-        <label for="multiplier">Multiply All Checked State Multipliers By:</label><br>
-        <input v-model.number="multiplier" name="multiplier" type="number"><br>
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply State Multipliers</button>
-
-    </details>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Multiply All Checked State Multipliers By</label>
+                        <input v-model.number="multiplier" name="multiplier" type="number"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
+                    <div class="flex justify-end">
+                        <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply</button>
+                    </div>
+                </div>
+            </div>
+        </details>
 
     </div>
     `,
@@ -127,11 +172,11 @@ window.defineComponent('bulk', {
 
     methods: {
 
-        setCandidatePk: function(evt) {
+        setCandidatePk: function (evt) {
             this.bulkCandidatePk = Number(evt.target.value);
         },
 
-        setIssuePk: function(evt) {
+        setIssuePk: function (evt) {
             this.issuePk = Number(evt.target.value);
         },
 
@@ -162,13 +207,13 @@ window.defineComponent('bulk', {
             }));
         },
 
-        generate: function() {
+        generate: function () {
             if (!this.answerPk) {
                 alert("Answer PK required.");
                 return;
             }
-            for(const item of this.stateItems) {
-                if(item.include) {
+            for (const item of this.stateItems) {
+                if (item.include) {
                     const newPk = Vue.prototype.$TCT.getNewPk(); // see js/base.js
                     let x = {
                         "model": "campaign_trail.answer_score_state",
@@ -188,9 +233,9 @@ window.defineComponent('bulk', {
             alert("Bulk generated state scores for answer with PK " + this.answerPk + " (do not submit again)");
         },
 
-        setIssueScores: function() {
-            for(const item of this.issueItems) {
-                if(item.include) {
+        setIssueScores: function () {
+            for (const item of this.issueItems) {
+                if (item.include) {
                     Vue.prototype.$TCT.state_issue_scores[item.pk].fields.state_issue_score = Number(this.stateIssueScore);
                     Vue.prototype.$TCT.state_issue_scores[item.pk].fields.weight = Number(this.issueWeight);
                 }
@@ -199,55 +244,55 @@ window.defineComponent('bulk', {
             alert("Set issue scores!");
         },
 
-        setStateMultipliers: function() {
-            for(const item of this.multiplierItems) {
-                if(item.include) {
+        setStateMultipliers: function () {
+            for (const item of this.multiplierItems) {
+                if (item.include) {
                     Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier = Number(this.stateMultiplier);
                 }
             }
             alert("Set state multipliers!");
         },
 
-        multiplyStateMultipliers: function() {
-            for(const item of this.multiplierItems) {
-                if(item.include) {
+        multiplyStateMultipliers: function () {
+            for (const item of this.multiplierItems) {
+                if (item.include) {
                     Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier *= Number(this.multiplier);
                 }
             }
             alert("Multiplied state multipliers!");
         },
 
-        checkAllStates: function() {
+        checkAllStates: function () {
             this.multiplierItems.forEach(i => i.include = true);
         },
 
-        uncheckAllStates: function() {
+        uncheckAllStates: function () {
             this.multiplierItems.forEach(i => i.include = false);
         },
 
-        checkAllIssues: function() {
+        checkAllIssues: function () {
             this.issueItems.forEach(i => i.include = true);
         },
 
-        uncheckAllIssues: function() {
+        uncheckAllIssues: function () {
             this.issueItems.forEach(i => i.include = false);
         },
 
-        checkAll: function() {
+        checkAll: function () {
             this.stateItems.forEach(i => i.include = true);
         },
 
-        invertAll: function() {
+        invertAll: function () {
             this.stateItems.forEach(i => i.amount = -i.amount);
         }
     },
 
     computed: {
 
-        candidates: function() {
+        candidates: function () {
             return Vue.prototype.$TCT.getAllCandidatePKs().map((x) => {
                 let nickname = Vue.prototype.$TCT.getNicknameForCandidate(x);
-                if(nickname) nickname = " (" + nickname + ")"
+                if (nickname) nickname = " (" + nickname + ")"
                 return {
                     pk: x,
                     nickname: nickname
@@ -263,11 +308,11 @@ window.defineComponent('bulk', {
             return Object.values(Vue.prototype.$TCT.states);
         },
 
-        stateIssueScores: function() {
+        stateIssueScores: function () {
             return Object.values(Vue.prototype.$TCT.state_issue_scores).filter((x) => x.fields.issue == this.issuePk)
         },
 
-        stateMultipliers: function() {
+        stateMultipliers: function () {
             return Object.values(Vue.prototype.$TCT.candidate_state_multiplier).filter((x) => x.fields.candidate == this.bulkCandidatePk)
         }
     }
@@ -277,18 +322,20 @@ window.defineComponent('bulk-state', {
 
     data() {
         return {
-            include : false,
-            amount : 0,
+            include: false,
+            amount: 0,
         };
     },
 
     props: ['pk', 'stateObject'],
 
     template: `
-    <li class="bulkStateScore">
-    <input type="checkbox" v-model="include">
-    {{stateObject.fields.name}}
-    <input v-model="amount" name="name" type="number"><br><br>
+    <li class="flex items-center justify-between p-2 border-b">
+        <div class="flex items-center space-x-3">
+            <input type="checkbox" v-model="include" class="h-4 w-4">
+            <span class="text-sm text-gray-700">{{stateObject.fields.name}}</span>
+        </div>
+        <input v-model="amount" name="name" type="number" class="ml-4 w-28 p-1 border border-gray-300 rounded-md text-sm">
     </li>
     `,
 
@@ -301,21 +348,23 @@ window.defineComponent('bulk-issue', {
 
     data() {
         return {
-            include : false,
+            include: false,
         };
     },
 
     props: ['pk', 'issueScoreObject'],
 
     template: `
-    <li class="bulkStateIssue">
-    <input type="checkbox" v-model="include">
-    {{stateName}}
+    <li class="flex items-center justify-between p-2 border-b">
+        <div class="flex items-center space-x-3">
+            <input type="checkbox" v-model="include" class="h-4 w-4">
+            <span class="text-sm text-gray-700">{{stateName}}</span>
+        </div>
     </li>
     `,
 
     computed: {
-        stateName: function() {
+        stateName: function () {
             return Vue.prototype.$TCT.states[this.issueScoreObject.fields.state].fields.name;
         }
     }
@@ -326,21 +375,23 @@ window.defineComponent('bulk-state-multiplier', {
 
     data() {
         return {
-            include : false,
+            include: false,
         };
     },
 
     props: ['pk', 'stateMultiplierObject'],
 
     template: `
-    <li class="bulkStateMultiplier">
-    <input type="checkbox" v-model="include">
-    {{stateName}}
+    <li class="flex items-center justify-between p-2 border-b">
+        <div class="flex items-center space-x-3">
+            <input type="checkbox" v-model="include" class="h-4 w-4">
+            <span class="text-sm text-gray-700">{{stateName}}</span>
+        </div>
     </li>
     `,
 
     computed: {
-        stateName: function() {
+        stateName: function () {
             return Vue.prototype.$TCT.states[this.stateMultiplierObject.fields.state].fields.name;
         }
     }
