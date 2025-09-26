@@ -9,7 +9,11 @@ window.defineComponent('bulk', {
             stateIssueScore : "",
             issueWeight : "",
             bulkCandidatePk : Vue.prototype.$TCT.getAllCandidatePKs()[0],
-            stateMultiplier : ""
+            stateMultiplier : "",
+            multiplier: 1,
+            stateItems: [],
+            issueItems: [],
+            multiplierItems: []
         };
     },
 
@@ -34,7 +38,10 @@ window.defineComponent('bulk', {
         <br>
         
         <ul>
-            <bulk-state v-for="state in states" :pk="state.pk" :key="state.pk" :stateObject="state"></bulk-state>
+            <li v-for="item in stateItems" :key="item.pk" class="bulkStateScore">
+                <input type="checkbox" v-model="item.include"> {{ item.name }}
+                <input v-model.number="item.amount" name="amount" type="number" class="ml-2 w-24">
+            </li>
         </ul>
 
         <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
@@ -45,22 +52,24 @@ window.defineComponent('bulk', {
     <summary class="font-bold">Bulk State Issue Score Utility</summary>
 
         <label for="issue">Issue:</label><br>
-        <select @change="setIssuePk($event)" name="issue">
-            <option v-for="issue in issues" :selected="issue.pk == issuePk" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
+        <select @change="setIssuePk($event)" name="issue" v-model.number="issuePk">
+            <option v-for="issue in issues" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
         </select><br>
 
         <label for="name">State Issue Score:</label><br>
-        <input v-model="stateIssueScore" name="name" type="number"><br><br>
+        <input v-model.number="stateIssueScore" name="name" type="number"><br><br>
 
         <label for="name">Issue Weight:</label><br>
-        <input v-model="issueWeight" name="name" type="number"><br><br>
+        <input v-model.number="issueWeight" name="name" type="number"><br><br>
 
         <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllIssues()">Check All</button>
         <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllIssues()">Uncheck All</button>
         <br>
         
         <ul>
-            <bulk-issue v-for="stateIssueScore in stateIssueScores" :pk="stateIssueScore.pk" :key="stateIssueScore.pk" :issueScoreObject="stateIssueScore"></bulk-issue>
+            <li v-for="item in issueItems" :key="item.pk" class="bulkStateIssue">
+                <input type="checkbox" v-model="item.include"> {{ item.name }}
+            </li>
         </ul>
 
         <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
@@ -71,19 +80,21 @@ window.defineComponent('bulk', {
     <summary class="font-bold">Bulk Candidate State Multiplier Utility</summary>
 
         <label for="bulkCandidatePk">Candidate PK:</label><br>
-        <select @change="setCandidatePk($event)" name="issue">
-            <option v-for="candidate in candidates" :selected="candidate.pk == bulkCandidatePk" :value="candidate.pk" :key="candidate.pk">{{candidate.pk}} {{candidate.nickname}}</option>
+        <select @change="setCandidatePk($event)" name="issue" v-model.number="bulkCandidatePk">
+            <option v-for="candidate in candidates" :value="candidate.pk" :key="candidate.pk">{{candidate.pk}} {{candidate.nickname}}</option>
         </select><br>
 
         <label for="stateMultiplier">State Multiplier:</label><br>
-        <input v-model="stateMultiplier" name="stateMultiplier" type="number"><br><br>
+        <input v-model.number="stateMultiplier" name="stateMultiplier" type="number"><br><br>
 
         <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="checkAllStates()">Check All</button>
         <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="uncheckAllStates()">Uncheck All</button>
         <br>
         
         <ul>
-            <bulk-state-multiplier v-for="stateMultiplier in stateMultipliers" :pk="stateMultiplier.pk" :key="stateMultiplier.pk" :stateMultiplierObject="stateMultiplier"></bulk-state-multiplier>
+            <li v-for="item in multiplierItems" :key="item.pk" class="bulkStateMultiplier">
+                <input type="checkbox" v-model="item.include"> {{ item.name }}
+            </li>
         </ul>
 
         <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
@@ -91,7 +102,7 @@ window.defineComponent('bulk', {
         <br>
         <br>
         <label for="multiplier">Multiply All Checked State Multipliers By:</label><br>
-        <input v-model="multiplier" name="multiplier" type="number"><br>
+        <input v-model.number="multiplier" name="multiplier" type="number"><br>
         <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply State Multipliers</button>
 
     </details>
@@ -99,164 +110,135 @@ window.defineComponent('bulk', {
     </div>
     `,
 
+    mounted() {
+        this.refreshStateItems();
+        this.refreshIssueItems();
+        this.refreshMultiplierItems();
+    },
+
+    watch: {
+        issuePk() {
+            this.refreshIssueItems();
+        },
+        bulkCandidatePk() {
+            this.refreshMultiplierItems();
+        }
+    },
+
     methods: {
 
         setCandidatePk: function(evt) {
-            this.bulkCandidatePk = evt.target.value;
+            this.bulkCandidatePk = Number(evt.target.value);
         },
 
         setIssuePk: function(evt) {
-            this.issuePk = evt.target.value;
+            this.issuePk = Number(evt.target.value);
         },
-        onInput: function(evt) {
 
-            let value = evt.target.value;
-            if(shouldBeSavedAsNumber(value)) {
-                value = Number(value);
-            }
+        refreshStateItems() {
+            this.stateItems = Object.values(Vue.prototype.$TCT.states).map(s => ({
+                pk: s.pk,
+                name: s.fields.name || `State ${s.pk}`,
+                include: false,
+                amount: 0
+            }));
+        },
 
-            Vue.prototype.$TCT.states[this.pk].fields[evt.target.name] = value;
+        refreshIssueItems() {
+            const scores = Object.values(Vue.prototype.$TCT.state_issue_scores).filter((x) => x.fields.issue == this.issuePk);
+            this.issueItems = scores.map(s => ({
+                pk: s.pk,
+                name: Vue.prototype.$TCT.states[s.fields.state]?.fields?.name || `State ${s.fields.state}`,
+                include: false
+            }));
+        },
+
+        refreshMultiplierItems() {
+            const mults = Object.values(Vue.prototype.$TCT.candidate_state_multiplier).filter((x) => x.fields.candidate == this.bulkCandidatePk);
+            this.multiplierItems = mults.map(m => ({
+                pk: m.pk,
+                name: Vue.prototype.$TCT.states[m.fields.state]?.fields?.name || `State ${m.fields.state}`,
+                include: false
+            }));
         },
 
         generate: function() {
-            const stateScores = document.getElementsByClassName("bulkStateScore");
-            for(let i = 0; i < stateScores.length; i++) {
-                const score = stateScores[i];
-                const data = score.__vue__._data;
-
-                const pk = Number(score.__vue__._props.pk);
-                const amount = Number(data.amount);
-                const include = data.include;
-
-                if(include) {
-                    const newPk =  Vue.prototype.$TCT.getNewPk();
+            if (!this.answerPk) {
+                alert("Answer PK required.");
+                return;
+            }
+            for(const item of this.stateItems) {
+                if(item.include) {
+                    const newPk = Vue.prototype.$TCT.getNewPk(); // see js/base.js
                     let x = {
                         "model": "campaign_trail.answer_score_state",
                         "pk": newPk,
                         "fields": {
                             "answer": Number(this.answerPk),
-                            "state": pk,
-                            "candidate": this.candidate,
-                            "affected_candidate": this.affectedCandidate,
-                            "state_multiplier": amount
+                            "state": item.pk,
+                            "candidate": Number(this.candidate) || Vue.prototype.$TCT.getFirstCandidatePK(),
+                            "affected_candidate": Number(this.affectedCandidate) || Vue.prototype.$TCT.getFirstCandidatePK(),
+                            "state_multiplier": item.amount
                         }
                     }
                     Vue.prototype.$TCT.answer_score_state[newPk] = x;
                 }
-                        
             }
 
             alert("Bulk generated state scores for answer with PK " + this.answerPk + " (do not submit again)");
         },
 
         setIssueScores: function() {
-            const issueScores = document.getElementsByClassName("bulkStateIssue");
-            for(let i = 0; i < issueScores.length; i++) {
-                const score = issueScores[i];
-                const data = score.__vue__._data;
-
-                const pk = Number(score.__vue__._props.pk);
-                const include = data.include;
-
-                if(include) {
-                    Vue.prototype.$TCT.state_issue_scores[pk].fields.state_issue_score = Number(this.stateIssueScore);
-                    Vue.prototype.$TCT.state_issue_scores[pk].fields.weight = Number(this.issueWeight);
+            for(const item of this.issueItems) {
+                if(item.include) {
+                    Vue.prototype.$TCT.state_issue_scores[item.pk].fields.state_issue_score = Number(this.stateIssueScore);
+                    Vue.prototype.$TCT.state_issue_scores[item.pk].fields.weight = Number(this.issueWeight);
                 }
-                        
             }
 
-            alert("Set issue scores!")
+            alert("Set issue scores!");
         },
 
         setStateMultipliers: function() {
-            const stateMultipliers = document.getElementsByClassName("bulkStateMultiplier");
-            for(let i = 0; i < stateMultipliers.length; i++) {
-                const score = stateMultipliers[i];
-                const data = score.__vue__._data;
-
-                const pk = Number(score.__vue__._props.pk);
-                const include = data.include;
-
-                if(include) {
-                    Vue.prototype.$TCT.candidate_state_multiplier[pk].fields.state_multiplier = Number(this.stateMultiplier);
+            for(const item of this.multiplierItems) {
+                if(item.include) {
+                    Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier = Number(this.stateMultiplier);
                 }
-                        
             }
-
-            alert("Set state multipliers!")
+            alert("Set state multipliers!");
         },
 
         multiplyStateMultipliers: function() {
-            const stateMultipliers = document.getElementsByClassName("bulkStateMultiplier");
-            for(let i = 0; i < stateMultipliers.length; i++) {
-                const score = stateMultipliers[i];
-                const data = score.__vue__._data;
-
-                const pk = Number(score.__vue__._props.pk);
-                const include = data.include;
-
-                if(include) {
-                    Vue.prototype.$TCT.candidate_state_multiplier[pk].fields.state_multiplier *= Number(this.multiplier);
+            for(const item of this.multiplierItems) {
+                if(item.include) {
+                    Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier *= Number(this.multiplier);
                 }
-                        
             }
-
-            alert("Multiplied state multipliers!")
+            alert("Multiplied state multipliers!");
         },
 
         checkAllStates: function() {
-            const issueScores = document.getElementsByClassName("bulkStateMultiplier");
-            for(let i = 0; i < issueScores.length; i++) {
-                const score = issueScores[i];
-                const data = score.__vue__._data;
-                data.include = true;
-            }
+            this.multiplierItems.forEach(i => i.include = true);
         },
 
         uncheckAllStates: function() {
-            const issueScores = document.getElementsByClassName("bulkStateMultiplier");
-            for(let i = 0; i < issueScores.length; i++) {
-                const score = issueScores[i];
-                const data = score.__vue__._data;
-                data.include = false;
-            }
+            this.multiplierItems.forEach(i => i.include = false);
         },
 
         checkAllIssues: function() {
-            const issueScores = document.getElementsByClassName("bulkStateIssue");
-            for(let i = 0; i < issueScores.length; i++) {
-                const score = issueScores[i];
-                const data = score.__vue__._data;
-                data.include = true;
-            }
+            this.issueItems.forEach(i => i.include = true);
         },
 
         uncheckAllIssues: function() {
-            const issueScores = document.getElementsByClassName("bulkStateIssue");
-            for(let i = 0; i < issueScores.length; i++) {
-                const score = issueScores[i];
-                const data = score.__vue__._data;
-                data.include = false;
-            }
+            this.issueItems.forEach(i => i.include = false);
         },
 
         checkAll: function() {
-            const stateScores = document.getElementsByClassName("bulkStateScore");
-            for(let i = 0; i < stateScores.length; i++) {
-                const score = stateScores[i];
-                const data = score.__vue__._data;
-                data.include = true;
-            }
+            this.stateItems.forEach(i => i.include = true);
         },
 
-        
         invertAll: function() {
-            const stateScores = document.getElementsByClassName("bulkStateScore");
-            for(let i = 0; i < stateScores.length; i++) {
-                const score = stateScores[i];
-                const data = score.__vue__._data;
-                data.amount *= -1;
-            }
+            this.stateItems.forEach(i => i.amount = -i.amount);
         }
     },
 
