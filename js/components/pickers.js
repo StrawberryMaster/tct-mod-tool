@@ -419,7 +419,7 @@ window.defineComponent('issue-picker', {
             if (!current) return;
             if (!confirm('Do you really wish to delete this issue?')) return;
             try {
-                const next = this.proximaIssue(current);
+                const next = this.nextIssue(current);
                 Vue.prototype.$TCT.removeIssue(current);
                 const remaining = this.issues;
                 Vue.prototype.$globalData.issue = next ?? (remaining[0]?.pk ?? null);
