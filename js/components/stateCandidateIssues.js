@@ -345,17 +345,17 @@ window.defineComponent('state', {
             </div>
             <div class="flex space-x-2">
                 <button @click="refreshMargins" class="bg-blue-500 text-white px-3 py-1 rounded-sm hover:bg-blue-600">
-                    Refresh Margins
+                    Refresh margins
                 </button>
                 <button @click="deleteState" class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600">
-                    Delete State
+                    Delete state
                 </button>
             </div>
         </div>
 
         <!-- Predicted Margins Section -->
         <div class="border-b p-4 bg-gray-50">
-            <h2 class="font-bold text-lg mb-2">Predicted Starting PV</h2>
+            <h2 class="font-bold text-lg mb-2">Predicted starting PV</h2>
             <div class="space-y-2">
                 <div v-for="info in margins" :key="info" class="p-3 bg-white rounded-sm shadow-xs">
                     {{info}}
@@ -734,7 +734,7 @@ window.defineComponent('issue', {
             <!-- Basic Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Issue Name</label>
+                    <label class="block text-sm font-medium text-gray-700">Issue name</label>
                     <input 
                         @input="onInputUpdatePicker($event)" 
                         :value="name" 
@@ -744,7 +744,7 @@ window.defineComponent('issue', {
                     >
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Issue Description (Optional)</label>
+                    <label class="block text-sm font-medium text-gray-700">Issue description (optional)</label>
                     <textarea 
                         @input="onInput2($event)" 
                         :value="description" 
@@ -883,7 +883,7 @@ window.defineComponent('stance', {
             type="text" 
             class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
         >
-        <label class="block font-medium mt-3">Stance {{n}} Description (Optional)</label>
+        <label class="block font-medium mt-3">Stance {{n}} description (optional)</label>
         <textarea 
             @input="onInput2($event)" 
             :value="stance_desc" 
