@@ -113,6 +113,15 @@ window.defineComponent('question-picker', {
                                     <span class="font-mono text-gray-700">#{{ item.pk }}</span>
                                     <span class="text-gray-700">- {{ item.text }}</span>
                                 </span>
+                                <button class="text-red-500 hover:text=red-700 ml-auto"
+                                    :aria-label="'Delete question #' + item.pk"  
+                                    :title="'Delete question #' + item.pk" 
+                                    v-on:click="deleteQuestion(item.pk)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
                             </li>
                         </ul>
                         <div class="text-xs text-gray-500 mt-2">Tip: You can also use Save Order to immediately autosave the new order.</div>
@@ -241,6 +250,53 @@ window.defineComponent('question-picker', {
 
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.question = newPk;
+        },
+
+        deleteQuestion(pk) {
+            if (!confirm(`Are you sure you want to delete question #${pk}?`)) return;
+
+            let referencedAnswers = Vue.prototype.$TCT.getAnswersForQuestion(pk);
+            for (let i = 0; i < referencedAnswers.length; i++) {
+                this.deleteAnswer(referencedAnswers[i].pk, true);
+            }
+
+            Vue.prototype.$TCT.questions.delete(pk);
+            Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
+
+            const temp = Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.filename = "";
+            Vue.prototype.$globalData.filename = temp;
+
+            this.resetOrderFromMap(); 
+        },
+
+        deleteAnswer: function (pk, suppressConfirm = false) {
+            if (!suppressConfirm) {
+                if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
+            }
+
+            let referencedFeedbacks = Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
+            for (let i = 0; i < referencedFeedbacks.length; i++) {
+                delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
+            }
+
+            let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
+            for (let i = 0; i < x.length; i++) {
+                delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
+            }
+
+            x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
+            for (let i = 0; i < x.length; i++) {
+                delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
+            }
+
+            x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
+            for (let i = 0; i < x.length; i++) {
+                delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
+            }
+
+            this.temp_answers = [Date.now()];
+            delete Vue.prototype.$TCT.answers[pk];
         },
 
         cloneQuestion: function() {
