@@ -194,7 +194,8 @@ window.defineComponent('cyoa', {
             jet.cyoa_answer_swaps[id] = {
                 id,
                 triggers: [],
-                condition: { variable: '', comparator: '>=', value: 0 },
+                conditions: [],
+                conditionOperator: 'AND',
                 swaps: [{ pk1: null, pk2: null, takeEffects: true }]
             };
             this.tick++;
@@ -325,18 +326,30 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
                 return `answerSwapper(${s.pk1}, ${s.pk2}, ${take});`;
             }).join('\n        ');
 
-            const hasCond = rule.condition && rule.condition.variable;
-            if (hasCond) {
-                const comp = rule.condition.comparator || '>=';
-                const val = Number.isFinite(Number(rule.condition.value)) ? Number(rule.condition.value) : 0;
-                return `if (${triggerCond}) {\n    if (${rule.condition.variable} ${comp} ${val}) {\n        ${swapLines}\n    }\n}`;
+            let conditionStr = '';
+            if (rule.conditions && Array.isArray(rule.conditions) && rule.conditions.length > 0) {
+                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                if (validConditions.length > 0) {
+                    const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
+                    const operator = rule.conditionOperator || 'AND';
+                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
+                    conditionStr = `if (${conditionParts.join(joinStr)}) {\n        `;
+                }
+            } else if (rule.condition && rule.condition.variable) {
+                conditionStr = `if (${rule.condition.variable} ${rule.condition.comparator} ${rule.condition.value}) {\n        `;
             }
-            return `if (${triggerCond}) {\n    ${swapLines}\n}`;
+
+            let output = `if (${triggerCond}) {`;
+            if (conditionStr) {
+                output += `\n    ${conditionStr}${swapLines}\n    }\n}`;
+            } else {
+                output += `\n    ${swapLines}\n}`;
+            }
+            return output;
         }).filter(Boolean);
 
         if (!blocks.length) return '';
 
-        // keep a readable header inside the injected section
         return `// answer swap CYOA here\n${blocks.join('\n')}`;
     },
 
@@ -463,12 +476,8 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     injectAnswerSwapIntoCode2(code) {
         let out = String(code || '');
 
-        // only inject answerSwapper when CYOA is enabled, just like getQuestionNumberFromPk
         if (Vue.prototype.$TCT.jet_data.cyoa_enabled) {
-            // ensure function is added right after getQuestionNumberFromPk (or fallback)
             out = this.insertSwapperAfterHelper(out);
-
-            // build blocks and insert inside cyoAdventure
             const blocks = this.buildAnswerSwapBlocks();
             out = this.insertSwapsInsideCyoAdventure(out, blocks);
         }
@@ -702,15 +711,36 @@ window.defineComponent('cyoa-answer-swap', {
     data() {
         return {
             triggerToAdd: null,
+            conditionToAdd: {
+                variable: '',
+                comparator: '>=',
+                value: 0
+            },
             tick: 0
         };
     },
 
     methods: {
         getRule() {
-            return Vue.prototype.$TCT.jet_data.cyoa_answer_swaps?.[this.id] || {
-                id: this.id, triggers: [], condition: { variable: '', comparator: '>=', value: 0 }, swaps: []
-            };
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id]) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id] = {
+                    id: this.id,
+                    triggers: [],
+                    conditions: [],
+                    conditionOperator: 'AND',
+                    swaps: []
+                };
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions = [];
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id].conditionOperator) {
+                Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id].conditionOperator = 'AND';
+            }
+            return Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[this.id];
         },
 
         addTrigger() {
@@ -732,6 +762,40 @@ window.defineComponent('cyoa-answer-swap', {
             window.requestAutosaveIfEnabled?.();
         },
 
+        addCondition() {
+            const rule = this.getRule();
+            if (!this.conditionToAdd.variable) {
+                alert('Please select a variable.');
+                return;
+            }
+            
+            rule.conditions.push({
+                variable: this.conditionToAdd.variable,
+                comparator: this.conditionToAdd.comparator,
+                value: Number(this.conditionToAdd.value)
+            });
+            
+            this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeCondition(index) {
+            const rule = this.getRule();
+            if (rule.conditions) {
+                rule.conditions.splice(index, 1);
+                this.tick++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        updateConditionOperator(value) {
+            const rule = this.getRule();
+            rule.conditionOperator = value;
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
         addSwap() {
             const rule = this.getRule();
             rule.swaps.push({ pk1: null, pk2: null, takeEffects: true });
@@ -746,25 +810,19 @@ window.defineComponent('cyoa-answer-swap', {
             window.requestAutosaveIfEnabled?.();
         },
 
-        updateCondition(field, value) {
-            const rule = this.getRule();
-            if (field === 'value') {
-                rule.condition.value = Number(value);
-            } else {
-                rule.condition[field] = value;
-            }
-            this.tick++;
-            window.requestAutosaveIfEnabled?.();
-        },
-
         updateSwap(index, field, value) {
             const rule = this.getRule();
             if (!rule.swaps[index]) return;
+            
+            const newSwap = { ...rule.swaps[index] };
+            
             if (field === 'takeEffects') {
-                rule.swaps[index].takeEffects = !!value;
+                newSwap.takeEffects = !!value;
             } else {
-                rule.swaps[index][field] = Number(value) || null;
+                newSwap[field] = Number(value) || null;
             }
+            
+            rule.swaps[index] = newSwap;
             this.tick++;
             window.requestAutosaveIfEnabled?.();
         }
@@ -772,18 +830,28 @@ window.defineComponent('cyoa-answer-swap', {
 
     computed: {
         rule() {
-            // touch tick so computed re-evaluates on any change
             this.tick;
             return this.getRule();
         },
 
         variables() {
-            // variable names from CYOA vars
             return (Vue.prototype.$TCT.getAllCyoaVariables?.() || []).map(v => v.name);
         },
 
         answers() {
             return Object.values(Vue.prototype.$TCT.answers || {});
+        },
+
+        hasConditions() {
+            this.tick;
+            const rule = this.getRule();
+            return rule.conditions && rule.conditions.length > 0;
+        },
+        
+        conditionsList() {
+            this.tick;
+            const rule = this.getRule();
+            return rule.conditions || [];
         }
     },
 
@@ -812,40 +880,59 @@ window.defineComponent('cyoa-answer-swap', {
                 <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
-                <span v-for="pk in rule.triggers" :key="'t-'+pk" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
+                <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
                     #{{ pk }}
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
             </div>
         </div>
 
-        <!-- Optional condition -->
+        <!-- Multiple conditions -->
         <div class="mb-3">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Optional condition:</label>
-            <div class="grid grid-cols-3 gap-2 items-center">
-                <select :value="rule.condition.variable" @change="updateCondition('variable', $event.target.value)" class="border rounded-sm p-1 text-sm">
-                    <option value="">(none)</option>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
+            
+            <!-- Condition operator selector (only show if conditions exist) -->
+            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+                <span class="text-xs text-gray-600">Join with:</span>
+                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                    <option value="AND">AND (all must be true)</option>
+                    <option value="OR">OR (any can be true)</option>
+                </select>
+            </div>
+
+            <!-- Existing conditions list -->
+            <div v-if="hasConditions" class="mb-2 space-y-1">
+                <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
+                    <div class="text-xs font-medium">{{ c.variable }}</div>
+                    <div class="text-xs">{{ c.comparator }}</div>
+                    <div class="text-xs">{{ c.value }}</div>
+                    <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
+                </div>
+            </div>
+
+            <!-- Add new condition -->
+            <div class="grid grid-cols-4 gap-1 items-center">
+                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="" disabled>Variable...</option>
                     <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
                 </select>
-                <select :value="rule.condition.comparator" @change="updateCondition('comparator', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
-                    <option value=">=">>=</option>
-                    <option value="<="><=</option>
-                    <option value=">">></option>
-                    <option value="<"><</option>
+                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value=">=">&gt;=</option>
+                    <option value="<=">&lt;=</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                 </select>
-                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
-            </div>
-            <div v-if="rule.condition.variable" class="text-xs text-gray-500 mt-1">
-                Condition: {{ rule.condition.variable }} {{ rule.condition.comparator }} {{ rule.condition.value }}
+                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
             </div>
         </div>
 
         <!-- Swaps -->
         <div class="mb-1">
             <label class="block text-xs font-medium text-gray-600 mb-1">Swaps to Apply:</label>
-            <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
+            <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx+'-'+tick" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
                 <div class="md:col-span-2">
                     <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 1</label>
                     <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
