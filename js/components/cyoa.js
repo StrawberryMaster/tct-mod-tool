@@ -702,7 +702,7 @@ window.defineComponent('cyoa-answer-swap', {
     data() {
         return {
             triggerToAdd: null,
-            swapRowsTick: 0
+            tick: 0
         };
     },
 
@@ -720,6 +720,7 @@ window.defineComponent('cyoa-answer-swap', {
             if (!rule.triggers.includes(val)) {
                 rule.triggers.push(val);
                 this.triggerToAdd = null;
+                this.tick++;
                 window.requestAutosaveIfEnabled?.();
             }
         },
@@ -727,20 +728,21 @@ window.defineComponent('cyoa-answer-swap', {
         removeTrigger(pk) {
             const rule = this.getRule();
             rule.triggers = rule.triggers.filter(x => x !== pk);
+            this.tick++;
             window.requestAutosaveIfEnabled?.();
         },
 
         addSwap() {
             const rule = this.getRule();
             rule.swaps.push({ pk1: null, pk2: null, takeEffects: true });
-            this.swapRowsTick++;
+            this.tick++;
             window.requestAutosaveIfEnabled?.();
         },
 
         removeSwap(index) {
             const rule = this.getRule();
             rule.swaps.splice(index, 1);
-            this.swapRowsTick++;
+            this.tick++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -751,6 +753,7 @@ window.defineComponent('cyoa-answer-swap', {
             } else {
                 rule.condition[field] = value;
             }
+            this.tick++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -762,15 +765,15 @@ window.defineComponent('cyoa-answer-swap', {
             } else {
                 rule.swaps[index][field] = Number(value) || null;
             }
-            this.swapRowsTick++;
+            this.tick++;
             window.requestAutosaveIfEnabled?.();
         }
     },
 
     computed: {
         rule() {
-            // touch tick so list reflects changes
-            this.swapRowsTick;
+            // touch tick so computed re-evaluates on any change
+            this.tick;
             return this.getRule();
         },
 
@@ -832,7 +835,7 @@ window.defineComponent('cyoa-answer-swap', {
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                 </select>
-                <input type="number" v-model.number="rule.condition.value" @input="updateCondition('value', rule.condition.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
+                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
             </div>
             <div v-if="rule.condition.variable" class="text-xs text-gray-500 mt-1">
                 Condition: {{ rule.condition.variable }} {{ rule.condition.comparator }} {{ rule.condition.value }}
