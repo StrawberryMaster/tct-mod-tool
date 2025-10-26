@@ -788,9 +788,9 @@ window.defineComponent('cyoa-answer-swap', {
     <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-purple-400">
         <div class="flex justify-between items-start mb-2">
             <div class="text-sm text-gray-700">
-                <div class="font-medium">Swap Rule #{{ id }}</div>
+                <div class="font-medium">Swap rule #{{ id }}</div>
                 <div class="text-xs text-gray-500">
-                    Runs in Code 2 via answerSwapper for selected triggers and optional condition.
+                    (Swaps are applied after each answer is recorded, so swapping answers that have already been given will not retroactively change past answers.)
                 </div>
             </div>
             <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
@@ -798,7 +798,7 @@ window.defineComponent('cyoa-answer-swap', {
 
         <!-- Triggers -->
         <div class="mb-3">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger Answers:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers:</label>
             <div class="flex items-center gap-2">
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
@@ -816,9 +816,9 @@ window.defineComponent('cyoa-answer-swap', {
             </div>
         </div>
 
-        <!-- Optional Condition -->
+        <!-- Optional condition -->
         <div class="mb-3">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Optional Condition:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Optional condition:</label>
             <div class="grid grid-cols-3 gap-2 items-center">
                 <select :value="rule.condition.variable" @change="updateCondition('variable', $event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="">(none)</option>
@@ -832,7 +832,7 @@ window.defineComponent('cyoa-answer-swap', {
                     <option value="==">==</option>
                     <option value="!=">!=</option>
                 </select>
-                <input type="number" :value="rule.condition.value" @input="updateCondition('value', $event.target.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
+                <input type="number" v-model.number="rule.condition.value" @input="updateCondition('value', rule.condition.value)" class="border rounded-sm p-1 text-sm" :disabled="!rule.condition.variable">
             </div>
             <div v-if="rule.condition.variable" class="text-xs text-gray-500 mt-1">
                 Condition: {{ rule.condition.variable }} {{ rule.condition.comparator }} {{ rule.condition.value }}
