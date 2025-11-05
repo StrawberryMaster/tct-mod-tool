@@ -708,7 +708,7 @@ class TCTData {
                 "pk": cPk,
                 "fields": {
                     "candidate": candidatePk,
-                    "state": s[i],
+                    "state": Number(s[i]),
                     "state_multiplier": 1
                 }
             }
@@ -732,7 +732,7 @@ class TCTData {
                 "pk": iPk,
                 "fields": {
                     "candidate": candidatePk,
-                    "issue": issues[i],
+                    "issue": Number(issues[i]),
                     "issue_score": 0
                 }
             }
@@ -785,7 +785,7 @@ class TCTData {
                 "pk": iPk,
                 "fields": {
                     "state": newPk,
-                    "issue": issues[i],
+                    "issue": Number(issues[i]),
                     "state_issue_score": 0,
                     "weight": 1.5
                 }
@@ -862,7 +862,7 @@ class TCTData {
                     "pk": iPk,
                     "fields": {
                         "state": newPk,
-                        "issue": issues[k],
+                        "issue": Number(issues[k]),
                         "state_issue_score": 0,
                         "weight": 1.5
                     }
