@@ -61,6 +61,30 @@ window.defineComponent('cyoa', {
                 </div>
             </details>
 
+            <!-- Question Swap section -->
+            <details open class="bg-gray-50 rounded-sm border">
+                <summary class="px-3 py-2 font-medium cursor-pointer">Question Swap Rules</summary>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button class="bg-indigo-500 text-white px-3 py-2 rounded-sm hover:bg-indigo-600" @click="addQuestionSwapRule">
+                            Add Question Swap Rule
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="cyoaQuestionSwaps.length">Total: {{ cyoaQuestionSwaps.length }}</span>
+                    </div>
+                    <p v-if="cyoaQuestionSwaps.length === 0" class="text-gray-500 italic">
+                        No question swap rules yet. Click "Add Question Swap Rule" to create one.
+                    </p>
+                    <div v-else class="space-y-2">
+                        <cyoa-question-swap
+                            v-for="r in cyoaQuestionSwaps"
+                            :id="r.id"
+                            :key="r.id"
+                            @deleteRule="deleteQuestionSwapRule">
+                        </cyoa-question-swap>
+                    </div>
+                </div>
+            </details>
+
             <!-- Answer Swap Rules Section -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Answer Swap Rules</summary>
@@ -97,6 +121,7 @@ window.defineComponent('cyoa', {
             if (jet.cyoa_data == null) jet.cyoa_data = {};
             if (jet.cyoa_variables == null) jet.cyoa_variables = {};
             if (jet.cyoa_variable_effects == null) jet.cyoa_variable_effects = {};
+            if (jet.cyoa_question_swaps == null) jet.cyoa_question_swaps = {};
             if (jet.cyoa_answer_swaps == null) jet.cyoa_answer_swaps = {};
 
             // poke filename to refresh bindings
@@ -185,6 +210,30 @@ window.defineComponent('cyoa', {
         },
 
         // Answer swap rules
+        addQuestionSwapRule() {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps) {
+                Vue.prototype.$TCT.jet_data.cyoa_question_swaps = {};
+            }
+            const jet = Vue.prototype.$TCT.jet_data;
+            const id = this.generateId([jet.cyoa_question_swaps]);
+            jet.cyoa_question_swaps[id] = {
+                id,
+                triggers: [],
+                conditions: [],
+                conditionOperator: 'AND',
+                swaps: [{ pk1: null, pk2: null }]
+            };
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        deleteQuestionSwapRule(id) {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps) return;
+            delete Vue.prototype.$TCT.jet_data.cyoa_question_swaps[id];
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
         addAnswerSwapRule() {
             if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) {
                 Vue.prototype.$TCT.jet_data.cyoa_answer_swaps = {};
@@ -236,14 +285,28 @@ window.defineComponent('cyoa', {
         },
 
         // expose swaps as a sorted list
+        cyoaQuestionSwaps() {
+            this.tick;
+            const src = Vue.prototype.$TCT.jet_data.cyoa_question_swaps || {};
+            return Object.values(src).sort((a,b) => a.id - b.id);
+        },
+
         cyoaAnswerSwaps() {
             this.tick;
             const src = Vue.prototype.$TCT.jet_data.cyoa_answer_swaps || {};
             return Object.values(src).sort((a,b) => a.id - b.id);
         },
 
+        buildQuestionSwapperFunction() {
+            return window.TCTAnswerSwapHelper.buildQuestionSwapperFunction();
+        },
+
         buildAnswerSwapperFunction() {
             return window.TCTAnswerSwapHelper.buildAnswerSwapperFunction();
+        },
+
+        buildQuestionSwapBlocks() {
+            return window.TCTAnswerSwapHelper.buildQuestionSwapBlocks();
         },
 
         buildAnswerSwapBlocks() {
@@ -270,6 +333,32 @@ window.defineComponent('cyoa', {
 
 // create a global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
+    buildQuestionSwapperFunction() {
+        return `
+function questionSwapper(pk1, pk2) {
+    const questionData = campaignTrail_temp.questions_json;
+    
+    // find indices of the questions
+    const index1 = getQuestionIndexFromPk(pk1);
+    const index2 = getQuestionIndexFromPk(pk2);
+    
+    // validate both questions exist
+    if (index1 === -1 || index2 === -1) {
+        console.warn(\`questionSwapper: Could not find question(s) with pk \${pk1} and/or \${pk2}\`);
+        return false;
+    }
+    
+    // swap the entire question objects
+    [questionData[index1], questionData[index2]] = [questionData[index2], questionData[index1]];
+    
+    // rebuild the index map since positions changed
+    _rebuildQuestionIdxMap();
+    
+    return true;
+}
+`.trim();
+    },
+
     buildAnswerSwapperFunction() {
         return `
 function answerSwapper(pk1, pk2, takeEffects = true) {
@@ -308,6 +397,46 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     }
 }
 `.trim();
+    },
+
+    buildQuestionSwapBlocks() {
+        const rulesSrc = Vue.prototype.$TCT.jet_data?.cyoa_question_swaps || {};
+        const rules = Object.values(rulesSrc);
+        if (!rules.length) return '';
+
+        const blocks = rules.map(rule => {
+            const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
+            const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
+            if (!triggers.length || !swaps.length) return '';
+
+            const triggerCond = triggers.map(pk => `ans == ${pk}`).join(' || ');
+            const swapLines = swaps.map(s => {
+                return `questionSwapper(${s.pk1}, ${s.pk2});`;
+            }).join('\n        ');
+
+            let conditionStr = '';
+            if (rule.conditions && Array.isArray(rule.conditions) && rule.conditions.length > 0) {
+                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                if (validConditions.length > 0) {
+                    const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
+                    const operator = rule.conditionOperator || 'AND';
+                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
+                    conditionStr = `if (${conditionParts.join(joinStr)}) {\n        `;
+                }
+            }
+
+            let output = `if (${triggerCond}) {`;
+            if (conditionStr) {
+                output += `\n    ${conditionStr}${swapLines}\n    }\n}`;
+            } else {
+                output += `\n    ${swapLines}\n}`;
+            }
+            return output;
+        }).filter(Boolean);
+
+        if (!blocks.length) return '';
+
+        return `// question swap CYOA here\n${blocks.join('\n')}`;
     },
 
     buildAnswerSwapBlocks() {
@@ -458,7 +587,9 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     },
 
     insertSwapperAfterHelper(out) {
-        const func = this.buildAnswerSwapperFunction();
+        const questionSwapFunc = this.buildQuestionSwapperFunction();
+        const answerSwapFunc = this.buildAnswerSwapperFunction();
+        const combinedFuncs = questionSwapFunc + '\n\n' + answerSwapFunc;
         
         // try to find getQuestionNumberFromPk function
         const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
@@ -467,9 +598,9 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         if (match) {
             // insert after the helper function
             const insertPos = match.index + match[0].length;
-            return out.slice(0, insertPos) + '\n\n' + func + out.slice(insertPos);
+            return out.slice(0, insertPos) + '\n\n' + combinedFuncs + out.slice(insertPos);
         } else {
-            return func + '\n\n' + out;
+            return combinedFuncs + '\n\n' + out;
         }
     },
 
@@ -478,8 +609,10 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
 
         if (Vue.prototype.$TCT.jet_data.cyoa_enabled) {
             out = this.insertSwapperAfterHelper(out);
-            const blocks = this.buildAnswerSwapBlocks();
-            out = this.insertSwapsInsideCyoAdventure(out, blocks);
+            const questionBlocks = this.buildQuestionSwapBlocks();
+            const answerBlocks = this.buildAnswerSwapBlocks();
+            const combinedBlocks = [questionBlocks, answerBlocks].filter(Boolean).join('\n\n');
+            out = this.insertSwapsInsideCyoAdventure(out, combinedBlocks);
         }
 
         return out;
@@ -705,6 +838,261 @@ window.requestAutosaveIfEnabled = function() {
 };
 
 // Single Answer Swap Rule editor
+window.defineComponent('cyoa-question-swap', {
+    props: ['id'],
+
+    data() {
+        return {
+            triggerToAdd: null,
+            conditionToAdd: {
+                variable: '',
+                comparator: '>=',
+                value: 0
+            },
+            tick: 0
+        };
+    },
+
+    methods: {
+        getRule() {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps) {
+                Vue.prototype.$TCT.jet_data.cyoa_question_swaps = {};
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id]) {
+                Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id] = {
+                    id: this.id,
+                    triggers: [],
+                    conditions: [],
+                    conditionOperator: 'AND',
+                    swaps: []
+                };
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id].conditions) {
+                Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id].conditions = [];
+            }
+            if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id].conditionOperator) {
+                Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id].conditionOperator = 'AND';
+            }
+            return Vue.prototype.$TCT.jet_data.cyoa_question_swaps[this.id];
+        },
+
+        addTrigger() {
+            const rule = this.getRule();
+            const val = Number(this.triggerToAdd);
+            if (!val) return;
+            if (!rule.triggers.includes(val)) {
+                rule.triggers.push(val);
+                this.triggerToAdd = null;
+                this.tick++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        removeTrigger(pk) {
+            const rule = this.getRule();
+            rule.triggers = rule.triggers.filter(x => x !== pk);
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        addCondition() {
+            const rule = this.getRule();
+            if (!this.conditionToAdd.variable) {
+                alert('Please select a variable.');
+                return;
+            }
+            
+            rule.conditions.push({
+                variable: this.conditionToAdd.variable,
+                comparator: this.conditionToAdd.comparator,
+                value: Number(this.conditionToAdd.value)
+            });
+            
+            this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeCondition(index) {
+            const rule = this.getRule();
+            if (rule.conditions) {
+                rule.conditions.splice(index, 1);
+                this.tick++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        updateConditionOperator(value) {
+            const rule = this.getRule();
+            rule.conditionOperator = value;
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        addSwap() {
+            const rule = this.getRule();
+            rule.swaps.push({ pk1: null, pk2: null });
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeSwap(index) {
+            const rule = this.getRule();
+            rule.swaps.splice(index, 1);
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        updateSwap(index, field, value) {
+            const rule = this.getRule();
+            if (!rule.swaps[index]) return;
+            
+            const newSwap = { ...rule.swaps[index] };
+            newSwap[field] = Number(value) || null;
+            
+            rule.swaps[index] = newSwap;
+            this.tick++;
+            window.requestAutosaveIfEnabled?.();
+        }
+    },
+
+    computed: {
+        rule() {
+            this.tick;
+            return this.getRule();
+        },
+
+        variables() {
+            return (Vue.prototype.$TCT.getAllCyoaVariables?.() || []).map(v => v.name);
+        },
+
+        answers() {
+            return Object.values(Vue.prototype.$TCT.answers || {});
+        },
+
+        questions() {
+            return Array.from(Vue.prototype.$TCT.questions?.values() || []);
+        },
+
+        hasConditions() {
+            this.tick;
+            const rule = this.getRule();
+            return rule.conditions && rule.conditions.length > 0;
+        },
+        
+        conditionsList() {
+            this.tick;
+            const rule = this.getRule();
+            return rule.conditions || [];
+        }
+    },
+
+    template: `
+    <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-indigo-400">
+        <div class="flex justify-between items-start mb-2">
+            <div class="text-sm text-gray-700">
+                <div class="font-medium">Question swap rule #{{ id }}</div>
+                <div class="text-xs text-gray-500">
+                    (Question swaps are applied after each answer is recorded, allowing you to dynamically change which questions appear.)
+                </div>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
+        </div>
+
+        <!-- Triggers -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers:</label>
+            <div class="flex items-center gap-2">
+                <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
+                    <option :value="null" disabled>Select answer...</option>
+                    <option v-for="a in answers" :key="a.pk" :value="a.pk">
+                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
+                    </option>
+                </select>
+                <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1">
+                <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
+                    #{{ pk }}
+                    <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
+                </span>
+            </div>
+        </div>
+
+        <!-- Multiple conditions -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
+            
+            <!-- Condition operator selector (only show if conditions exist) -->
+            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+                <span class="text-xs text-gray-600">Join with:</span>
+                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                    <option value="AND">AND (all must be true)</option>
+                    <option value="OR">OR (any can be true)</option>
+                </select>
+            </div>
+
+            <!-- Existing conditions list -->
+            <div v-if="hasConditions" class="mb-2 space-y-1">
+                <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
+                    <div class="text-xs font-medium">{{ c.variable }}</div>
+                    <div class="text-xs">{{ c.comparator }}</div>
+                    <div class="text-xs">{{ c.value }}</div>
+                    <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
+                </div>
+            </div>
+
+            <!-- Add new condition -->
+            <div class="grid grid-cols-4 gap-1 items-center">
+                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="" disabled>Variable...</option>
+                    <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
+                </select>
+                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value=">=">&gt;=</option>
+                    <option value="<=">&lt;=</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                    <option value="==">==</option>
+                    <option value="!=">!=</option>
+                </select>
+                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
+            </div>
+        </div>
+
+        <!-- Swaps -->
+        <div class="mb-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Question Swaps to Apply:</label>
+            <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx+'-'+tick" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Question PK 1</label>
+                    <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
+                        <option :value="null" disabled>Select question...</option>
+                        <option v-for="q in questions" :key="'pk1-'+q.pk" :value="q.pk">
+                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
+                        </option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Question PK 2</label>
+                    <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
+                        <option :value="null" disabled>Select question...</option>
+                        <option v-for="q in questions" :key="'pk2-'+q.pk" :value="q.pk">
+                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
+                        </option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="text-red-600 hover:text-red-800 text-xs" @click="removeSwap(idx)">✕</button>
+                </div>
+            </div>
+            <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-sm text-xs" @click="addSwap">Add another swap</button>
+        </div>
+    </div>
+    `
+})
+
 window.defineComponent('cyoa-answer-swap', {
     props: ['id'],
 
