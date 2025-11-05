@@ -7,6 +7,12 @@ window.defineComponent('mapping', {
             y : Vue.prototype.$TCT.jet_data.mapping_data?.y ?? 925,
             dx : Vue.prototype.$TCT.jet_data.mapping_data?.dx ?? 0,
             dy : Vue.prototype.$TCT.jet_data.mapping_data?.dy ?? 0,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragStartDx: 0,
+            dragStartDy: 0,
+            zoomLevel: 1,
         };
     },
 
@@ -56,6 +62,10 @@ window.defineComponent('mapping', {
                             will be deleted from your code 2 and replaced from what the tool gets from your SVG. 
                             You should only be doing this once when starting to make the mod.
                         </p>
+                        <p class="text-sm text-blue-600 font-medium mt-2">
+                            💡 The current zoom level ({{ Math.round(zoomLevel * 100) }}%) and pan position will be applied 
+                            to the final map dimensions in your mod.
+                        </p>
                     </div>
                 </div>
             </details>
@@ -64,8 +74,29 @@ window.defineComponent('mapping', {
             <details v-if="mapSvg" open class="bg-gray-50 rounded-sm border">
                 <summary class="px-4 py-2 font-semibold cursor-pointer select-none">Map preview & dimensions</summary>
                 <div class="p-4 space-y-4">
-                    <div class="border rounded-sm bg-white p-2">
-                        <map-preview :svg="mapSvg" :dx="dx" :dy="dy" :x="x" :y="y"></map-preview>
+                    <div class="border rounded-sm bg-white p-2 select-none">
+                        <div class="mb-2 flex items-center gap-3">
+                            <span class="text-sm font-medium text-gray-700">Zoom:</span>
+                            <button @click="zoomOut" class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-sm">−</button>
+                            <span class="text-sm font-mono">{{ Math.round(zoomLevel * 100) }}%</span>
+                            <button @click="zoomIn" class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-sm">+</button>
+                            <button @click="resetZoom" class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs ml-2">Reset</button>
+                        </div>
+                        <div 
+                            @mousedown="startDrag"
+                            @mousemove="onDrag"
+                            @mouseup="endDrag"
+                            @mouseleave="endDrag"
+                            @touchstart="startDrag"
+                            @touchmove="onDrag"
+                            @touchend="endDrag"
+                            @wheel="onWheel"
+                            style="cursor: grab; touch-action: none;"
+                            :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
+                        >
+                            <map-preview :svg="mapSvg" :dx="effectiveDx" :dy="effectiveDy" :x="effectiveX" :y="effectiveY"></map-preview>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2 italic">💡 Tip: Drag to pan, scroll to zoom, or use the zoom buttons</p>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-200 rounded-sm p-3">
@@ -124,8 +155,10 @@ window.defineComponent('mapping', {
             }
 
             Vue.prototype.$TCT.jet_data.mapping_data.mapSvg = this.mapSvg;
-            Vue.prototype.$TCT.jet_data.mapping_data.x = this.x;
-            Vue.prototype.$TCT.jet_data.mapping_data.y = this.y;
+            
+            // apply zoom to the actual dimensions that will be used
+            Vue.prototype.$TCT.jet_data.mapping_data.x = this.effectiveX;
+            Vue.prototype.$TCT.jet_data.mapping_data.y = this.effectiveY;
             Vue.prototype.$TCT.jet_data.mapping_data.dx = this.dx;
             Vue.prototype.$TCT.jet_data.mapping_data.dy = this.dy;
 
@@ -136,6 +169,9 @@ window.defineComponent('mapping', {
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
+            
+            // reset zoom after applying to avoid confusion
+            this.zoomLevel = 1;
         },
 
         toggleEnabled: function(evt) {
@@ -149,10 +185,97 @@ window.defineComponent('mapping', {
         onInput: function(evt) {
             Vue.prototype.$TCT.jet_data.mapping_data[evt.target.name] = evt.target.value;
         },
+
+        startDrag: function(evt) {
+            this.isDragging = true;
+            
+            // get the starting position
+            if (evt.type === 'touchstart') {
+                evt.preventDefault();
+                this.dragStartX = evt.touches[0].clientX;
+                this.dragStartY = evt.touches[0].clientY;
+            } else {
+                this.dragStartX = evt.clientX;
+                this.dragStartY = evt.clientY;
+            }
+            
+            // store the initial offset values
+            this.dragStartDx = this.dx;
+            this.dragStartDy = this.dy;
+        },
+
+        onDrag: function(evt) {
+            if (!this.isDragging) return;
+            
+            let currentX, currentY;
+            
+            if (evt.type === 'touchmove') {
+                evt.preventDefault();
+                currentX = evt.touches[0].clientX;
+                currentY = evt.touches[0].clientY;
+            } else {
+                currentX = evt.clientX;
+                currentY = evt.clientY;
+            }
+            
+            // calculate the distance moved
+            const deltaX = currentX - this.dragStartX;
+            const deltaY = currentY - this.dragStartY;
+            
+            // update offsets (invert deltaX/deltaY because dragging right means moving the viewBox left)
+            this.dx = this.dragStartDx - deltaX;
+            this.dy = this.dragStartDy - deltaY;
+        },
+
+        endDrag: function() {
+            if (this.isDragging) {
+                this.isDragging = false;
+                
+                // save the new offset values to the global data
+                Vue.prototype.$TCT.jet_data.mapping_data.dx = this.dx;
+                Vue.prototype.$TCT.jet_data.mapping_data.dy = this.dy;
+            }
+        },
+
+        onWheel: function(evt) {
+            evt.preventDefault();
+            
+            // zoom in or out based on wheel direction
+            const delta = evt.deltaY > 0 ? -0.1 : 0.1;
+            this.zoomLevel = Math.max(0.1, Math.min(5, this.zoomLevel + delta));
+        },
+
+        zoomIn: function() {
+            this.zoomLevel = Math.min(5, this.zoomLevel + 0.25);
+        },
+
+        zoomOut: function() {
+            this.zoomLevel = Math.max(0.1, this.zoomLevel - 0.25);
+        },
+
+        resetZoom: function() {
+            this.zoomLevel = 1;
+        },
         
     },
 
     computed: {
+
+        effectiveX: function() {
+            return this.x / this.zoomLevel;
+        },
+
+        effectiveY: function() {
+            return this.y / this.zoomLevel;
+        },
+
+        effectiveDx: function() {
+            return this.dx;
+        },
+
+        effectiveDy: function() {
+            return this.dy;
+        },
 
         electionPk: function() {
             return Vue.prototype.$TCT.jet_data.mapping_data.electionPk;
