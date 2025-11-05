@@ -1,4 +1,3 @@
-// Modern component registration using Vue 3 patterns
 window.defineComponent('toolbar', {
 
     data() {
@@ -323,7 +322,6 @@ window.defineComponent('toolbar', {
 
         exportCode2: function () {
             let f = Vue.prototype.$TCT.exportCode2();
-            // Inject Answer Swapper code and rules using the methods from cyoa namespace
             if (window.TCTAnswerSwapHelper) {
                 f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
             }
@@ -342,7 +340,7 @@ window.defineComponent('toolbar', {
 
         clipboardCode2: function () {
             let f = Vue.prototype.$TCT.exportCode2();
-            // Inject Answer Swapper code and rules using the methods from cyoa namespace
+            // inject Answer Swapper code
             if (window.TCTAnswerSwapHelper) {
                 f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
             }
@@ -451,7 +449,6 @@ window.defineComponent('toolbar', {
             try {
                 await this.clearPresetStore();
                 for (const p of this.modPresets) {
-                    // garantir id e created
                     if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2,8);
                     if (!p.created) p.created = new Date().toISOString();
 
@@ -476,7 +473,7 @@ window.defineComponent('toolbar', {
         },
 
         getCurrentModData() {
-            // Get the current mod data by exporting it
+            // get the current mod data by exporting it
             return Vue.prototype.$TCT.exportCode2();
         },
 
@@ -517,10 +514,10 @@ window.defineComponent('toolbar', {
             }
 
             try {
-                // Load the preset mod data
+                // load the preset mod data
                 Vue.prototype.$TCT = loadDataFromFile(preset.modData);
                 
-                // Reset the interface to first items
+                // reset the interface to first items
                 Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
                 Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0]?.pk || null;
                 Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0]?.pk || null;
