@@ -18,16 +18,16 @@ window.defineComponent('cyoa', {
         </div>
 
         <div v-if="enabled" class="space-y-4">
-            <!-- Variables Section -->
+            <!-- Variables section -->
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Variables</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA variables</summary>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button 
                             class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600" 
                             v-on:click="addVariable()"
                         >
-                            Add Variable
+                            Add variable
                         </button>
                         <span class="text-sm text-gray-600" v-if="cyoaVariables.length">Total: {{ cyoaVariables.length }}</span>
                     </div>
@@ -38,41 +38,40 @@ window.defineComponent('cyoa', {
                 </div>
             </details>
 
-            <!-- Branching Events Section -->
-            <div class="mb-2 flex items-center gap-2">
-                <button 
-                    class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
-                    v-on:click="addCyoaEvent()" 
-                    :disabled="!canAdd"
-                    :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
-                >
-                    Add CYOA Event
-                </button>
-                <span class="text-sm text-gray-600" v-if="cyoaEvents.length">Total: {{ cyoaEvents.length }}</span>
-            </div>
-
+            <!-- Branching events section -->
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA Events</summary>
-                <div class="p-3">
+                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA events</summary>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button 
+                            class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
+                            v-on:click="addCyoaEvent()" 
+                            :disabled="!canAdd"
+                            :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
+                        >
+                            Add CYOA event
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="cyoaEvents.length">Total: {{ cyoaEvents.length }}</span>
+                    </div>
                     <p v-if="cyoaEvents.length === 0" class="text-gray-500 italic">No CYOA events yet. Click "Add CYOA Event" to create one.</p>
-                    <ul v-else class="space-y-3">
+                    <div v-else class="space-y-3">
                         <cyoa-event @deleteEvent="deleteEvent" :id="x.id" :key="x.id" v-for="x in cyoaEvents"></cyoa-event>
-                    </ul>
+                    </div>
                 </div>
             </details>
 
             <!-- Question Swap section -->
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">Question Swap Rules</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">Question swap rules</summary>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button class="bg-indigo-500 text-white px-3 py-2 rounded-sm hover:bg-indigo-600" @click="addQuestionSwapRule">
-                            Add Question Swap Rule
+                            Add question swap rule
                         </button>
                         <span class="text-sm text-gray-600" v-if="cyoaQuestionSwaps.length">Total: {{ cyoaQuestionSwaps.length }}</span>
                     </div>
                     <p v-if="cyoaQuestionSwaps.length === 0" class="text-gray-500 italic">
-                        No question swap rules yet. Click "Add Question Swap Rule" to create one.
+                        No question swap rules yet. Click "Add question swap rule" to create one.
                     </p>
                     <div v-else class="space-y-2">
                         <cyoa-question-swap
@@ -85,13 +84,13 @@ window.defineComponent('cyoa', {
                 </div>
             </details>
 
-            <!-- Answer Swap Rules Section -->
+            <!-- Answer swap rules -->
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">Answer Swap Rules</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">Answer swap rules</summary>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button class="bg-purple-500 text-white px-3 py-2 rounded-sm hover:bg-purple-600" @click="addAnswerSwapRule">
-                            Add Swap Rule
+                            Add swap rule
                         </button>
                         <span class="text-sm text-gray-600" v-if="cyoaAnswerSwaps.length">Total: {{ cyoaAnswerSwaps.length }}</span>
                     </div>
@@ -1063,7 +1062,7 @@ window.defineComponent('cyoa-question-swap', {
 
         <!-- Swaps -->
         <div class="mb-1">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Question Swaps to Apply:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Question swaps to apply:</label>
             <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx+'-'+tick" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
                 <div class="md:col-span-2">
                     <label class="block text-[10px] text-gray-500 mb-0.5">Question PK 1</label>
@@ -1319,7 +1318,7 @@ window.defineComponent('cyoa-answer-swap', {
 
         <!-- Swaps -->
         <div class="mb-1">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Swaps to Apply:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Swaps to apply:</label>
             <div v-for="(s,idx) in rule.swaps" :key="'s-'+idx+'-'+tick" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
                 <div class="md:col-span-2">
                     <label class="block text-[10px] text-gray-500 mb-0.5">Answer PK 1</label>
