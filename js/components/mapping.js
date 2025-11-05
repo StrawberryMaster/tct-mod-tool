@@ -11,47 +11,102 @@ window.defineComponent('mapping', {
     },
 
     template: `
-    <div class="mx-auto bg-gray-100 p-4">
-
-        <h1>Mapping Settings</h1>
-
-        <button v-if="!enabled" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable custom map</button>
-        <button v-if="enabled" class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable custom map</button><br>
-
-        <div v-if="enabled">
-
-            <label for="mapSvg">Map SVG:</label><br>
-            <textarea v-model="mapSvg" name="mapSvg" rows="4" cols="50"></textarea><br>
-
-            <label for="electionPk">Election PK:</label><br>
-            <input @input="onInput($event)" :value="electionPk" name="electionPk" type="number"><br>
-            <p class="text-sm text-gray-700 italic">NOTE: Set this to the pk of your election so all states have this filled out automatically. Otherwise you will need to fill it in for each state yourself.</p>
-
-            <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="loadMapFromSVG()">Load Map From SVG</button><br>
-            <p class="text-sm text-gray-700 italic">WARNING: If you click this all your states and anything referencing your states will be deleted from your code 2 and replaced from what the tool gets from your SVG. You should only be doing this once when starting to make the mod.</p>
-
-            <div v-if="mapSvg">
-                <map-preview :svg="mapSvg" :dx="dx" :dy="dy" :x="x" :y="y"></map-preview>
-
-                <p class="text-sm text-gray-700 italic">Change the x and y values to change how big the map appears in the preview if the map isn't fitting currently.</p>
-
-                <label>x:</label><br>
-                <input v-model="x" type="number"><br>
-
-                <label>x offset:</label><br>
-                <input v-model="dx" type="number"><br>
-
-                <label>y:</label><br>
-                <input v-model="y" type="number"><br>
-
-                <label>y offset:</label><br>
-                <input v-model="dy" type="number"><br>
-
-                <p class="text-sm text-gray-700 italic">NOTE: Each time you exit this tab your preview will disappear if you don't press Load Map From SVG, so make sure to do all your mapping in one fell swoop.</p>
-                <br>
+    <div class="mx-auto bg-white rounded-lg shadow-sm p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="font-bold text-xl">Mapping settings</h1>
+            <div class="space-x-2">
+                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">
+                    Enable custom map
+                </button>
+                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">
+                    Disable custom map
+                </button>
             </div>
         </div>
 
+        <div v-if="enabled" class="space-y-6">
+            <!-- Map SVG -->
+            <details open class="bg-gray-50 rounded-sm border">
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">Map SVG configuration</summary>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="mapSvg">Map SVG:</label>
+                        <textarea v-model="mapSvg" name="mapSvg" rows="4" 
+                                  class="w-full border border-gray-300 rounded-sm px-2 py-1 font-mono text-sm"
+                                  placeholder="Paste your SVG code here..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="electionPk">Election PK:</label>
+                        <input @input="onInput($event)" :value="electionPk" name="electionPk" type="number"
+                               class="w-full border border-gray-300 rounded-sm px-2 py-1">
+                        <p class="text-sm text-gray-600 italic mt-1">
+                            NOTE: Set this to the pk of your election so all states have this filled out automatically. 
+                            Otherwise you will need to fill it in for each state yourself.
+                        </p>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <button class="bg-green-500 text-white px-4 py-2 rounded-sm hover:bg-green-600 font-medium" 
+                                v-on:click="loadMapFromSVG()">
+                            Load map from SVG
+                        </button>
+                        <p class="text-sm text-gray-600 italic mt-2">
+                            <strong>WARNING:</strong> If you click this, all your states and anything referencing your states 
+                            will be deleted from your code 2 and replaced from what the tool gets from your SVG. 
+                            You should only be doing this once when starting to make the mod.
+                        </p>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Map preview section -->
+            <details v-if="mapSvg" open class="bg-gray-50 rounded-sm border">
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">Map preview & dimensions</summary>
+                <div class="p-4 space-y-4">
+                    <div class="border rounded-sm bg-white p-2">
+                        <map-preview :svg="mapSvg" :dx="dx" :dy="dy" :x="x" :y="y"></map-preview>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-sm p-3">
+                        <p class="text-sm text-blue-800 mb-3">
+                            Change the x and y values to adjust how the map appears in the preview if it isn't fitting correctly.
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Width (x):</label>
+                                <input v-model.number="x" type="number" 
+                                       class="w-full border border-gray-300 rounded-sm px-2 py-1">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Height (y):</label>
+                                <input v-model.number="y" type="number" 
+                                       class="w-full border border-gray-300 rounded-sm px-2 py-1">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">X Offset (dx):</label>
+                                <input v-model.number="dx" type="number" 
+                                       class="w-full border border-gray-300 rounded-sm px-2 py-1">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Y Offset (dy):</label>
+                                <input v-model.number="dy" type="number" 
+                                       class="w-full border border-gray-300 rounded-sm px-2 py-1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-gray-600 italic">
+                        NOTE: Each time you exit this tab your preview will disappear if you don't press "Load map from SVG", 
+                        so make sure to do all your mapping in one session.
+                    </p>
+                </div>
+            </details>
+        </div>
     </div>
     `,
 
