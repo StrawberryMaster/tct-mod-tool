@@ -621,18 +621,14 @@ class TCTData {
                 for (let i = 0; i < pathElements.length; i++) {
                     try {
                         const path = pathElements[i];
-                        const id = path.getAttribute('id') || path.getAttribute('data-id');
-                        if (!id) {
-                            if (i % 25 === 0) console.warn(`Path at index ${i} has no id attribute`);
+                        const idAttr = path.getAttribute('id') || path.getAttribute('data-id');
+                        const dAttr = path.getAttribute('d');
+                        if (!idAttr || !dAttr) {
+                            if (i % 25 === 0) console.warn(`Path at index ${i} missing id or d attribute`);
                             continue;
                         }
-                        const d = path.getAttribute('d');
-                        if (!d) {
-                            if (i % 25 === 0) console.warn(`Path with id ${id} has no d attribute`);
-                            continue;
-                        }
-                        const abbr = id.split(" ")[0].replaceAll("-", "_");
-                        out.push([abbr, d]);
+                        const abbr = idAttr.split(" ")[0].replaceAll("-", "_");
+                        out.push([abbr, dAttr]);
                         if (i % 10 === 0) console.log(`Processed state: ${abbr}`);
                     } catch (err) {
                         console.error(`Error processing path at index ${i}:`, err);
@@ -648,13 +644,18 @@ class TCTData {
         // fallback: regex parsing when DOMParser is not available
         const out = [];
         const pathRegex = /<path\b[^>]*>/gi;
-        const idRe = /id\s*=\s*"([^"]+)"/i;
-        const dRe = /d\s*=\s*"([^"]+)"/i;
+        // only match the real id= attribute (not data-id=)
+        const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
+        // only match the real d= attribute (avoid matching data-id=)
+        const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
+
         const paths = svg.match(pathRegex) || [];
         for (let i = 0; i < paths.length; i++) {
-            const path = paths[i];
-            const idMatch = idRe.exec(path);
-            const dMatch = dRe.exec(path);
+            const tag = paths[i];
+
+            const idMatch = idReStrict.exec(tag) || tag.match(/(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i);
+            const dMatch = dReStrict.exec(tag);
+
             if (!idMatch || !dMatch) continue;
             const abbr = idMatch[1].split(" ")[0].replaceAll("-", "_");
             out.push([abbr, dMatch[1]]);
@@ -806,68 +807,141 @@ class TCTData {
         const svg = this.jet_data.mapping_data.mapSvg || "";
         const electionPk = this.jet_data.mapping_data.electionPk ?? -1;
 
-        const pathRegex = /<path\b[^>]*>/gi;
-        const idRe = /id\s*=\s*"([^"]+)"/i;
-        const dRe = /d\s*=\s*"([^"]+)"/i;
-        const paths = svg.match(pathRegex) || [];
+        // DOM parsing approach
+        let parsedViaDOM = false;
+        try {
+            if (typeof DOMParser !== 'undefined') {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+                const pathNodes = svgDoc.querySelectorAll('path');
 
-        for (let i = 0; i < paths.length; i++) {
-            const path = paths[i];
-            const idMatch = idRe.exec(path);
-            const dMatch = dRe.exec(path);
-            if (!idMatch || !dMatch) {
-                console.warn(`Skipping path index ${i} due to missing id or d attribute`);
-                continue;
-            }
+                for (let i = 0; i < pathNodes.length; i++) {
+                    const p = pathNodes[i];
+                    const idAttr = p.getAttribute('id') || p.getAttribute('data-id');
+                    const nameAttr = p.getAttribute('data-name') || idAttr;
+                    const dAttr = p.getAttribute('d');
+                    if (!idAttr || !dAttr) continue;
 
-            const id = idMatch[1];
-            const d = dMatch[1];
-            const abbr = id.split(" ")[0].replaceAll("-", "_");
+                    const abbr = idAttr.split(" ")[0].replaceAll("-", "_");
+                    const newPk = this.getNewPk();
+                    const state = {
+                        "model": "campaign_trail.state",
+                        "pk": newPk,
+                        "fields": {
+                            "name": nameAttr || abbr,
+                            "abbr": abbr,
+                            "electoral_votes": 1,
+                            "popular_votes": 10,
+                            "poll_closing_time": 120,
+                            "winner_take_all_flg": 1,
+                            "election": electionPk,
+                        },
+                        "d": dAttr
+                    };
+                    this.states[newPk] = state;
 
-            const newPk = this.getNewPk();
-            const state = {
-                "model": "campaign_trail.state",
-                "pk": newPk,
-                "fields": {
-                    "name": id,
-                    "abbr": abbr,
-                    "electoral_votes": 1,
-                    "popular_votes": 10,
-                    "poll_closing_time": 120,
-                    "winner_take_all_flg": 1,
-                    "election": electionPk,
-                },
-                "d": d
-            };
-            this.states[newPk] = state;
-
-            for (let j = 0; j < cans.length; j++) {
-                const cPk = this.getNewPk();
-                const c = {
-                    "model": "campaign_trail.candidate_state_multiplier",
-                    "pk": cPk,
-                    "fields": {
-                        "candidate": cans[j],
-                        "state": newPk,
-                        "state_multiplier": 1
+                    for (let j = 0; j < cans.length; j++) {
+                        const cPk = this.getNewPk();
+                        const c = {
+                            "model": "campaign_trail.candidate_state_multiplier",
+                            "pk": cPk,
+                            "fields": {
+                                "candidate": cans[j],
+                                "state": newPk,
+                                "state_multiplier": 1
+                            }
+                        };
+                        this.candidate_state_multiplier[cPk] = c;
                     }
-                };
-                this.candidate_state_multiplier[cPk] = c;
-            }
 
-            for (let k = 0; k < issues.length; k++) {
-                const iPk = this.getNewPk();
-                const iss = {
-                    "model": "campaign_trail.state_issue_score",
-                    "pk": iPk,
-                    "fields": {
-                        "state": newPk,
-                        "issue": Number(issues[k]),
-                        "state_issue_score": 0,
-                        "weight": 1.5
+                    for (let k = 0; k < issues.length; k++) {
+                        const iPk = this.getNewPk();
+                        const iss = {
+                            "model": "campaign_trail.state_issue_score",
+                            "pk": iPk,
+                            "fields": {
+                                "state": newPk,
+                                "issue": Number(issues[k]),
+                                "state_issue_score": 0,
+                                "weight": 1.5
+                            }
+                        };
+                        this.state_issue_scores[iPk] = iss;
                     }
+                }
+                parsedViaDOM = true;
+            }
+        } catch (err) {
+            console.warn("DOMParser failed in loadMap, falling back to regex:", err);
+        }
+
+        if (!parsedViaDOM) {
+            // regex fallback with strict attribute matching
+            const pathRegex = /<path\b[^>]*>/gi;
+            const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
+            const dataIdRe = /(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i;
+            const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
+
+            const paths = svg.match(pathRegex) || [];
+
+            for (let i = 0; i < paths.length; i++) {
+                const tag = paths[i];
+                const idMatch = idReStrict.exec(tag) || dataIdRe.exec(tag);
+                const dMatch = dReStrict.exec(tag);
+                if (!idMatch || !dMatch) {
+                    console.warn(`Skipping path index ${i} due to missing id or d attribute`);
+                    continue;
+                }
+
+                const id = idMatch[1];
+                const d = dMatch[1];
+                const abbr = id.split(" ")[0].replaceAll("-", "_");
+
+                const newPk = this.getNewPk();
+                const state = {
+                    "model": "campaign_trail.state",
+                    "pk": newPk,
+                    "fields": {
+                        "name": id,
+                        "abbr": abbr,
+                        "electoral_votes": 1,
+                        "popular_votes": 10,
+                        "poll_closing_time": 120,
+                        "winner_take_all_flg": 1,
+                        "election": electionPk,
+                    },
+                    "d": d
                 };
-                this.state_issue_scores[iPk] = iss;
+                this.states[newPk] = state;
+
+                for (let j = 0; j < cans.length; j++) {
+                    const cPk = this.getNewPk();
+                    const c = {
+                        "model": "campaign_trail.candidate_state_multiplier",
+                        "pk": cPk,
+                        "fields": {
+                            "candidate": cans[j],
+                            "state": newPk,
+                            "state_multiplier": 1
+                        }
+                    };
+                    this.candidate_state_multiplier[cPk] = c;
+                }
+
+                for (let k = 0; k < issues.length; k++) {
+                    const iPk = this.getNewPk();
+                    const iss = {
+                        "model": "campaign_trail.state_issue_score",
+                        "pk": iPk,
+                        "fields": {
+                            "state": newPk,
+                            "issue": Number(issues[k]),
+                            "state_issue_score": 0,
+                            "weight": 1.5
+                        }
+                    };
+                    this.state_issue_scores[iPk] = iss;
+                }
             }
         }
     }
@@ -882,7 +956,8 @@ class TCTData {
         const states = Object.values(this.states);
 
         for (let i = 0; i < states.length; i++) {
-            f += `${states[i].fields.abbr}:"${states[i].d}"`
+            // quote the key to ensure valid JS identifiers in the generated object
+            f += `"${states[i].fields.abbr}":"${states[i].d}"`
             if (i < states.length - 1) {
                 f += ", ";
             }
