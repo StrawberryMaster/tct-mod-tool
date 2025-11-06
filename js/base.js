@@ -1018,10 +1018,12 @@ class TCTData {
 
         for (let i = 0; i < endings.length; i++) {
             const ending = endings[i];
+            // ensure operator is properly formatted (should be one of: >, >=, ==, <=, <, !=)
+            const operator = ending.operator || '>';
 
             f +=
                 `
-    if(quickstats[${ending.variable}] ${ending.operator} ${ending.amount}) {
+    if(quickstats[${ending.variable}] ${operator} ${ending.amount}) {
         setImage("${ending.endingImage}");
         return \`${ending.endingText}\`;
     }`;

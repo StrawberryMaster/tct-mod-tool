@@ -282,9 +282,12 @@ window.defineComponent('ending', {
             </select>
 
             <select @change="onChange($event)" :value="getOperator" name="operator" class="border rounded-sm px-2 py-1">
-                <option value=">">Greater than</option>
-                <option value="==">Equal to</option>
-                <option value="<">Less than</option>
+                <option value=">">Greater than (&gt;)</option>
+                <option value=">=">Greater than or equal (&gt;=)</option>
+                <option value="==">Equal to (==)</option>
+                <option value="<=">Less than or equal (&lt;=)</option>
+                <option value="<">Less than (&lt;)</option>
+                <option value="!=">Not equal to (!=)</option>
             </select>
 
             <input @input="onInput($event)" :value="getAmount" name="amount" type="number" class="border rounded-sm px-2 py-1">
