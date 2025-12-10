@@ -1410,8 +1410,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
     props: ['answerId'],
 
     watch: {
-        answerId(newAnswerId, oldAnswerId) {
-            if (newAnswerId !== oldAnswerId) {
+        answerId: {
+            immediate: true,
+            handler(newAnswerId) {
                 this.loadStateEffects();
             }
         }
@@ -1436,7 +1437,21 @@ window.defineComponent('integrated-state-effect-visualizer', {
             usingBasicShapes: false,
             effectListVersion: 0,
             useListEditor: false,
-            stateDropdownPk: null
+            stateDropdownPk: null,
+            
+            // pan and zoom state
+            zoom: 1,
+            minZoom: 0.25,
+            maxZoom: 4,
+            baseWidth: 1025,
+            baseHeight: 595,
+            panX: 0,
+            panY: 0,
+            isPanning: false,
+            dragMoved: false,
+            lastPointer: null,
+            svgBounds: null,
+            viewportInitialized: false
         };
     },
 
@@ -1445,15 +1460,91 @@ window.defineComponent('integrated-state-effect-visualizer', {
         this.loadMapData();
     },
 
+    computed: {
+        candidates() {
+            return typeof getListOfCandidates === 'function'
+                ? getListOfCandidates()
+                : Object.values(Vue.prototype.$TCT.candidates || {}).map(c => [c.pk, c.fields?.name || `Candidate ${c.pk}`]);
+        },
+
+        states() {
+            return Object.values(Vue.prototype.$TCT.states || {}).filter(
+                s => s && s.pk != null && s.fields && s.fields.abbr && s.fields.name
+            );
+        },
+
+        selectedStatesCount() {
+            return Object.values(this.selectedStates).filter(selected => selected).length;
+        },
+
+        smallStates() {
+            const targets = ['DC', 'VT', 'NH', 'MA', 'RI', 'CT', 'NJ', 'DE', 'MD', 'HI'];
+            return this.states.filter(s => targets.includes(s.fields?.abbr));
+        },
+
+        districtStates() {
+             const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
+             return this.states.filter(state => {
+                if (!state?.fields) return false;
+                if (state.fields.abbr === 'DC') return false; 
+                if (districtRegex.test(state.fields.name || '')) return true;
+                if (state.fields.abbr && /^[MN]\d$/.test(state.fields.abbr)) return true;
+                return (state.fields.name || '').includes("CD") || 
+                       (state.fields.name || '').includes("District");
+            });
+        },
+
+        allStateEffectsForAnswer() {
+            this.effectListVersion;
+            const stateScores = (typeof Vue.prototype.$TCT.getStateScoreForAnswer === 'function')
+                ? Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId) || []
+                : [];
+
+            if (!Array.isArray(stateScores) || stateScores.length === 0) return [];
+
+            return stateScores
+                .map(score => {
+                    try {
+                        const stateObj = Vue.prototype.$TCT.states?.[score.fields.state];
+                        const stateName = stateObj?.fields?.name || `State ${score.fields.state}`;
+                        const candidateNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.candidate) || null;
+                        const affectedNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.affected_candidate) || null;
+                        const multiplier = Number(score.fields.state_multiplier) || 0;
+                        return {
+                            pk: score.pk,
+                            stateName,
+                            candidateNickname: candidateNick,
+                            affectedCandidateNickname: affectedNick,
+                            multiplier
+                        };
+                    } catch (err) {
+                        return null;
+                    }
+                })
+                .filter(Boolean);
+        },
+
+        viewBoxString() {
+            const width = this.baseWidth / this.zoom;
+            const height = this.baseHeight / this.zoom;
+            return `${this.panX} ${this.panY} ${width} ${height}`;
+        },
+        
+        zoomLabel() {
+            return `${Math.round(this.zoom * 100)}%`;
+        }
+    },
+
     methods: {
         loadStateEffects() {
-            console.log("loadStateEffects called for answerId:", this.answerId); // Debugging
             const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
-
             const states = Object.values(Vue.prototype.$TCT.states);
+            
+            this.stateEffects = {};
             for (const state of states) {
                 this.stateEffects[state.pk] = 0;
             }
+            this.selectedStates = {};
 
             for (const score of stateScores) {
                 if ((this.candidateId == null || score.fields.candidate == this.candidateId) &&
@@ -1464,170 +1555,203 @@ window.defineComponent('integrated-state-effect-visualizer', {
             }
         },
 
-        loadMapData() {
-            // if state data is invalid/missing, fall back to list editor
-            const allStates = Vue.prototype.$TCT.states ? Object.values(Vue.prototype.$TCT.states) : [];
-            const validStates = allStates.filter(s => s && s.pk != null && s.fields && s.fields.abbr);
-            if (validStates.length === 0) {
-                this.enableListEditor();
-                return;
-            }
-
-            if (Vue.prototype.$TCT.jet_data?.mapping_data?.mapSvg) {
-                try {
-                    this.mapData = Vue.prototype.$TCT.getMapForPreview(Vue.prototype.$TCT.jet_data.mapping_data.mapSvg);
-                    // if map has fewer shapes than states, use list editor
-                    if (!Array.isArray(this.mapData) || this.mapData.length < Math.min(10, validStates.length)) {
-                        this.enableListEditor();
-                        return;
-                    }
-                    this.mapLoaded = true;
-                } catch (error) {
-                    console.error("Error loading map data from mapSvg:", error);
-                    this.enableListEditor();
-                }
-            }
-            else if (Vue.prototype.$TCT.states && validStates.some(state => state.d)) {
-                try {
-                    this.mapData = validStates
-                        .filter(state => state.d)
-                        .map(state => [state.fields.abbr, state.d]);
-                    if (!Array.isArray(this.mapData) || this.mapData.length === 0) {
-                        this.enableListEditor();
-                        return;
-                    }
-                    this.mapLoaded = true;
-                } catch (error) {
-                    console.error("Error extracting path data from states:", error);
-                    this.enableListEditor();
-                }
-            } else {
-                this.loadDefaultMap();
-            }
-        },
-
-        loadDefaultMap() {
-            console.log("Attempting to load default US map...");
-            loadDefaultUSMap().then(svgContent => {
-                if (svgContent) {
-                    this.validateAndUseDefaultMap(svgContent);
-                } else {
-                    console.log("Default US map not available, falling back to list editor");
-                    this.enableListEditor();
-                }
-            });
-        },
-
-        validateAndUseDefaultMap(svgContent) {
-            console.log("Validating default US map...");
-            const parser = new DOMParser();
-            const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-            const statePaths = svgDoc.querySelectorAll('[data-name]');
-
-            if (statePaths.length !== 51) {
-                console.warn(`Default map does not contain 51 states. Found ${statePaths.length}. Falling back to list editor.`);
-                this.enableListEditor();
-                return;
-            }
-
-            const statesData = Object.values(Vue.prototype.$TCT.states).filter(s => s && s.fields && s.fields.name);
-            let allStatesMatch = true;
-
-            for (const path of statePaths) {
-                const dataName = path.getAttribute('data-name')?.trim();
-                if (!dataName) { allStatesMatch = false; break; }
-                const matchingState = statesData.find(state => state.fields.name?.trim() === dataName);
-                if (!matchingState) {
-                    console.warn(`State name "${dataName}" in SVG not found in state data.`);
-                    allStatesMatch = false;
-                    break;
-                }
-            }
-
-            if (!allStatesMatch) {
-                console.warn("State names in default map do not match the state data. Falling back to list editor.");
-                this.enableListEditor();
-                return;
-            }
-
-            console.log("Default US map validated successfully!");
+        async loadMapData() {
             try {
-                console.log("Extracting state paths from validated default map");
-                this.mapData = Vue.prototype.$TCT.getMapForPreview(svgContent);
-                this.mapLoaded = true;
-                this.fallbackViewBox = "0 0 1000 589";
-            } catch (error) {
-                console.error("Error parsing default US map:", error);
-                this.enableListEditor();
+                const mapping = Vue.prototype.$TCT.jet_data?.mapping_data;
+                if (mapping?.mapSvg) {
+                    this.mapData = Vue.prototype.$TCT.getMapForPreview(mapping.mapSvg) || [];
+                    if (this.mapData.length) {
+                        this.mapLoaded = true;
+                        this.initializeViewport(true);
+                        return;
+                    }
+                }
+
+                const statesWithPath = this.states.filter(s => s?.d);
+                if (statesWithPath.length) {
+                    this.mapData = statesWithPath.map(s => [s.fields.abbr, s.d]);
+                    this.mapLoaded = true;
+                    this.initializeViewport(true);
+                    return;
+                }
+
+                if (typeof loadDefaultUSMap === 'function') {
+                    const svg = await loadDefaultUSMap();
+                    if (svg) {
+                        this.mapData = Vue.prototype.$TCT.getMapForPreview(svg) || [];
+                        if (this.mapData.length) {
+                            this.mapLoaded = true;
+                            this.fallbackViewBox = '0 0 1000 589';
+                            this.initializeViewport(true);
+                            return;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Map load failed, falling back to grid:', err);
             }
+            
+            this.createBasicStateShapes();
+        },
+
+        createBasicStateShapes() {
+            const states = this.states;
+            if (!states.length) {
+                this.enableListEditor();
+                return;
+            }
+            const cols = Math.ceil(Math.sqrt(states.length));
+            const size = 40;
+            const padding = 10;
+            this.mapData = states.map((state, index) => {
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                const x = col * (size + padding) + 50;
+                const y = row * (size + padding) + 50;
+                const path = `M${x},${y} h${size} v${size} h-${size} Z`;
+                return [state.fields?.abbr || `S${state.pk}`, path];
+            });
+            this.usingBasicShapes = true;
+            this.mapLoaded = true;
+            this.fallbackViewBox = `0 0 ${cols * (size + padding) + 100} ${Math.ceil(states.length / cols) * (size + padding) + 100}`;
+            this.initializeViewport(true);
         },
 
         enableListEditor() {
             this.useListEditor = true;
             this.mapLoaded = false;
-            this.usingBasicShapes = false;
-            this.mapData = [];
         },
 
-        // keep this for other flows, but not for invalid maps
-        createBasicStateShapes() {
-            const states = Object.values(Vue.prototype.$TCT.states);
-            const cols = Math.ceil(Math.sqrt(states.length));
-            const size = 40;
-            const padding = 10;
-
-            this.mapData = [];
-
-            for (let i = 0; i < states.length; i++) {
-                const row = Math.floor(i / cols);
-                const col = i % cols;
-                const x = col * (size + padding) + 50;
-                const y = row * (size + padding) + 50;
-
-                const path = `M${x},${y + 5}
-                              Q${x},${y} ${x + 5},${y}
-                              L${x + size - 5},${y}
-                              Q${x + size},${y} ${x + size},${y + 5}
-                              L${x + size},${y + size - 5}
-                              Q${x + size},${y + size} ${x + size - 5},${y + size}
-                              L${x + 5},${y + size}
-                              Q${x},${y + size} ${x},${y + size - 5} Z`;
-
-                this.mapData.push([states[i].fields.abbr, path]);
+        initializeViewport(force = false) {
+            const dims = this.resolveBaseDimensions();
+            this.baseWidth = dims.width;
+            this.baseHeight = dims.height;
+            if (!this.viewportInitialized || force) {
+                this.viewportInitialized = true;
+                this.resetViewport();
+            } else {
+                this.clampPan();
             }
-
-            this.fallbackViewBox = `0 0 ${cols * (size + padding) + 100} ${Math.ceil(states.length / cols) * (size + padding) + 100}`;
-            this.usingBasicShapes = true;
-            this.mapLoaded = true;
         },
 
-        deleteStateEffect(effectPk) {
-            delete Vue.prototype.$TCT.answer_score_state[effectPk];
-            this.loadStateEffects(); // Refresh data for map
-            this.effectListVersion++; // INCREMENT to force list update
-            this.mapLoaded = false; // Trigger watcher to reload map data
-            this.$nextTick(() => {
-                this.mapLoaded = true; // Re-enable map loading
-                this.loadMapData(); // Re-fetch map data just to be sure (optional but safe)
-                console.log("DOM updated and map re-rendered after state effect deletion."); // Debugging
-            });
+        resolveBaseDimensions() {
+            const mapping = Vue.prototype.$TCT.jet_data?.mapping_data || {};
+            const mapWidth = Number(mapping.x);
+            const mapHeight = Number(mapping.y);
+            if (mapWidth > 0 && mapHeight > 0) {
+                return { width: mapWidth, height: mapHeight };
+            }
+            const parsed = this.parseViewBoxString(this.fallbackViewBox);
+            if (parsed) return parsed;
+            return { width: 1025, height: 595 };
         },
 
+        parseViewBoxString(str) {
+            if (!str) return null;
+            const parts = str.split(/\s+/).map(Number);
+            if (parts.length === 4 && parts.every(v => Number.isFinite(v))) {
+                return { width: parts[2], height: parts[3] };
+            }
+            return null;
+        },
 
-        getStateColor(statePk) {
-            const value = this.stateEffects[statePk] || 0;
-            if (value === 0) return this.colorScale.neutral;
-            const scale = value > 0 ? this.colorScale.positive : this.colorScale.negative;
-            const absValue = Math.abs(value);
-            let index = Math.min(Math.floor(absValue * 10), 9);
-            if (index < 0) index = 0;
-            return scale[index];
+        resetViewport() {
+            this.zoom = 1;
+            this.panX = 0;
+            this.panY = 0;
+            this.clampPan();
+        },
+
+        clampPan() {
+            if (!this.viewportInitialized) return;
+            const viewWidth = this.baseWidth / this.zoom;
+            const viewHeight = this.baseHeight / this.zoom;
+            const maxX = Math.max(0, this.baseWidth - viewWidth);
+            const maxY = Math.max(0, this.baseHeight - viewHeight);
+            this.panX = Math.min(Math.max(this.panX, 0), maxX);
+            this.panY = Math.min(Math.max(this.panY, 0), maxY);
+        },
+
+        setZoom(next) {
+            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
+            if (!this.viewportInitialized) {
+                this.zoom = target;
+                this.clampPan();
+                return;
+            }
+            const prevWidth = this.baseWidth / this.zoom;
+            const prevHeight = this.baseHeight / this.zoom;
+            const centerX = this.panX + prevWidth / 2;
+            const centerY = this.panY + prevHeight / 2;
+
+            this.zoom = target;
+
+            const newWidth = this.baseWidth / this.zoom;
+            const newHeight = this.baseHeight / this.zoom;
+            this.panX = centerX - newWidth / 2;
+            this.panY = centerY - newHeight / 2;
+            this.clampPan();
+        },
+
+        zoomIn() { this.setZoom(this.zoom * 1.25); },
+        zoomOut() { this.setZoom(this.zoom / 1.25); },
+        
+        onWheel(evt) {
+            const direction = evt.deltaY > 0 ? 0.9 : 1.1;
+            this.setZoom(this.zoom * direction);
+        },
+
+        startPan(evt) {
+            if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+            this.isPanning = true;
+            this.dragMoved = false;
+            this.lastPointer = { x: evt.clientX, y: evt.clientY };
+            this.svgBounds = evt.currentTarget.getBoundingClientRect();
+        },
+
+        onPan(evt) {
+            if (!this.isPanning || !this.svgBounds) return;
+            const dx = evt.clientX - this.lastPointer.x;
+            const dy = evt.clientY - this.lastPointer.y;
+            if (!this.dragMoved && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
+                this.dragMoved = true;
+            }
+            const scaleX = (this.baseWidth / this.zoom) / this.svgBounds.width;
+            const scaleY = (this.baseHeight / this.zoom) / this.svgBounds.height;
+            this.panX -= dx * scaleX;
+            this.panY -= dy * scaleY;
+            this.lastPointer = { x: evt.clientX, y: evt.clientY };
+            this.clampPan();
+        },
+
+        endPan(evt) {
+            if (!this.isPanning) return;
+            this.isPanning = false;
+            this.lastPointer = null;
+            this.svgBounds = null;
+            if (evt?.pointerId !== undefined && evt.currentTarget?.releasePointerCapture) {
+                try { evt.currentTarget.releasePointerCapture(evt.pointerId); } catch(e){}
+            }
+        },
+
+        handleStateClick(statePk) {
+            if (this.dragMoved) {
+                this.dragMoved = false;
+                return;
+            }
+            this.toggleStateSelection(statePk);
+        },
+
+        isStateSelected(statePk) {
+            return !!this.selectedStates[statePk];
         },
 
         toggleStateSelection(statePk) {
-            this.selectedStates[statePk] = !this.selectedStates[statePk];
             if (this.selectedStates[statePk]) {
-                this.editValue = this.stateEffects[statePk];
+                delete this.selectedStates[statePk];
+            } else {
+                this.selectedStates[statePk] = true;
+                this.editValue = this.stateEffects[statePk] || 0;
             }
         },
 
@@ -1636,21 +1760,78 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         unhighlightState() {
-            if (!this.isStateSelected(this.highlightedState)) {
-                this.highlightedState = null;
+            this.highlightedState = null;
+        },
+
+        selectStateFromDropdown() {
+            if (this.stateDropdownPk) {
+                this.toggleStateSelection(this.stateDropdownPk);
+                this.stateDropdownPk = null;
             }
         },
 
-        applyValueToSelectedStates() {
-            const selectedStatePks = Object.keys(this.selectedStates)
-                .filter(pk => this.selectedStates[pk]);
+        selectAll() {
+            this.states.forEach(state => {
+                this.selectedStates[state.pk] = true;
+            });
+        },
 
-            if (selectedStatePks.length === 0) return;
+        clearSelection() {
+            this.selectedStates = {};
+        },
 
-            for (const statePk of selectedStatePks) {
-                this.stateEffects[statePk] = parseFloat(this.editValue);
-                this.updateOrCreateStateEffect(statePk, parseFloat(this.editValue));
+        getStatePath(state) {
+            const abbr = state.fields?.abbr;
+            if (!abbr && !state.d) return 'M0,0 h20 v20 h-20 Z';
+            
+            let entry = this.mapData.find(item => item[0] === abbr);
+            if (!entry && abbr) {
+                const normalized = abbr.replaceAll('-', '_');
+                entry = this.mapData.find(item => item[0] === normalized);
             }
+            
+            if (!entry && state.d) return state.d;
+            return entry ? entry[1] : 'M0,0 h20 v20 h-20 Z';
+        },
+
+        getStateColor(statePk) {
+            const value = this.stateEffects[statePk] || 0;
+            if (Math.abs(value) < 0.0001) return this.colorScale.neutral;
+            const scale = value > 0 ? this.colorScale.positive : this.colorScale.negative;
+            const absValue = Math.abs(value);
+            let index = Math.min(Math.floor(absValue * 10), 9);
+            return scale[index];
+        },
+
+        getStateStroke(statePk) {
+            if (this.isStateSelected(statePk)) return '#000000';
+            if (this.highlightedState === statePk) return '#333333';
+            return '#666666';
+        },
+
+        getStateStrokeWidth(statePk) {
+            if (this.isStateSelected(statePk)) return 2;
+            if (this.highlightedState === statePk) return 1.5;
+            return 1;
+        },
+
+        increaseValue() {
+            this.editValue = Math.min(parseFloat(this.editValue) + 0.001, 1).toFixed(3);
+        },
+
+        decreaseValue() {
+            this.editValue = Math.max(parseFloat(this.editValue) - 0.001, -1).toFixed(3);
+        },
+
+        applyValueToSelectedStates() {
+            const selectedPks = Object.keys(this.selectedStates).filter(pk => this.selectedStates[pk]);
+            if (!selectedPks.length) return;
+
+            const val = parseFloat(this.editValue);
+            selectedPks.forEach(pk => {
+                this.stateEffects[pk] = val;
+                this.updateOrCreateStateEffect(pk, val);
+            });
 
             this.effectListVersion++;
             // autosave after applying changes
@@ -1688,245 +1869,22 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 Vue.prototype.$TCT.answer_score_state[newPk] = newEffect;
             }
         },
-        isExtraState(state) {
-            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
 
-            if (state.fields.abbr === 'DC') {
-                return true;
-            }
-
-            if (districtRegex.test(state.fields.name)) {
-                return true;
-            }
-
-            if (state.fields.abbr &&
-                ((state.fields.abbr.startsWith("M") || state.fields.abbr.startsWith("N")) &&
-                    state.fields.abbr.length === 2 &&
-                    !isNaN(state.fields.abbr.charAt(1)))) {
-                return true;
-            }
-
-            return state.fields.name.includes("CD") ||
-                state.fields.name.includes("District") ||
-                state.fields.name.includes("Congressional");
-        },
-
-        selectAll() {
-            const states = Object.values(Vue.prototype.$TCT.states);
-            for (const state of states) {
-                this.selectedStates[state.pk] = true;
-            }
-        },
-
-        clearSelection() {
-            this.selectedStates = {};
-        },
-
-        isStateSelected(statePk) {
-            return this.selectedStates[statePk] === true;
-        },
-
-        isStateHighlighted(statePk) {
-            return this.highlightedState === statePk;
-        },
-
-        getStateStyle(statePk) {
-            const baseStyle = {
-                fill: this.getStateColor(statePk),
-                stroke: '#666666',
-                'stroke-width': 1,
-                cursor: 'pointer'
-            };
-
-            if (this.isStateSelected(statePk)) {
-               
-                baseStyle.stroke = '#000000';
-                baseStyle['stroke-width'] = 2;
-            } else if (this.isStateHighlighted(statePk)) {
-                baseStyle.stroke = '#000000';
-                baseStyle['stroke-width'] = 1.5;
-            }
-
-            if (this.fallbackViewBox && Math.abs(this.stateEffects[statePk]) > 0.001) {
-                baseStyle.fill = this.getStateColor(statePk);
-                if (!this.isStateSelected(statePk) && !this.isStateHighlighted(statePk)) {
-                    baseStyle.stroke = '#444444';
-                    baseStyle['stroke-width'] = 1.5;
-                }
-            }
-            return baseStyle;
-        },
-
-        increaseValue() {
-            this.editValue = Math.min(parseFloat(this.editValue) + 0.001, 1).toFixed(3);
-        },
-
-        decreaseValue() {
-            this.editValue = Math.max(parseFloat(this.editValue) - 0.001, -1).toFixed(3);
+        deleteStateEffect(effectPk) {
+            delete Vue.prototype.$TCT.answer_score_state[effectPk];
+            this.loadStateEffects();
+            this.effectListVersion++;
         },
 
         selectPresetStates(statePks) {
             this.clearSelection();
-            for (const pk of statePks) {
+            statePks.forEach(pk => {
                 this.selectedStates[pk] = true;
-            }
+            });
         },
+
         applyPresetValue(value) {
             this.editValue = value;
-        },
-
-        selectStateFromDropdown() {
-            if (this.stateDropdownPk) {
-                this.toggleStateSelection(this.stateDropdownPk);
-                this.editValue = this.stateEffects[this.stateDropdownPk] || 0;
-            }
-        },
-
-        getStateByAbbr(abbr) {
-            const normalizedAbbr = abbr.trim().toUpperCase().replaceAll('-', '_');
-            return Object.values(Vue.prototype.$TCT.states).find(state => {
-                const stateAbbr = state.fields.abbr.trim().toUpperCase().replaceAll('-', '_');
-                return stateAbbr === normalizedAbbr;
-            });
-        },
-
-        getStateTextPosition(state) {
-            if (!this.fallbackViewBox) return { x: 0, y: 0 };
-
-            const states = Object.values(Vue.prototype.$TCT.states);
-            const index = states.findIndex(s => s.pk === state.pk);
-            const cols = Math.ceil(Math.sqrt(states.length));
-            const size = 40;
-            const padding = 10;
-
-            const row = Math.floor(index / cols);
-            const col = index % cols;
-            const x = col * (size + padding) + 50 + size / 2;
-            const y = row * (size + padding) + 50 + size / 2;
-
-            return { x, y };
-        },
-
-        getStatePath(state) {
-            const stateData = this.mapData.find(x => {
-                if (!state || !state.fields || !state.fields.abbr) {
-                    return false;
-                }
-                const stateAbbr = state.fields.abbr;
-                return x[0] === stateAbbr || x[0] === stateAbbr.replaceAll('-', '_');
-            });
-            if (stateData) {
-                return stateData[1];
-            }
-            // safe minimal shape if path is missing
-            return `M0,0 L10,0 L10,10 L0,10 Z`;
-        },
-
-        formatDistrictName(stateName) {
-            if (stateName.includes("DC")) {
-                const parts = stateName.split(" ");
-                const stateIndex = parts.findIndex(part => part === "DC" || part === "-");
-                if (stateIndex > 0 && parts[stateIndex - 1]) {
-                    return `${parts[stateIndex - 1]}-${parts[stateIndex + 1] || ""}`;
-                }
-            }
-            return stateName;
-        }
-    },
-
-    computed: {
-        // provide candidates list for dropdowns (same shape used elsewhere)
-        candidates() {
-            return typeof getListOfCandidates === 'function'
-                ? getListOfCandidates()
-                : Object.values(Vue.prototype.$TCT.candidates || {}).map(c => [c.pk, c.fields?.name || `Candidate ${c.pk}`]);
-        },
-
-        states() {
-            // filter to valid states to avoid undefined "state.pk" errors
-            return Object.values(Vue.prototype.$TCT.states || {}).filter(
-                s => s && s.pk != null && s.fields && s.fields.abbr && s.fields.name
-            );
-        },
-
-        selectedStatesList() {
-            return this.states.filter(state => this.isStateSelected(state.pk));
-        },
-
-        stateCount() {
-            return this.states.length;
-        },
-
-        selectedStatesCount() {
-            return Object.values(this.selectedStates).filter(selected => selected).length;
-        },
-
-        isUsingBasicShapes() {
-            return this.usingBasicShapes;
-        },
-
-        smallStates() {
-            // small states are hard to click on
-            const smallStateAbbrs = ['CT', 'RI', 'DE', 'NH', 'VT'];
-            return this.states.filter(state =>
-                state?.fields?.abbr && smallStateAbbrs.includes(state.fields.abbr) && !this.isExtraState(state)
-            );
-        },
-
-        extraStates() {
-            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
-            return this.states.filter(state => {
-                if (!state?.fields) return false;
-                if (state.fields.abbr === 'DC') return false;
-                if (districtRegex.test(state.fields.name || '')) return true;
-                if (state.fields.abbr &&
-                    ((state.fields.abbr.startsWith("M") || state.fields.abbr.startsWith("N")) &&
-                        state.fields.abbr.length === 2 &&
-                        !isNaN(state.fields.abbr.charAt(1)))) {
-                    return true;
-                }
-                return (state.fields.name || '').includes("CD") ||
-                    (state.fields.name || '').includes("District") ||
-                    (state.fields.name || '').includes("Congressional");
-            });
-        },
-
-        allStateEffectsForAnswer() {
-
-            this.effectListVersion;
-            console.log("allStateEffectsForAnswer computed property recalculated, version:", this.effectListVersion); // Debugging
-
-            // ensure we always have an array to work with
-            const stateScores = (typeof Vue.prototype.$TCT.getStateScoreForAnswer === 'function')
-                ? Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId) || []
-                : [];
-
-            if (!Array.isArray(stateScores) || stateScores.length === 0) {
-                return [];
-            }
-
-            // map safely, skipping any malformed entries
-            return stateScores
-                .map(score => {
-                    try {
-                        const stateObj = Vue.prototype.$TCT.states?.[score.fields.state];
-                        const stateName = stateObj?.fields?.name || `State ${score.fields.state}`;
-                        const candidateNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.candidate) || null;
-                        const affectedNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.affected_candidate) || null;
-                        const multiplier = Number(score.fields.state_multiplier) || 0;
-                        return {
-                            pk: score.pk,
-                            stateName,
-                            candidateNickname: candidateNick,
-                            affectedCandidateNickname: affectedNick,
-                            multiplier
-                        };
-                    } catch (err) {
-                        console.warn("Skipping malformed stateScore entry in allStateEffectsForAnswer:", err, score);
-                        return null;
-                    }
-                })
-                .filter(Boolean); // remove any nulls caused by malformed entries
         }
     },
 
@@ -1964,94 +1922,70 @@ window.defineComponent('integrated-state-effect-visualizer', {
             <!-- Map Display -->
             <div class="md:w-3/5" v-if="!useListEditor">
                 <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>Using basic shapes map (fallback)</span>
-                    </div>
+                    Using basic shapes (fallback map)
                 </div>
 
-                <div id="map_container" class="relative border rounded" style="width: 100%; height: auto;">
-                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-                        style="background-color:#BFE6FF; display: block; width: 100%; height: auto;"
-                        :viewBox="fallbackViewBox || '0 0 1025 595'" preserveAspectRatio="xMidYMid meet"
-                        role="img" aria-label="United States map. Select states and apply effects.">
-                        <g v-if="mapLoaded && states.length > 0">
-                            <path v-for="state in states"
+                <div class="relative border rounded overflow-hidden">
+                    <svg
+                        version="1.1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        :viewBox="viewBoxString"
+                        preserveAspectRatio="xMidYMid meet"
+                        class="w-full h-auto bg-slate-100 select-none"
+                        style="touch-action: none;"
+                        @pointerdown="startPan"
+                        @pointermove="onPan"
+                        @pointerup="endPan"
+                        @pointerleave="endPan"
+                        @pointercancel="endPan"
+                        @wheel.prevent="onWheel"
+                        @contextmenu.prevent
+                    >
+                        <g v-if="mapLoaded">
+                            <path
+                                v-for="state in states"
                                 :key="state.pk"
                                 :d="getStatePath(state)"
-                                :id="state.fields.abbr"
-                                @click="toggleStateSelection(state.pk)"
-                                @mouseover="highlightState(state.pk)"
-                                @mouseout="unhighlightState()"
-                                @focus="highlightState(state.pk)"
-                                @blur="unhighlightState()"
-                                @keydown.enter.prevent="toggleStateSelection(state.pk)"
-                                @keydown.space.prevent="toggleStateSelection(state.pk)"
-                                tabindex="0"
-                                role="checkbox"
+                                :style="{
+                                    fill: getStateColor(state.pk),
+                                    stroke: getStateStroke(state.pk),
+                                    'stroke-width': getStateStrokeWidth(state.pk),
+                                    cursor: isPanning ? 'grabbing' : 'pointer'
+                                }"
                                 :aria-checked="isStateSelected(state.pk) ? 'true' : 'false'"
-                                :aria-label="state.fields.name"
-                                :style="getStateStyle(state.pk)">
-                            </path>
-                            <!-- State Labels (only on basic shapes) -->
-                            <text v-if="usingBasicShapes"
-                                v-for="state in states"
-                                :key="'text-' + state.pk"
-                                :x="getStateTextPosition(state).x"
-                                :y="getStateTextPosition(state).y"
-                                text-anchor="middle"
-                                alignment-baseline="middle"
-                                style="fill: black; font-size: 12px; pointer-events: none;">
-                                {{ state.fields.abbr }}
-                            </text>
-                            <!-- Value Labels (only on basic shapes) -->
-                            <text v-if="usingBasicShapes && Math.abs(stateEffects[state.pk] || 0) > 0.0005"
-                                v-for="state in states"
-                                :key="'value-' + state.pk"
-                                :x="getStateTextPosition(state).x"
-                                :y="getStateTextPosition(state).y + 15"
-                                text-anchor="middle"
-                                alignment-baseline="middle"
-                                style="fill: black; font-size: 10px; pointer-events: none;">
-                                {{ stateEffects[state.pk].toFixed(2) }}
-                            </text>
+                                @click="handleStateClick(state.pk)"
+                                @mouseenter="highlightState(state.pk)"
+                                @mouseleave="unhighlightState"
+                            />
                         </g>
                         <text v-else x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="text-sm">
                             Loading map data...
                         </text>
                     </svg>
+                    
+                    <!-- Zoom Controls Overlay -->
+                    <div class="absolute top-2 right-2 flex flex-col gap-2">
+                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomIn">+</button>
+                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomOut">−</button>
+                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="resetViewport">Reset</button>
+                    </div>
                 </div>
 
                 <!-- Small States, D.C. and Congressional Districts Buttons -->
-                <div class="flex flex-wrap gap-1 mt-2">
-                    <button v-if="states.find(s => s.fields.abbr === 'DC')"
-                        @click="toggleStateSelection(states.find(s => s.fields.abbr === 'DC').pk)"
-                        :class="{'bg-blue-700': isStateSelected(states.find(s => s.fields.abbr === 'DC').pk), 'bg-blue-500': !isStateSelected(states.find(s => s.fields.abbr === 'DC').pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
-                        :aria-pressed="isStateSelected(states.find(s => s.fields.abbr === 'DC').pk) ? 'true' : 'false'">
-                        D.C.
-                    </button>
-
-                    <!-- Small States -->
+                <div class="flex flex-wrap gap-1 mt-2" v-if="smallStates.length > 0 || districtStates.length > 0">
                     <button v-for="state in smallStates"
                         :key="'small-' + state.pk"
                         @click="toggleStateSelection(state.pk)"
                         :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
-                        :aria-pressed="isStateSelected(state.pk) ? 'true' : 'false'">
+                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
                         {{ state.fields.abbr }}
                     </button>
-
-                    <!-- Congressional Districts -->
-                    <button v-for="state in extraStates"
-                        :key="state.pk"
+                    <button v-for="state in districtStates"
+                        :key="'dist-' + state.pk"
                         @click="toggleStateSelection(state.pk)"
                         :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
-                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600"
-                        :aria-pressed="isStateSelected(state.pk) ? 'true' : 'false'">
-                        {{ state.fields.abbr || formatDistrictName(state.fields.name) }}
+                        class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                        {{ state.fields.abbr || state.fields.name.replace(/[^0-9]/g, '') }}
                     </button>
                 </div>
 
@@ -2072,7 +2006,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 </div>
 
                 <!-- Fallback State Dropdown -->
-                <div class="mb-4" v-if="useListEditor || !mapLoaded">
+                <div class="mb-4">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Select state</label>
                     <div class="flex items-center gap-2">
                         <select v-model="stateDropdownPk"
@@ -2126,15 +2060,17 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 <!-- All State Effects List -->
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-1">
-                        <label class="block text-xs font-medium text-gray-700">All state effects for question #{{answerId}}</label>
-                        </div>
+                        <label class="block text-xs font-medium text-gray-700">All state effects</label>
+                    </div>
                     <div class="max-h-64 overflow-y-auto bg-gray-50 p-2 rounded border text-xs">
                         <ul class="divide-y divide-gray-200">
                             <li v-for="effect in allStateEffectsForAnswer" :key="effect.pk" class="py-2 flex justify-between items-center">
                                 <div>
                                     <span class="font-semibold">{{ effect.stateName }}</span>
-                                    <span v-if="effect.candidateNickname" class="text-gray-500"> (Candidate: {{ effect.candidateNickname }})</span>
-                                    <span v-if="effect.affectedCandidateNickname" class="text-gray-500"> (Affected: {{ effect.affectedCandidateNickname }})</span>
+                                    <div class="text-xs text-gray-500">
+                                        <span v-if="effect.candidateNickname">(Candidate: {{ effect.candidateNickname }})</span>
+                                        <span v-if="effect.affectedCandidateNickname"> (Affected: {{ effect.affectedCandidateNickname }})</span>
+                                    </div>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span :class="effect.multiplier > 0 ? 'text-blue-600' : effect.multiplier < 0 ? 'text-red-600' : 'text-gray-500'">
@@ -2147,7 +2083,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                                     </button>
                                 </div>
                             </li>
-                            <li v-if="allStateEffectsForAnswer.length === 0" class="py-1 text-gray-500 italic">No state effects configured for this question.</li>
+                            <li v-if="allStateEffectsForAnswer.length === 0" class="py-1 text-gray-500 italic">No state effects configured.</li>
                         </ul>
                     </div>
                 </div>
