@@ -236,9 +236,7 @@ window.defineComponent('question-picker', {
                 "model": "campaign_trail.question",
                 "pk": newPk,
                 "fields": {
-                    "priority": 0,
-                    "description": "put description here",
-                    "likelihood": 1.0
+                    "description": "put description here"
                 }
             }
 

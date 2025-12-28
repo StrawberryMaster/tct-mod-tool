@@ -111,22 +111,6 @@ window.defineComponent('question', {
 
         <!-- Question details card -->
         <div class="bg-white rounded-lg shadow-sm mb-6 p-4">
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label :for="'priority-' + pk" class="block text-sm font-medium text-gray-700">Priority:</label>
-                    <input @input="onInput($event)" :value="priority" name="priority" type="number"
-                        :id="'priority-' + pk"
-                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label :for="'likelihood-' + pk" class="block text-sm font-medium text-gray-700">Likelihood:</label>
-                    <input @input="onInput($event)" :value="likelihood" name="likelihood" type="number"
-                        :id="'likelihood-' + pk"
-                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
-                    <div class="text-xs text-gray-500 mt-1">Higher values = more likely to appear</div>
-                </div>
-            </div>
-
             <div>
                 <label :for="'description-' + pk" class="block text-sm font-medium text-gray-700">Question text:</label>
                 <textarea
@@ -704,16 +688,6 @@ window.defineComponent('question', {
 
         description: function () {
             return Vue.prototype.$TCT.questions.get(this.pk)?.fields.description;
-        },
-
-        priority: function () {
-            this.temp_answers;
-            return Vue.prototype.$TCT.questions.get(this.pk).fields.priority;
-        },
-
-        likelihood: function () {
-            this.temp_answers;
-            return Vue.prototype.$TCT.questions.get(this.pk).fields.likelihood;
         },
 
         hasCyoaVariables: function () {

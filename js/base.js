@@ -101,9 +101,7 @@ class TCTData {
             "model": "campaign_trail.question",
             "pk": newPk,
             "fields": {
-                "priority": toClone.fields.priority,
-                "description": toClone.fields.description,
-                "likelihood": toClone.fields.likelihood
+                "description": toClone.fields.description
             }
         }
 
