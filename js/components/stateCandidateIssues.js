@@ -1104,11 +1104,12 @@ window.defineComponent('issue-state-map-editor', {
             usingBasicShapes: false,
             stateDropdownPk: null,
             renderVersion: 0,
+            
             zoom: 1,
             minZoom: 0.25,
-            maxZoom: 4,
-            baseWidth: 1025,
-            baseHeight: 595,
+            maxZoom: 10,
+            baseWidth: 1000,
+            baseHeight: 600,
             panX: 0,
             panY: 0,
             isPanning: false,
@@ -1160,6 +1161,10 @@ window.defineComponent('issue-state-map-editor', {
     mounted() {
         this.loadStateScores();
         this.loadMapData();
+        window.addEventListener('resize', this.onResize);
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.onResize);
     },
     methods: {
         resetSelection() {
@@ -1167,18 +1172,24 @@ window.defineComponent('issue-state-map-editor', {
             this.editScore = 0;
             this.editWeight = 1;
         },
+
         loadStateScores() {
             const metrics = {};
+            this.states.forEach(s => {
+                metrics[s.pk] = { score: 0, weight: 0, pk: s.pk };
+            });
+            
             this.currentEntries.forEach(entry => {
-                metrics[entry.fields.state] = {
-                    score: Number(entry.fields.state_issue_score) || 0,
-                    weight: Number(entry.fields.weight) || 0,
-                    pk: entry.pk
-                };
+                const sPk = entry.fields.state;
+                if(metrics[sPk]) {
+                    metrics[sPk].score = Number(entry.fields.state_issue_score) || 0;
+                    metrics[sPk].weight = Number(entry.fields.weight) || 0;
+                }
             });
             this.stateMetrics = metrics;
             this.renderVersion++;
         },
+
         async loadMapData() {
             try {
                 const mapping = Vue.prototype.$TCT.jet_data?.mapping_data;
@@ -1190,20 +1201,13 @@ window.defineComponent('issue-state-map-editor', {
                         return;
                     }
                 }
-                const statesWithPath = this.states.filter(s => s?.d);
-                if (statesWithPath.length) {
-                    this.mapData = statesWithPath.map(s => [s.fields.abbr, s.d]);
-                    this.mapAvailable = true;
-                    this.initializeViewport(true);
-                    return;
-                }
                 if (typeof loadDefaultUSMap === 'function') {
                     const svg = await loadDefaultUSMap();
                     if (svg) {
                         this.mapData = Vue.prototype.$TCT.getMapForPreview(svg) || [];
                         if (this.mapData.length) {
                             this.mapAvailable = true;
-                            this.fallbackViewBox = '0 0 1000 589';
+                            this.fallbackViewBox = '0 0 1000 589'; 
                             this.initializeViewport(true);
                             return;
                         }
@@ -1212,8 +1216,10 @@ window.defineComponent('issue-state-map-editor', {
             } catch (err) {
                 console.warn('Issue map load failed, falling back to grid:', err);
             }
+            
             this.createBasicStateShapes();
         },
+
         createBasicStateShapes() {
             const states = this.states;
             if (!states.length) {
@@ -1223,6 +1229,7 @@ window.defineComponent('issue-state-map-editor', {
             const cols = Math.ceil(Math.sqrt(states.length));
             const size = 40;
             const padding = 10;
+            
             this.mapData = states.map((state, index) => {
                 const row = Math.floor(index / cols);
                 const col = index % cols;
@@ -1231,11 +1238,13 @@ window.defineComponent('issue-state-map-editor', {
                 const path = `M${x},${y} h${size} v${size} h-${size} Z`;
                 return [state.fields?.abbr || `S${state.pk}`, path];
             });
+            
             this.usingBasicShapes = true;
             this.mapAvailable = true;
             this.fallbackViewBox = `0 0 ${cols * (size + padding) + 100} ${Math.ceil(states.length / cols) * (size + padding) + 100}`;
             this.initializeViewport(true);
         },
+
         initializeViewport(force = false) {
             const dims = this.resolveBaseDimensions();
             this.baseWidth = dims.width;
@@ -1243,10 +1252,9 @@ window.defineComponent('issue-state-map-editor', {
             if (!this.viewportInitialized || force) {
                 this.viewportInitialized = true;
                 this.resetViewport();
-            } else {
-                this.clampPan();
             }
         },
+
         resolveBaseDimensions() {
             const mapping = Vue.prototype.$TCT.jet_data?.mapping_data || {};
             const mapWidth = Number(mapping.x);
@@ -1256,8 +1264,9 @@ window.defineComponent('issue-state-map-editor', {
             }
             const parsed = this.parseViewBoxString(this.fallbackViewBox);
             if (parsed) return parsed;
-            return { width: 1025, height: 595 };
+            return { width: 1000, height: 600 };
         },
+
         parseViewBoxString(str) {
             if (!str) return null;
             const parts = str.split(/\s+/).map(Number);
@@ -1266,51 +1275,35 @@ window.defineComponent('issue-state-map-editor', {
             }
             return null;
         },
-        clampPan() {
-            if (!this.viewportInitialized) return;
-            const viewWidth = this.baseWidth / this.zoom;
-            const viewHeight = this.baseHeight / this.zoom;
-            const maxX = Math.max(0, this.baseWidth - viewWidth);
-            const maxY = Math.max(0, this.baseHeight - viewHeight);
-            this.panX = Math.min(Math.max(this.panX, 0), maxX);
-            this.panY = Math.min(Math.max(this.panY, 0), maxY);
-        },
+
+
         resetViewport() {
             this.zoom = 1;
             this.panX = 0;
             this.panY = 0;
-            this.clampPan();
         },
-        setZoom(next) {
-            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
-            if (!this.viewportInitialized) {
-                this.zoom = target;
-                this.clampPan();
-                return;
-            }
-            const prevWidth = this.baseWidth / this.zoom;
-            const prevHeight = this.baseHeight / this.zoom;
-            const centerX = this.panX + prevWidth / 2;
-            const centerY = this.panY + prevHeight / 2;
 
+        setZoom(next, centerPoint = null) {
+            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
+            if(target === this.zoom) return;
+
+            const oldZoom = this.zoom;
             this.zoom = target;
 
-            const newWidth = this.baseWidth / this.zoom;
-            const newHeight = this.baseHeight / this.zoom;
-            this.panX = centerX - newWidth / 2;
-            this.panY = centerY - newHeight / 2;
-            this.clampPan();
+            if (centerPoint) {
+                const scaleChange = 1 / this.zoom - 1 / oldZoom;
+                this.panX += (centerPoint.x) * scaleChange * this.zoom;
+            }
         },
-        zoomIn() {
-            this.setZoom(this.zoom * 1.25);
-        },
-        zoomOut() {
-            this.setZoom(this.zoom / 1.25);
-        },
+
+        zoomIn() { this.setZoom(this.zoom * 1.25); },
+        zoomOut() { this.setZoom(this.zoom / 1.25); },
+
         onWheel(evt) {
             const direction = evt.deltaY > 0 ? 0.9 : 1.1;
             this.setZoom(this.zoom * direction);
         },
+
         startPan(evt) {
             if (evt.pointerType === 'mouse' && evt.button !== 0) return;
             this.isPanning = true;
@@ -1319,43 +1312,58 @@ window.defineComponent('issue-state-map-editor', {
             this.svgBounds = evt.currentTarget.getBoundingClientRect();
             evt.currentTarget.setPointerCapture?.(evt.pointerId);
         },
+
         onPan(evt) {
             if (!this.isPanning || !this.svgBounds) return;
+            
             const dx = evt.clientX - this.lastPointer.x;
             const dy = evt.clientY - this.lastPointer.y;
-            if (!this.dragMoved && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
+            
+            if (!this.dragMoved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
                 this.dragMoved = true;
             }
+
             const scaleX = (this.baseWidth / this.zoom) / this.svgBounds.width;
             const scaleY = (this.baseHeight / this.zoom) / this.svgBounds.height;
+
             this.panX -= dx * scaleX;
             this.panY -= dy * scaleY;
+
             this.lastPointer = { x: evt.clientX, y: evt.clientY };
-            this.clampPan();
         },
+
         endPan(evt) {
             if (!this.isPanning) return;
             this.isPanning = false;
             this.lastPointer = null;
-            this.svgBounds = null;
             if (evt?.pointerId !== undefined) {
                 evt.currentTarget?.releasePointerCapture?.(evt.pointerId);
             }
         },
+        
+        onResize() {
+            // recalculate bounds if needed
+        },
+
         toggleStateSelection(statePk) {
-            const currentlySelected = !!this.selectedStates[statePk];
-            if (currentlySelected) {
-                const { [statePk]: _removed, ...rest } = this.selectedStates;
-                this.selectedStates = rest;
+            const isSelected = !!this.selectedStates[statePk];
+            
+            if (isSelected) {
+                delete this.selectedStates[statePk];
             } else {
-                this.selectedStates = { ...this.selectedStates, [statePk]: true };
-                const metrics = this.stateMetrics[statePk];
-                if (metrics) {
-                    this.editScore = metrics.score;
-                    this.editWeight = metrics.weight;
+                this.selectedStates[statePk] = true;
+                
+                const keys = Object.keys(this.selectedStates);
+                if (keys.length === 1) {
+                    const metrics = this.stateMetrics[statePk];
+                    if (metrics) {
+                        this.editScore = metrics.score;
+                        this.editWeight = metrics.weight;
+                    }
                 }
             }
         },
+
         handleStateClick(statePk) {
             if (this.dragMoved) {
                 this.dragMoved = false;
@@ -1363,25 +1371,30 @@ window.defineComponent('issue-state-map-editor', {
             }
             this.toggleStateSelection(statePk);
         },
+
         selectFromDropdown() {
             if (this.stateDropdownPk == null) return;
             this.toggleStateSelection(this.stateDropdownPk);
             this.stateDropdownPk = null;
         },
+
         selectAll() {
-            const updated = {};
+            const newSelection = {};
             this.states.forEach(state => {
                 if (state?.pk != null) {
-                    updated[state.pk] = true;
+                    newSelection[state.pk] = true;
                 }
             });
-            this.selectedStates = updated;
+            this.selectedStates = newSelection;
         },
+
         clearSelection() {
             this.selectedStates = {};
         },
+
         ensureEntry(statePk) {
             let entry = this.currentEntries.find(item => item.fields.state == statePk);
+            
             if (!entry) {
                 const newPk = Vue.prototype.$TCT.getNewPk();
                 entry = {
@@ -1391,76 +1404,89 @@ window.defineComponent('issue-state-map-editor', {
                         state: statePk,
                         issue: this.issuePk,
                         state_issue_score: 0,
-                        weight: 1.5
+                        weight: 1
                     }
                 };
                 Vue.prototype.$TCT.state_issue_scores[newPk] = entry;
             }
             return entry;
         },
+
         applyToSelected() {
             const targets = Object.keys(this.selectedStates).filter(pk => this.selectedStates[pk]);
             if (!targets.length) return;
+
             const score = Number(this.editScore);
             const weight = Number(this.editWeight);
+
             targets.forEach(statePk => {
                 const entry = this.ensureEntry(statePk);
                 entry.fields.state_issue_score = isNaN(score) ? 0 : score;
                 entry.fields.weight = isNaN(weight) ? 0 : weight;
             });
+
             this.loadStateScores();
-            if (localStorage.getItem('autosaveEnabled') === 'true') {
-                window.requestAutosaveDebounced?.();
-            }
+            
+            const temp = Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.filename = "";
+            Vue.prototype.$globalData.filename = temp;
         },
+
         getStateColor(statePk) {
             const score = this.stateMetrics[statePk]?.score ?? 0;
-            if (!score) return '#E5E7EB';
-            const palettePos = ['#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
-            const paletteNeg = ['#fecaca', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
-            const clamped = Math.max(-1, Math.min(1, score));
-            const bucket = Math.min(4, Math.floor(Math.abs(clamped) * 5));
-            return clamped >= 0 ? palettePos[bucket] : paletteNeg[bucket];
+            if (Math.abs(score) < 0.05) return '#f3f4f6'; 
+
+            const reds = ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
+            const blues = ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
+            
+            const intensity = Math.min(1, Math.abs(score));
+            const bucket = Math.floor(intensity * 4.99); 
+            
+            return score > 0 ? blues[bucket] : reds[bucket];
         },
+
         getStatePath(state) {
             const abbr = state.fields?.abbr;
-            if (!abbr && !state.d) return 'M0,0 h20 v20 h-20 Z';
-            let entry = this.mapData.find(item => item[0] === abbr);
-            if (!entry && abbr) {
+            if (abbr) {
+                let entry = this.mapData.find(item => item[0] === abbr);
+                if (entry) return entry[1];
                 const normalized = abbr.replaceAll('-', '_');
                 entry = this.mapData.find(item => item[0] === normalized);
+                if (entry) return entry[1];
             }
-            if (!entry && state.d) {
-                return state.d;
-            }
-            return entry ? entry[1] : 'M0,0 h20 v20 h-20 Z';
+            if (state.d) return state.d;
+            return 'M0,0 h20 v20 h-20 Z';
         },
+
         stateStroke(statePk) {
-            if (this.selectedStates[statePk]) return '#111827';
-            if (this.highlightedState === statePk) return '#1d4ed8';
-            return '#4b5563';
+            if (this.selectedStates[statePk]) return '#000000';
+            if (this.highlightedState == statePk) return '#666666';
+            return '#a1a1aa';
         },
+
         strokeWidth(statePk) {
-            if (this.selectedStates[statePk]) return 2.25;
-            if (this.highlightedState === statePk) return 1.8;
-            return 1;
+            if (this.selectedStates[statePk]) return 2.5;
+            if (this.highlightedState == statePk) return 1.5;
+            return 0.75;
         },
+
         onMouseEnter(statePk) {
             this.highlightedState = statePk;
         },
+
         onMouseLeave() {
             this.highlightedState = null;
         }
     },
     template: `
     <div class="space-y-4">
-        <div v-if="mapAvailable" class="relative border rounded overflow-hidden">
+        <div v-if="mapAvailable" class="relative border rounded overflow-hidden shadow-inner bg-slate-50">
             <svg
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
                 :viewBox="viewBoxString"
                 preserveAspectRatio="xMidYMid meet"
-                class="w-full h-auto bg-slate-100 select-none"
+                class="w-full h-96 select-none cursor-move"
                 style="touch-action: none;"
                 @pointerdown="startPan"
                 @pointermove="onPan"
@@ -1468,7 +1494,6 @@ window.defineComponent('issue-state-map-editor', {
                 @pointerleave="endPan"
                 @pointercancel="endPan"
                 @wheel.prevent="onWheel"
-                @contextmenu.prevent
             >
                 <g :key="renderVersion">
                     <path
@@ -1479,109 +1504,93 @@ window.defineComponent('issue-state-map-editor', {
                             fill: getStateColor(state.pk),
                             stroke: stateStroke(state.pk),
                             'stroke-width': strokeWidth(state.pk),
-                            cursor: isPanning ? 'grabbing' : 'grab'
+                            cursor: 'pointer',
+                            transition: 'fill 0.2s ease'
                         }"
-                        @click="handleStateClick(state.pk)"
+                        @pointerdown.stop
+                        @click.stop="handleStateClick(state.pk)"
                         @mouseenter="onMouseEnter(state.pk)"
                         @mouseleave="onMouseLeave"
-                        tabindex="0"
-                        @keydown.enter.prevent="handleStateClick(state.pk)"
-                        @keydown.space.prevent="handleStateClick(state.pk)"
-                        :aria-label="state.fields?.name"
-                        role="checkbox"
-                        :aria-checked="selectedStates[state.pk] ? 'true' : 'false'"
-                    />
+                        vector-effect="non-scaling-stroke"
+                    >
+                        <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>
+                    </path>
                 </g>
             </svg>
-            <div class="absolute top-2 right-2 flex flex-col gap-2">
-                <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomIn">+</button>
-                <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomOut">−</button>
-                <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="resetViewport">Reset</button>
+            
+            <div class="absolute bottom-2 right-2 flex flex-col gap-1">
+                <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
+                <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomOut">-</button>
+                <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100" @click.stop="resetViewport">Fit</button>
             </div>
-            <div class="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                {{ zoomLabel }}
+            
+            <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border">
+                <strong>Click</strong> to select, <strong>Drag</strong> to pan.
             </div>
         </div>
+
         <div v-else class="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-900">
             Unable to load map data. Please use the list below to edit state issue scores.
         </div>
 
-        <div class="bg-gray-50 border rounded p-3 space-y-3">
-            <div class="flex items-center gap-3">
-                <span class="text-xs font-semibold uppercase tracking-wide">Zoom</span>
-                <input type="range" :min="minZoom" :max="maxZoom" step="0.05" v-model.number="zoom" class="flex-1">
-                <span class="text-xs text-gray-600 w-12 text-right">{{ zoomLabel }}</span>
-                <button class="bg-gray-200 px-2 py-1 rounded hover:bg-gray-300 text-xs" @click="resetViewport">Reset</button>
+        <div class="bg-gray-100 border rounded p-4 shadow-sm">
+            <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                
+                <div class="grid grid-cols-2 gap-4 grow w-full md:w-auto">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Issue Score (-1 to 1)</label>
+                        <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore" 
+                            class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Weight</label>
+                        <input type="number" step="0.1" min="0" v-model.number="editWeight" 
+                            class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="1.0">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button
+                        class="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed grow md:grow-0 font-medium transition-colors"
+                        :disabled="selectedCount === 0"
+                        @click="applyToSelected"
+                    >
+                        Apply to {{ selectedCount || 0 }} selected
+                    </button>
+                    
+                    <button class="bg-white border text-gray-700 px-3 py-2 rounded hover:bg-gray-50" @click="clearSelection">
+                        Clear
+                    </button>
+                    <button class="bg-white border text-gray-700 px-3 py-2 rounded hover:bg-gray-50" @click="selectAll">
+                        All
+                    </button>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-600">
-                <label class="flex flex-col gap-1">
-                    <span class="font-semibold uppercase tracking-wide">X shift</span>
-                    <input type="range" min="0" :max="baseWidth" step="1" v-model.number="centerX">
-                </label>
-                <label class="flex flex-col gap-1">
-                    <span class="font-semibold uppercase tracking-wide">Y shift</span>
-                    <input type="range" min="0" :max="baseHeight" step="1" v-model.number="centerY">
-                </label>
-            </div>
+            <p v-if="selectedCount > 0" class="text-xs text-gray-500 mt-2">
+                Editing: {{ Object.keys(selectedStates).map(pk => states.find(s=>s.pk==pk)?.fields.abbr).join(', ') }}
+            </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                    <select v-model.number="stateDropdownPk" class="border rounded p-2 grow">
-                        <option :value="null" disabled>Select state…</option>
-                        <option v-for="state in states" :key="state.pk" :value="state.pk">
-                            {{ state.fields?.abbr }} - {{ state.fields?.name }}
-                        </option>
-                    </select>
-                    <button
-                        class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                        @click="selectFromDropdown"
-                    >Select</button>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" @click="selectAll">Select all</button>
-                    <button class="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400" @click="clearSelection">Clear</button>
-                    <span class="text-sm text-gray-500 ml-auto">{{ selectedCount }} selected</span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="block text-sm">
-                        Issue score
-                        <input type="number" step="0.01" min="-1" max="1" v-model.number="editScore" class="mt-1 w-full border rounded p-2">
-                    </label>
-                    <label class="block text-sm">
-                        Issue weight
-                        <input type="number" step="0.01" v-model.number="editWeight" class="mt-1 w-full border rounded p-2">
-                    </label>
-                </div>
-
-                <button
-                    class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="selectedCount === 0"
-                    @click="applyToSelected"
-                >
-                    Apply to selected states ({{ selectedCount }})
-                </button>
-            </div>
-
-            <div class="border rounded divide-y max-h-64 overflow-y-auto">
-                <div
-                    v-for="state in sortedStateMetrics"
-                    :key="state.pk"
-                    class="flex items-center justify-between px-3 py-2 text-sm"
-                >
+        <div class="border rounded divide-y max-h-64 overflow-y-auto bg-white">
+            <div
+                v-for="state in sortedStateMetrics"
+                :key="state.pk"
+                class="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                :class="{'bg-blue-50': selectedStates[state.pk]}"
+                @click="toggleStateSelection(state.pk)"
+            >
+                <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 rounded-full border shadow-sm" :style="{backgroundColor: getStateColor(state.pk)}"></div>
                     <div>
-                        <div class="font-medium">{{ state.abbr }} — {{ state.name }}</div>
-                        <div class="text-xs text-gray-500">Score: {{ state.score.toFixed(2) }} · Weight: {{ state.weight.toFixed(2) }}</div>
+                        <span class="font-medium">{{ state.name }}</span>
+                        <span class="text-gray-400 text-xs ml-1">({{ state.abbr }})</span>
                     </div>
-                    <button
-                        class="bg-gray-200 px-2 py-1 rounded hover:bg-gray-300 text-xs"
-                        @click="toggleStateSelection(state.pk)"
-                    >
-                        {{ selectedStates[state.pk] ? 'Deselect' : 'Select' }}
-                    </button>
+                </div>
+                <div class="text-xs text-gray-600 flex gap-3">
+                    <span>Score: <strong>{{ state.score.toFixed(2) }}</strong></span>
+                    <span>Wt: <strong>{{ state.weight.toFixed(2) }}</strong></span>
                 </div>
             </div>
         </div>
