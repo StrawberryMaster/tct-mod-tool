@@ -1455,8 +1455,15 @@ function loadDataFromFile(raw_json) {
         if (pk > highest_pk) highest_pk = pk;
     }
 
-    // helper to remap duplicates safely (supports both plain objects and Map containers)
+    // helper to remap duplicates safely
     function ensureUniqueAndStore(container, obj, autoRemap = false) {
+        if (!obj || typeof obj !== 'object') return;
+
+        // tolerate extra fields (volatility_range, map_bias, etc.)
+        if (!obj.fields || typeof obj.fields !== 'object') {
+            obj.fields = {};
+        }
+
         // normalize before storing so insane values don't blow up highest_pk
         normalizePk(obj);
 
