@@ -1,1 +1,0 @@
-loadData(TEMPLATE_NAMES[0], true);

@@ -168,3 +168,6 @@ function getListOfCandidates() {
         return [c, label];
     });
 }
+
+// load default template on startup
+loadData(TEMPLATE_NAMES[0], true);
