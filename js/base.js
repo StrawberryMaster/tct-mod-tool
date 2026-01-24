@@ -1457,7 +1457,7 @@ function loadDataFromFile(raw_json) {
     }
 
     // prepare JSON
-    raw_json = raw_json.replaceAll("\r", "").replaceAll(/ +/g, " ");
+    raw_json = raw_json.replaceAll("\r", "").replace(/campaignTrail_temp\.([a-zA-Z0-9_]+)\s*=\s*/g, "campaignTrail_temp.$1 = ").replaceAll(/ +/g, " ");
     const preferJSONParsePrimary = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
 
     function getSection(name, required = true, fallback = []) {
