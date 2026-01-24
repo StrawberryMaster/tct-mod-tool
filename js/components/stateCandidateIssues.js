@@ -849,20 +849,41 @@ window.defineComponent('candidate', {
     props: ['pk'],
     data() { return { temp: [0] }; },
     template: `
-    <div class="mx-auto bg-gray-100 p-4">
-        <button class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="deleteCandidate()">Delete Candidate</button><br>
-        <h1 class="font-bold">Candidate PK {{this.pk}} <span v-if="nickname" class="italic text-gray-400">({{this.nickname}})</span></h1><br>
-        <br>
-        <p>A nickname will display next to a candidate's pk so you know who they are more easily!</p>
-        <label for="nickname">Nickname:</label><br>
-        <input @input="onInputNickname($event)" :value="nickname" name="nickname" type="text"><br><br>
-        <details open>
-        <summary>Candidate State Multipliers ({{this.stateMultipliersForCandidate.length}})</summary>
-        <button @click="generateStateMultipliers()" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-if="stateMultipliersForCandidate.length == 0">Generate Missing State Multipliers</button>
-        <ul>
-            <candidate-state-multiplier v-for="c in stateMultipliersForCandidate" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
-        </ul>
-        </details>
+    <div class="bg-white rounded-lg shadow-sm mx-auto">
+        <div class="border-b p-4 flex justify-between items-center">
+            <div>
+                <h1 class="font-bold text-xl">Candidate PK {{ this.pk }} <span v-if="nickname" class="italic text-gray-400">({{ nickname }})</span></h1>
+            </div>
+            <button @click="deleteCandidate" class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm">
+                Delete candidate
+            </button>
+        </div>
+
+        <div class="p-4 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nickname</label>
+                <input @input="onInputNickname($event)" :value="nickname" name="nickname" type="text"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="e.g. J. Smith">
+                <p class="text-xs text-gray-500 mt-1">A nickname will display next to a candidate's PK, so you know who they are more easily!</p>
+            </div>
+
+            <details open class="border rounded-md">
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">
+                    Candidate state multipliers ({{ this.stateMultipliersForCandidate.length }})
+                </summary>
+                <div class="p-4">
+                    <button @click="generateStateMultipliers()"
+                        class="bg-green-500 text-white px-3 py-1 rounded-sm hover:bg-green-600 mb-3"
+                        v-if="stateMultipliersForCandidate.length == 0">
+                        Generate missing state multipliers
+                    </button>
+                    <ul class="space-y-2">
+                        <candidate-state-multiplier v-for="c in stateMultipliersForCandidate" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
+                    </ul>
+                </div>
+            </details>
+        </div>
     </div>
     `,
     methods: {
