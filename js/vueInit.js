@@ -1,146 +1,170 @@
-let app;
 const { createApp, reactive, ref, computed, watch } = Vue;
 
-let autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
-const autosave = localStorage.getItem("autosave");
-let autosaveFunction = null;
+Vue.prototype = Vue.prototype || {};
 
-// keep a global mirror for other scripts/components
+let app = null;
+let autosaveInterval = null;
+let autosaveEnabled = localStorage.getItem("autosaveEnabled") === "true";
+const autosaveData = localStorage.getItem("autosave");
+
+// global exports
 window.autosaveEnabled = autosaveEnabled;
-// optionally expose the function too (function declarations are global, but this is explicit)
-window.saveAutosave = window.saveAutosave || saveAutosave;
+window.saveAutosave = saveAutosave;
 
-// Debounced autosave helper exposed globally
-let _autosaveDebounceTimer = null;
-function requestAutosaveDebounced(delay = 600) {
-    // only queue if autosave is enabled
-    if (localStorage.getItem("autosaveEnabled") !== "true") return;
-    clearTimeout(_autosaveDebounceTimer);
-    _autosaveDebounceTimer = setTimeout(() => {
-        try { saveAutosave(); } catch (e) { console.error(e); }
-    }, delay);
-}
+// debounced autosave request
+const requestAutosaveDebounced = (() => {
+    let timer = null;
+    return (delay = 600) => {
+        if (!autosaveEnabled) return;
+
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            requestAnimationFrame(() => {
+                try { saveAutosave(); }
+                catch (e) { console.error("Autosave failed:", e); }
+            });
+        }, delay);
+    };
+})();
 window.requestAutosaveDebounced = requestAutosaveDebounced;
 
 if (autosaveEnabled) {
     startAutosave();
 }
 
-const QUESTION = "QUESTION";
-const STATE = "STATE";
-const ISSUE = "ISSUE";
-const CANDIDATE = "CANDIDATE";
-const CYOA = "CYOA";
-const BANNER = "BANNER";
-const ENDINGS = "ENDINGS";
-const MAPPING = "MAPPING";
-const BULK = "BULK";
+const MODES = {
+    QUESTION: "QUESTION",
+    STATE: "STATE",
+    ISSUE: "ISSUE",
+    CANDIDATE: "CANDIDATE",
+    CYOA: "CYOA",
+    BANNER: "BANNER",
+    ENDINGS: "ENDINGS",
+    MAPPING: "MAPPING",
+    BULK: "BULK"
+};
+Object.assign(window, MODES);
 
 function shouldBeSavedAsNumber(value) {
-    return !isNaN(value) && !(value != "0" && Number(value) == 0);
+    return !isNaN(value) && !(value != "0" && Number(value) === 0);
 }
 
 function startAutosave() {
-    autosaveFunction = setInterval(saveAutosave, 15000);
+    if (autosaveInterval) clearInterval(autosaveInterval);
+    autosaveInterval = setInterval(saveAutosave, 15000);
 }
 
 function saveAutosave() {
-    const tct = Vue?.prototype?.$TCT;
+    const tct = Vue.prototype.$TCT;
     if (!tct || typeof tct.exportCode2 !== 'function') return;
-    let code2 = tct.exportCode2();
-    localStorage.setItem("autosave", code2);
+
     try {
+        const code2 = tct.exportCode2();
+        localStorage.setItem("autosave", code2);
         window.dispatchEvent(new CustomEvent('tct:autosaved'));
-    } catch (e) { /* no-op */ }
+    } catch (e) {
+        console.error("Error during export/save:", e);
+    }
 }
 
 function firstNonNull(arr) {
-    return arr.filter((x) => x !== null)[0]
+    return arr.find(x => x !== null);
 }
 
 async function loadData(dataName, isFirstLoad) {
-    let mode = QUESTION;
     let raw;
 
-    if (!isFirstLoad || !autosaveEnabled || !autosave) {
-        const url = `./public/${dataName}`;
-        const resp = await fetch(url, { cache: 'no-cache' });
-        if (!resp.ok) {
-            throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
-        }
-        raw = await resp.text();
-    } else {
-        raw = autosave;
-    }
-
-    if (raw == null) {
-        alert(`Loaded file ./public/${dataName} was null. Not loading.`)
-        return;
-    }
-
-    Vue.prototype.$TCT = loadDataFromFile(raw);
-
-    let isNew = app == null;
-
-    let firstQuestion = Array.from(Vue.prototype.$TCT.questions.values())[0];
-    let firstState = Object.values(Vue.prototype.$TCT.states)[0];
-    let firstIssue = Object.values(Vue.prototype.$TCT.issues)[0];
-    let firstCandidateArr = getListOfCandidates();
-    let firstCandidate = firstCandidateArr.length > 0 ? firstCandidateArr[0][0] : null;
-
-    if (isNew) {
-        app = createApp({});
-        app.config.globalProperties.$TCT = Vue.prototype.$TCT;
-        app.config.globalProperties.$globalData = reactive({
-            mode: mode,
-            question: firstQuestion ? firstQuestion.pk : null,
-            state: firstState ? firstState.pk : null,
-            issue: firstIssue ? firstIssue.pk : null,
-            candidate: firstCandidate,
-            filename: "default"
-        });
-
-        // Initialize modern component system
-        if (window.initializeTCTApp) {
-            window.initializeTCTApp(app);
+    try {
+        if (!isFirstLoad || !autosaveEnabled || !autosaveData) {
+            const url = `./public/${dataName}`;
+            const resp = await fetch(url, { cache: 'no-cache' });
+            if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
+            raw = await resp.text();
+        } else {
+            raw = autosaveData;
         }
 
-        // Keep Vue 2 prototype in sync
-        Vue.prototype.$globalData = app.config.globalProperties.$globalData;
-    }
-    else {
-        Vue.prototype.$globalData.question = firstQuestion ? firstQuestion.pk : null;
-        Vue.prototype.$globalData.state = firstState ? firstState.pk : null;
-        Vue.prototype.$globalData.issue = firstIssue ? firstIssue.pk : null;
-        Vue.prototype.$globalData.candidate = firstCandidate;
-        Vue.prototype.$globalData.filename = dataName;
-    }
+        if (!raw) {
+            alert(`Failed to load data for ${dataName}.`);
+            return;
+        }
 
-    console.log("Loaded data: ", raw);
-    console.log("Mode is: ", Vue.prototype.$globalData.mode)
+        const parsedTCT = loadDataFromFile(raw);
 
-    if (isNew) {
-        app.mount('#app')
+        // attach to Vue prototype for global access
+        Vue.prototype.$TCT = parsedTCT;
+
+        const questions = Array.from(parsedTCT.questions.values());
+
+        const states = Object.values(parsedTCT.states ?? {});
+        const issues = Object.values(parsedTCT.issues ?? {});
+
+        // get the first PKs
+        const firstQuestionPk = questions.length > 0 ? questions[0].pk : null;
+        const firstStatePk = states.length > 0 ? states[0].pk : null;
+        const firstIssuePk = issues.length > 0 ? issues[0].pk : null;
+
+        const candidatesList = getListOfCandidates();
+        const firstCandidate = candidatesList.length > 0 ? candidatesList[0][0] : null;
+
+        // initialize or update app
+        if (!app) {
+            app = createApp({});
+            app.config.globalProperties.$TCT = parsedTCT;
+
+            const globalData = reactive({
+                mode: MODES.QUESTION,
+                question: firstQuestionPk,
+                state: firstStatePk,
+                issue: firstIssuePk,
+                candidate: firstCandidate,
+                filename: "default"
+            });
+
+            app.config.globalProperties.$globalData = globalData;
+
+            if (typeof window.initializeTCTApp === 'function') {
+                window.initializeTCTApp(app);
+            }
+
+            Vue.prototype.$globalData = globalData;
+            app.mount('#app');
+        }
+        else {
+            const gd = app.config.globalProperties.$globalData;
+            gd.question = firstQuestionPk;
+            gd.state = firstStatePk;
+            gd.issue = firstIssuePk;
+            gd.candidate = firstCandidate;
+            gd.filename = dataName;
+
+            app.config.globalProperties.$TCT = parsedTCT;
+        }
+
+        console.log(`Loaded data. Mode:`, app.config.globalProperties.$globalData.mode);
+
+    } catch (err) {
+        console.error("Critical error in loadData:", err);
+        alert("Zoinks! Error loading data. Check console for details.");
     }
 }
 
 function getListOfCandidates() {
-
-    if (Object.values(Vue.prototype.$TCT.candidate_issue_score).length == 0) {
+    const scores = Vue.prototype.$TCT?.candidate_issue_score;
+    if (!scores || Object.keys(scores).length === 0) {
         return [[null, null]];
     }
 
-    let arr = Object.values(Vue.prototype.$TCT.candidate_issue_score).map(c => c.fields.candidate);
-    arr = Array.from(new Set(arr));
-    arr = arr.map((c) => {
-        let nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
-        if (nickname != "" && nickname != null) {
-            nickname = ` (${nickname})`
-            return [c, c + nickname];
-        }
+    // extract candidate IDs
+    const allCandidates = Object.values(scores).map(c => c.fields.candidate);
 
-        return [c, c];
+    // deduplicate
+    const uniqueCandidates = [...new Set(allCandidates)];
+
+    // map to [id, label] format
+    return uniqueCandidates.map(c => {
+        const nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
+        const label = (nickname) ? `${c} (${nickname})` : c;
+        return [c, label];
     });
-
-    return arr;
 }
