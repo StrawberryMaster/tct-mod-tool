@@ -527,7 +527,7 @@ window.defineComponent('state', {
         },
 
         stateIssueScores: function () {
-            return Vue.prototype.$TCT.getIssueScoreForState(this.statePk);
+            return Vue.prototype.$TCT.getIssueScoreForState(this.statePk) || [];
         },
 
         stateIssueScoresWithNames: function () {
@@ -624,9 +624,11 @@ window.defineComponent('state-issue-score', {
     `,
     methods: {
         onInput: function (evt) {
+            const entry = Vue.prototype.$TCT?.state_issue_scores?.[this.pk];
+            if (!entry) return;
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.state_issue_scores[this.pk].fields[evt.target.name] = value;
+            entry.fields[evt.target.name] = value;
         },
         getIssueName: function (issuePk) {
             if (!Vue.prototype.$TCT.issues[issuePk]) return 'Unknown Issue';
@@ -636,24 +638,24 @@ window.defineComponent('state-issue-score', {
     computed: {
         issues: function () {
             let a = [Vue.prototype.$globalData.filename];
-            return Object.values(Vue.prototype.$TCT.issues);
+            return Object.values(Vue.prototype.$TCT?.issues || {});
         },
         currentIssue: function () {
-            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.issue;
+            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.issue;
         },
         stateName: function () {
-            const statePK = Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state;
-            return Vue.prototype.$TCT.states[statePK]?.fields.name;
+            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
+            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.name || '';
         },
         stateIssueScore: function () {
-            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state_issue_score;
+            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state_issue_score ?? 0;
         },
         weight: function () {
-            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.weight;
+            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.weight ?? 0;
         },
         stateAbbr: function () {
-            const statePK = Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state;
-            return Vue.prototype.$TCT.states[statePK]?.fields.abbr;
+            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
+            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.abbr || '';
         }
     }
 })
@@ -741,25 +743,27 @@ window.defineComponent('issue', {
     computed: {
         issuePk() { return Number(this.pk); },
         name: function () {
-            return Vue.prototype.$TCT.issues[this.issuePk].fields.name;
+            return Vue.prototype.$TCT?.issues?.[this.issuePk]?.fields?.name || '';
         },
         description: function () {
-            if (Vue.prototype.$TCT.issues[this.issuePk].fields.description == null || Vue.prototype.$TCT.issues[this.issuePk].fields.description == "'") {
-                Vue.prototype.$TCT.issues[this.issuePk].fields.description = "";
+            const issue = Vue.prototype.$TCT?.issues?.[this.issuePk];
+            if (!issue || !issue.fields) return '';
+            if (issue.fields.description == null || issue.fields.description == "'") {
+                issue.fields.description = "";
             }
-            return Vue.prototype.$TCT.issues[this.issuePk].fields.description;
+            return issue.fields.description;
         },
         candidateIssueScores: function () {
-            return Vue.prototype.$TCT.getCandidateIssueScoreForIssue(this.issuePk);
+            return Vue.prototype.$TCT?.getCandidateIssueScoreForIssue?.(this.issuePk) || [];
         },
         runningMateIssueScores: function () {
-            return Vue.prototype.$TCT.getRunningMateIssueScoreForIssue(this.issuePk);
+            return Vue.prototype.$TCT?.getRunningMateIssueScoreForIssue?.(this.issuePk) || [];
         },
         stateIssueScores: function () {
-            return Vue.prototype.$TCT.getStateIssueScoresForIssue(this.issuePk);
+            return Vue.prototype.$TCT?.getStateIssueScoresForIssue?.(this.issuePk) || [];
         },
         issueCount() {
-            return Object.keys(Vue.prototype.$TCT.issues).length;
+            return Object.keys(Vue.prototype.$TCT?.issues || {}).length;
         },
         canDelete() {
             return this.issueCount > 1;
@@ -888,8 +892,11 @@ window.defineComponent('candidate', {
     `,
     methods: {
         generateStateMultipliers: function () {
+            const candidatePk = Number(this.pk);
+            if (!Number.isFinite(candidatePk)) return;
+            if (typeof Vue.prototype.$TCT?.addStateMultipliersForCandidate !== 'function') return;
             this.temp = [];
-            Vue.prototype.$TCT.addStateMultipliersForCandidate(Number(this.pk));
+            Vue.prototype.$TCT.addStateMultipliersForCandidate(candidatePk);
         },
         onInput: function (evt, pk) {
             let value = evt.target.value;
