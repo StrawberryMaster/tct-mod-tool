@@ -235,7 +235,7 @@ function getCurrentVoteResults(e) {
     }
 
     // adjust state multipliers based on answers & visits
-    const visitMult = e.shining_data.visit_multiplier ?? 1;
+    const visitMult = e.shining_data?.visit_multiplier ?? 1;
 
     for (let a = 0; a < candidates.length; a++) {
         const multipliers = f[a].state_multipliers;
