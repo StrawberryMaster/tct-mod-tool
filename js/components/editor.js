@@ -187,20 +187,11 @@ window.defineComponent('toolbar', {
         toggleAutosave: function (evt) {
             if (!autosaveEnabled) {
                 localStorage.setItem("autosaveEnabled", "true");
-                if (typeof startAutosave === 'function') startAutosave();
-                // request an immediate save
-                if (typeof requestAutosaveDebounced === 'function') requestAutosaveDebounced(0);
-            } else {
+                startAutosave();
+            }
+            else {
                 localStorage.setItem("autosaveEnabled", "false");
-                // stop the interval if it exists
-                try {
-                    if (typeof autosaveInterval !== 'undefined' && autosaveInterval) {
-                        clearInterval(autosaveInterval);
-                        autosaveInterval = null;
-                    }
-                } catch (e) {
-                    console.warn("Failed to clear autosave interval:", e);
-                }
+                clearInterval(autosaveFunction);
             }
 
             autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";

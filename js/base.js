@@ -47,34 +47,8 @@ class TCTData {
         this.answer_feedback = answer_feedback
         this.states = states
         this.jet_data = jet_data
-        this._indices = {};
 
         this.cleanAllData();
-    }
-
-    // helper to clear cache when data is modified
-    _invalidateCache(key) {
-        if (this._indices[key]) {
-            this._indices[key] = null;
-        }
-    }
-
-    // generic index builder to replace o(n) filters
-    _getFromIndex(indexName, sourceData, fieldKey, lookupValue) {
-        if (!this._indices[indexName]) {
-            const index = new Map();
-            const values = Object.values(sourceData);
-            for (let i = 0; i < values.length; i++) {
-                const item = values[i];
-                const key = item.fields[fieldKey];
-                if (!index.has(key)) {
-                    index.set(key, []);
-                }
-                index.get(key).push(item);
-            }
-            this._indices[indexName] = index;
-        }
-        return this._indices[indexName].get(lookupValue) || [];
     }
 
     cleanAllData() {
@@ -96,7 +70,7 @@ class TCTData {
     cleanMap(map) {
         for (let [key, value] of map) {
             if (value && typeof value === 'object') {
-                this.clean(value);
+                this.clean(map.get(key));
             }
         }
     }
@@ -107,14 +81,9 @@ class TCTData {
         for (let key in obj) {
             const val = obj[key];
             if (typeof val === 'string') {
-                // checks for integer, float, leading dot, trailing dot
-                if (/^-?(\d+(\.\d*)?|\.\d+)$/.test(val)) {
-                    obj[key] = Number(val);
-                } else {
-                    const trimmed = val.trim();
-                    if (trimmed !== '' && !isNaN(trimmed)) {
-                        obj[key] = Number(trimmed);
-                    }
+                const trimmed = val.trim();
+                if (trimmed !== '' && !isNaN(trimmed)) {
+                    obj[key] = Number(trimmed);
                 }
             } else if (val && typeof val === 'object') {
                 this.clean(val);
@@ -136,13 +105,11 @@ class TCTData {
             }
         }
 
-        // no need to invalidate cache for questions map as it isn't indexed by foreign key
-        this.questions.set(newPk, question);
-
         for (let i = 0; i < answers.length; i++) {
             this.cloneAnswer(answers[i], newPk);
         }
 
+        this.questions.set(newPk, question);
         return question;
     }
 
@@ -153,11 +120,7 @@ class TCTData {
             if (!Array.isArray(newOrderPks) || newOrderPks.length !== current.length) {
                 console.warn("reorderQuestions: new order length mismatch");
             }
-            const lookup = new Map();
-            for (let i = 0; i < current.length; i++) {
-                lookup.set(current[i].pk, current[i]);
-            }
-
+            const lookup = new Map(current.map(q => [q.pk, q]));
             // validate that provided PKs are all present
             for (const pk of newOrderPks) {
                 if (!lookup.has(pk)) {
@@ -216,7 +179,6 @@ class TCTData {
                 }
             };
         });
-        this._invalidateCache('candidate_issue_score_by_issue');
 
         const runningMateScores = this.getRunningMateIssueScoreForIssue(sourcePk);
         runningMateScores.forEach(score => {
@@ -230,7 +192,6 @@ class TCTData {
                 }
             };
         });
-        this._invalidateCache('running_mate_issue_score_by_issue');
 
         const stateScores = this.getStateIssueScoresForIssue(sourcePk);
         stateScores.forEach(score => {
@@ -244,7 +205,6 @@ class TCTData {
                 }
             };
         });
-        this._invalidateCache('state_issue_scores_by_issue');
 
         return clonedIssue;
     }
@@ -267,17 +227,14 @@ class TCTData {
         candidateScores.forEach(score => {
             delete this.candidate_issue_score[score.pk];
         });
-        this._invalidateCache('candidate_issue_score_by_issue');
 
         runningMateScores.forEach(score => {
             delete this.running_mate_issue_score[score.pk];
         });
-        this._invalidateCache('running_mate_issue_score_by_issue');
 
         stateScores.forEach(score => {
             delete this.state_issue_scores[score.pk];
         });
-        this._invalidateCache('state_issue_scores_by_issue');
     }
 
     cloneAnswer(toClone, newQuestionPk) {
@@ -291,7 +248,6 @@ class TCTData {
             }
         }
         this.answers[newPk] = answer;
-        this._invalidateCache('answers_by_question');
 
         const feedbacks = this.getAdvisorFeedbackForAnswer(toClone.pk);
         for (let i = 0; i < feedbacks.length; i++) {
@@ -328,7 +284,6 @@ class TCTData {
             }
         }
         this.answer_feedback[newPk] = feedback;
-        this._invalidateCache('feedback_by_answer');
     }
 
     cloneGlobalScore(toClone, newAnswerPk) {
@@ -344,7 +299,6 @@ class TCTData {
             }
         }
         this.answer_score_global[newPk] = globalScore;
-        this._invalidateCache('global_score_by_answer');
     }
 
     cloneIssueScore(toClone, newAnswerPk) {
@@ -360,7 +314,6 @@ class TCTData {
             }
         }
         this.answer_score_issue[newPk] = issueScore;
-        this._invalidateCache('issue_score_by_answer');
     }
 
     cloneStateScore(toClone, newAnswerPk) {
@@ -377,7 +330,6 @@ class TCTData {
             }
         }
         this.answer_score_state[newPk] = stateScore;
-        this._invalidateCache('state_score_by_answer');
     }
 
     getNewPk() {
@@ -387,55 +339,55 @@ class TCTData {
     }
 
     getAnswersForQuestion(pk) {
-        return this._getFromIndex('answers_by_question', this.answers, 'question', pk);
+        return Object.values(this.answers).filter(answer => answer.fields.question == pk);
     }
 
     getAdvisorFeedbackForAnswer(pk) {
-        return this._getFromIndex('feedback_by_answer', this.answer_feedback, 'answer', pk);
+        return Object.values(this.answer_feedback).filter(feedback => feedback.fields.answer == pk);
     }
 
     getGlobalScoreForAnswer(pk) {
-        return this._getFromIndex('global_score_by_answer', this.answer_score_global, 'answer', pk);
+        return Object.values(this.answer_score_global).filter(x => x.fields.answer == pk);
     }
 
     getStateScoreForAnswer(pk) {
-        return this._getFromIndex('state_score_by_answer', this.answer_score_state, 'answer', pk);
+        return Object.values(this.answer_score_state).filter(x => x.fields.answer == pk);
     }
 
     getIssueScoreForAnswer(pk) {
-        return this._getFromIndex('issue_score_by_answer', this.answer_score_issue, 'answer', pk);
+        return Object.values(this.answer_score_issue).filter(x => x.fields.answer == pk);
     }
 
     getIssueScoreForState(pk) {
-        return this._getFromIndex('state_issue_scores_by_state', this.state_issue_scores, 'state', pk);
+        return Object.values(this.state_issue_scores).filter(x => x.fields.state == pk);
     }
 
     getStateIssueScoresForIssue(pk) {
-        return this._getFromIndex('state_issue_scores_by_issue', this.state_issue_scores, 'issue', pk);
+        return Object.values(this.state_issue_scores).filter(x => x.fields.issue == pk);
     }
 
     getIssueScoreForCandidate(pk) {
-        return this._getFromIndex('candidate_issue_score_by_candidate', this.candidate_issue_score, 'candidate', pk);
+        return Object.values(this.candidate_issue_score).filter(x => x.fields.candidate == pk);
     }
 
     getStateMultiplierForCandidate(pk) {
-        return this._getFromIndex('candidate_state_multiplier_by_candidate', this.candidate_state_multiplier, 'candidate', pk);
+        return Object.values(this.candidate_state_multiplier).filter(x => x.fields.candidate == pk);
     }
 
     getCandidateIssueScoreForIssue(pk) {
-        return this._getFromIndex('candidate_issue_score_by_issue', this.candidate_issue_score, 'issue', pk);
+        return Object.values(this.candidate_issue_score).filter(x => x.fields.issue == pk);
     }
 
     getRunningMateIssueScoreForIssue(pk) {
-        return this._getFromIndex('running_mate_issue_score_by_issue', this.running_mate_issue_score, 'issue', pk);
+        return Object.values(this.running_mate_issue_score).filter(x => x.fields.issue == pk);
     }
 
     getRunningMateIssueScoreForCandidate(pk) {
-        return this._getFromIndex('running_mate_issue_score_by_candidate', this.running_mate_issue_score, 'candidate', pk);
+        return Object.values(this.running_mate_issue_score).filter(x => x.fields.candidate == pk);
     }
 
     getCandidateStateMultipliersForState(pk) {
-        return this._getFromIndex('candidate_state_multiplier_by_state', this.candidate_state_multiplier, 'state', pk);
+        return Object.values(this.candidate_state_multiplier).filter(x => x.fields.state == pk);
     }
 
     getNicknameForCandidate(pk) {
@@ -581,8 +533,7 @@ class TCTData {
     }
 
     getFirstStatePK() {
-        const vals = Object.values(this.states);
-        return vals.length > 0 ? vals[0].pk : null;
+        return Object.values(this.states)[0].pk;
     }
 
     getFirstCandidatePK() {
@@ -607,9 +558,9 @@ class TCTData {
             }
         }
         for (let i = 0; i < answerScoresToRemove.length; i++) {
-            delete this.answer_score_state[answerScoresToRemove[i]];
+            const xPk = answerScoresToRemove[i];
+            delete this.answer_score_state[xPk];
         }
-        this._invalidateCache('state_score_by_answer');
 
         var stateScoresToRemove = [];
         for (const xPk in this.state_issue_scores) {
@@ -619,10 +570,9 @@ class TCTData {
             }
         }
         for (let i = 0; i < stateScoresToRemove.length; i++) {
-            delete this.state_issue_scores[stateScoresToRemove[i]];
+            const xPk = stateScoresToRemove[i];
+            delete this.state_issue_scores[xPk];
         }
-        this._invalidateCache('state_issue_scores_by_state');
-        this._invalidateCache('state_issue_scores_by_issue');
 
         var csm = [];
         for (const xPk in this.candidate_state_multiplier) {
@@ -632,10 +582,9 @@ class TCTData {
             }
         }
         for (let i = 0; i < csm.length; i++) {
-            delete this.candidate_state_multiplier[csm[i]];
+            const xPk = csm[i];
+            delete this.candidate_state_multiplier[xPk];
         }
-        this._invalidateCache('candidate_state_multiplier_by_state');
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
 
         delete this.states[pk];
     }
@@ -693,27 +642,21 @@ class TCTData {
         // fallback: regex parsing when DOMParser is not available
         const out = [];
         const pathRegex = /<path\b[^>]*>/gi;
-        const attrRegex = /(?:^|[\s"'<])(id|data-id|d)\s*=\s*"([^"]+)"/gi;
+        // only match the real id= attribute (not data-id=)
+        const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
+        // only match the real d= attribute (avoid matching data-id=)
+        const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
 
-        let match;
-        while ((match = pathRegex.exec(svg)) !== null) {
-            const tag = match[0];
-            let id = null, d = null;
-            let attrMatch;
+        const paths = svg.match(pathRegex) || [];
+        for (let i = 0; i < paths.length; i++) {
+            const tag = paths[i];
 
-            // reset lastIndex for the tag string
-            attrRegex.lastIndex = 0;
-            while ((attrMatch = attrRegex.exec(tag)) !== null) {
-                const name = attrMatch[1];
-                const val = attrMatch[2];
-                if (name === 'd') d = val;
-                else if (!id) id = val; // prioritize first id found
-            }
+            const idMatch = idReStrict.exec(tag) || tag.match(/(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i);
+            const dMatch = dReStrict.exec(tag);
 
-            if (id && d) {
-                const abbr = id.split(" ")[0].replaceAll("-", "_");
-                out.push([abbr, d]);
-            }
+            if (!idMatch || !dMatch) continue;
+            const abbr = idMatch[1].split(" ")[0].replaceAll("-", "_");
+            out.push([abbr, dMatch[1]]);
         }
         console.log(`Regex fallback processed ${out.length} states`);
         return out;
@@ -729,8 +672,6 @@ class TCTData {
                 delete this.candidate_state_multiplier[sPk];
             }
         }
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
-        this._invalidateCache('candidate_state_multiplier_by_state');
 
         for (let i = 0; i < issueScores.length; i++) {
             const iPk = issueScores[i];
@@ -738,8 +679,6 @@ class TCTData {
                 delete this.candidate_issue_score[iPk];
             }
         }
-        this._invalidateCache('candidate_issue_score_by_candidate');
-        this._invalidateCache('candidate_issue_score_by_issue');
     }
 
     getPVForState(pk) {
@@ -774,8 +713,6 @@ class TCTData {
             }
             this.candidate_state_multiplier[cPk] = c;
         }
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
-        this._invalidateCache('candidate_state_multiplier_by_state');
     }
 
     addCandidate() {
@@ -800,8 +737,6 @@ class TCTData {
             }
             this.candidate_issue_score[iPk] = iss;
         }
-        this._invalidateCache('candidate_issue_score_by_candidate');
-        this._invalidateCache('candidate_issue_score_by_issue');
 
         return candidatePk;
     }
@@ -840,8 +775,6 @@ class TCTData {
             }
             this.candidate_state_multiplier[cPk] = c;
         }
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
-        this._invalidateCache('candidate_state_multiplier_by_state');
 
         for (let i = 0; i < issues.length; i++) {
             const iPk = this.getNewPk();
@@ -858,7 +791,6 @@ class TCTData {
             }
             this.state_issue_scores[iPk] = iss;
         }
-        this._invalidateCache('state_issue_scores_by_state');
 
         return newPk;
     }
@@ -869,7 +801,6 @@ class TCTData {
 
         const existingStateKeys = Object.keys(this.states);
         existingStateKeys.forEach((x) => this.deleteState(x));
-        // clear related caches handled by deleteState
 
         const svg = this.jet_data.mapping_data.mapSvg || "";
         const electionPk = this.jet_data.mapping_data.electionPk ?? -1;
@@ -1011,9 +942,6 @@ class TCTData {
                 }
             }
         }
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
-        this._invalidateCache('candidate_state_multiplier_by_state');
-        this._invalidateCache('state_issue_scores_by_state');
     }
 
     getMapCode() {
@@ -1037,90 +965,105 @@ class TCTData {
     }
 
     exportCode2() {
-        const parts = [];
+
+        let f = "";
 
         if (this.jet_data.mapping_enabled) {
-            parts.push("\n// Generated mapping code\n", this.getMapCode());
+            f += "\n// Generated mapping code\n" + this.getMapCode();
             this.jet_data.mapping_data.mapSvg = '';
-            parts.push("\n\n");
+            f += "\n\n";
         }
 
-        parts.push(this.getCYOACode());
+        f += this.getCYOACode();
 
-        parts.push("campaignTrail_temp.questions_json = ");
-        let x = JSON.stringify(Array.from(this.questions.values()), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.questions_json = ")
+        let x = JSON.stringify(Array.from(this.questions.values()), null, 4).replaceAll("â€™", "\'")
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.answers_json = ");
-        x = JSON.stringify(Object.values(this.answers), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.answers_json = ")
+        x = JSON.stringify(Object.values(this.answers), null, 4).replaceAll("â€™", "\'")
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.states_json = ");
-        x = JSON.stringify(Object.values(this.states), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.states_json = ")
+        x = JSON.stringify(Object.values(this.states), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.issues_json = ");
-        x = JSON.stringify(Object.values(this.issues), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.issues_json = ")
+        x = JSON.stringify(Object.values(this.issues), null, 4).replaceAll("â€™", "\'")
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.state_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.state_issue_scores), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.state_issue_score_json = ")
+        x = JSON.stringify(Object.values(this.state_issue_scores), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.candidate_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.candidate_issue_score), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.candidate_issue_score_json = ")
+        x = JSON.stringify(Object.values(this.candidate_issue_score), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.running_mate_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.running_mate_issue_score), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.running_mate_issue_score_json = ")
+        x = JSON.stringify(Object.values(this.running_mate_issue_score), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.candidate_state_multiplier_json = ");
-        x = JSON.stringify(Object.values(this.candidate_state_multiplier), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.candidate_state_multiplier_json = ")
+        x = JSON.stringify(Object.values(this.candidate_state_multiplier), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.answer_score_global_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_global), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.answer_score_global_json = ")
+        x = JSON.stringify(Object.values(this.answer_score_global), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.answer_score_issue_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_issue), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.answer_score_issue_json = ")
+        x = JSON.stringify(Object.values(this.answer_score_issue), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.answer_score_state_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_state), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.answer_score_state_json = ")
+        x = JSON.stringify(Object.values(this.answer_score_state), null, 4)
+        f += (x)
+        f += ("\n\n")
 
-        parts.push("campaignTrail_temp.answer_feedback_json = ");
-        x = JSON.stringify(Object.values(this.answer_feedback), null, 4);
-        parts.push(x, "\n\n");
+        f += ("campaignTrail_temp.answer_feedback_json = ")
+        x = JSON.stringify(Object.values(this.answer_feedback), null, 4)
+        f += (x)
+        f += ("\n\n")
 
         const code = this.jet_data.code_to_add;
         delete this.jet_data.code_to_add;
 
         if (this.jet_data.banner_enabled) {
-            parts.push(
-                `campaignTrail_temp.candidate_image_url = "${this.jet_data.banner_data.canImage}";\n`,
-                `campaignTrail_temp.running_mate_image_url = "${this.jet_data.banner_data.runImage}";\n`,
-                `campaignTrail_temp.candidate_last_name = "${this.jet_data.banner_data.canName}";\n`,
-                `campaignTrail_temp.running_mate_last_name = "${this.jet_data.banner_data.runName}";\n\n`
-            );
+            f += `campaignTrail_temp.candidate_image_url = "${this.jet_data.banner_data.canImage}";\n`;
+            f += `campaignTrail_temp.running_mate_image_url = "${this.jet_data.banner_data.runImage}";\n`;
+            f += `campaignTrail_temp.candidate_last_name = "${this.jet_data.banner_data.canName}";\n`;
+            f += `campaignTrail_temp.running_mate_last_name = "${this.jet_data.banner_data.runName}";\n\n`;
         }
 
-        parts.push(this.getEndingCode());
+        f += this.getEndingCode();
 
         if (code) {
-            parts.push("//#startcode", code, "//#endcode");
+            f += "//#startcode";
+            f += code;
+            f += "//#endcode"
         }
 
-        parts.push("\n\ncampaignTrail_temp.jet_data = [");
-        x = JSON.stringify(this.jet_data, null, 4);
+        f += ("\n\ncampaignTrail_temp.jet_data = [")
+        x = JSON.stringify(this.jet_data, null, 4)
 
         this.jet_data.code_to_add = code;
 
-        parts.push(x, "\n]", "\n\n");
+        f += (x)
+        f += "\n]"
+        f += ("\n\n")
 
-        return parts.join("");
+        return f
     }
 
     getEndingCode() {
@@ -1206,7 +1149,7 @@ function getQuestionNumberFromPk(pk) {
   return getJumpIndexFromPk(pk);
 }`
 
-            // add variable declarations
+            // Add variable declarations
             const variables = this.getAllCyoaVariables();
             if (variables.length > 0) {
                 f += "\n\n// CYOA Variables\n";
@@ -1218,10 +1161,10 @@ function getQuestionNumberFromPk(pk) {
             f += `\ncyoAdventure = function (a) {
     ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length-1];\n`
 
-            // add variable effects grouped by answers
+            // Add variable effects grouped by answers
             const variableEffects = this.getAllCyoaVariableEffects();
             if (variableEffects.length > 0) {
-                // group effects by answer and operation
+                // Group effects by answer and operation
                 const effectGroups = {};
                 for (let effect of variableEffects) {
                     const key = `${effect.variable}_${effect.operation}_${effect.amount}`;
@@ -1230,13 +1173,13 @@ function getQuestionNumberFromPk(pk) {
                             variable: effect.variable,
                             operation: effect.operation,
                             amount: effect.amount,
-                             answers: []
+                            answers: []
                         };
                     }
                     effectGroups[key].answers.push(effect.answer);
                 }
 
-                // generate effect code
+                // Generate effect code
                 for (let groupKey in effectGroups) {
                     const group = effectGroups[groupKey];
                     const operator = group.operation === 'add' ? '+=' : '-=';
@@ -1252,7 +1195,7 @@ function getQuestionNumberFromPk(pk) {
             let events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
 
             if (events.length > 0) {
-                f += "\n    // Branching logic\n";
+                f += "\n    // Branching Logic\n";
                 for (let i = 0; i < events.length; i++) {
                     f += `    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
         campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
@@ -1273,7 +1216,7 @@ function getQuestionNumberFromPk(pk) {
 
 function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = []) {
     let f = raw_file;
-    let res;
+    let res; // declare once; prevent implicit global
 
     if (!f.includes(start)) {
         if (backup != null) {
@@ -1282,17 +1225,22 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
         }
         console.log(`ERROR: Start [${start}] not in file provided, returning none`);
         if (required) {
-            console.warn(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it.`);
+            alert(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it, but the editor may be missing some features because the section is missing. Please check your base scenario.`);
         }
         return fallback;
     }
 
-    // try smart extraction for JSON.parse(...) wrappers
+    // better handling for JSON.parse
     if (start.includes("JSON.parse")) {
+        // get portion after the start marker (preserve original spacing)
         let startString = f.split(start)[1] || "";
-        let s = startString.trimStart();
-        const firstChar = s[0];
 
+        // trim leading whitespace but keep the rest for parsing
+        let s = startString.trimStart();
+
+        // if the next char is a quote, extract the JS string literal robustly,
+        // respecting backslash escapes so we don't prematurely end on an escaped quote
+        const firstChar = s[0];
         if (firstChar === '"' || firstChar === "'") {
             const quote = firstChar;
             let i = 1;
@@ -1301,6 +1249,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             for (; i < s.length; i++) {
                 const ch = s[i];
                 if (escaped) {
+                    // include the escape char and the escaped char so JSON.parse can handle it
                     literalContent += "\\" + ch;
                     escaped = false;
                     continue;
@@ -1310,105 +1259,83 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     continue;
                 }
                 if (ch === quote) {
+                    // found closing quote
                     break;
                 }
                 literalContent += ch;
             }
 
             if (i < s.length && s[i] === quote) {
+                // reconstruct full quoted literal exactly as in source so JSON.parse can unescape it
                 const fullQuotedLiteral = quote + literalContent + quote;
                 let jsonText;
                 try {
+                    // use JSON.parse on the quoted literal to obtain the unescaped inner string
                     jsonText = JSON.parse(fullQuotedLiteral);
                 } catch (e) {
+                    console.warn(`Failed to unescape JS string literal for ${start}:`, e);
+                    // replace common escapes
                     jsonText = literalContent.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n");
                 }
 
+                // now try to parse the JSON text extracted from the JS literal
                 try {
                     let candidate = jsonText;
-                    candidate = candidate.replace(/,\s*([}\]])/g, "$1"); 
                     if (end == "]") candidate = "[" + candidate + "]";
                     res = JSON.parse(candidate);
                     console.log("Found valid JSON via JSON.parse-string extraction for " + start + "!");
                     return res;
                 } catch (parseErr) {
-                    // continue to legacy probing
+                    console.warn(`Initial JSON.parse of extracted content failed for ${start}:`, parseErr);
+                    // minimal cleanup and try again
+                    try {
+                        let cleaned = jsonText.replace(/,\s*([}\]])/g, "$1");
+                        if (end == "]") cleaned = "[" + cleaned + "]";
+                        res = JSON.parse(cleaned);
+                        console.log("Parsed after minimal cleanup for " + start + "!");
+                        return res;
+                    } catch (cleanErr) {
+                        console.error(`Failed to parse JSON for ${start} after cleanup:`, cleanErr);
+                        return fallback;
+                    }
                 }
+            } else {
+                console.log(`Could not locate a closing quote for JSON.parse argument after ${start}. Falling back to legacy probing.`);
+                // fall through to legacy probing below
             }
+        } else {
+            console.log(`No quoted literal immediately after ${start}; falling back to legacy probing.`);
+            // fall through to legacy probing below
         }
     }
 
-    // legacy/array literal probing
-    let startString = f.split(start)[1];
-    // safety check if split failed (e.g. pattern at very end of file)
-    if (!startString) return fallback;
-
+    // legacy behavior for non-JSON.parse or probe fallback when extraction failed
+    let startString = f.trim().split(start)[1];
     const possibleEndings = getAllIndexes(startString, end);
     let foundValidJSON = false;
 
-    // regex to match strings (group 1), block comments (group 2), or line comments (group 3)
-    const commentCleanerRegex = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
-
-    // regex to capture comments before an object and inject them as a "_note" field
-    // matches: // comment [newline] {
-    const commentPreserverRegex = /\/\/(.*)\s*[\r\n]+\s*\{/g;
-
     for (let i = 0; i < possibleEndings.length; i++) {
         let raw = startString.slice(0, possibleEndings[i]);
-        
         if (raw[0] == '"' || raw[0] == "'") raw = raw.substring(1);
         if (raw.slice(-1) == '"' || raw.slice(-1) == "'") raw = raw.substring(0, raw.length - 1);
 
-        // preserve  comments by injecting them into the JSON structure
-        // converts: //example \n {  ->  { "_note": "example",
-        raw = raw.replace(commentPreserverRegex, (match, comment) => {
-            const safeComment = comment.trim().replace(/"/g, '\\"'); // escape quotes
-            return `{ "_note": "${safeComment}", `;
-        });
-
-        // strip any remaining comments (inline or block) to ensure valid JSON
-        raw = raw.replace(commentCleanerRegex, (match, str, block, line) => {
-            if (str) return str; // keep strings
-            return ""; // remove comments
-        });
-        
-        // remove trailing commas
-        // note: strict JSON.parse will still fail if regex misses newlines, so we have a fallback below
-        raw = raw.replace(/,\s*([}\]])/g, "$1");
+        // minimal cleaning for array/object literal style: strip JS comments and trailing commas,
+        // but avoid aggressive whitespace/newline removals which may break valid content
+        if (start.includes("JSON.parse")) {
+            // kept as a safety net but should rarely be used now (?)
+            raw = raw.replace(/\/\*[\s\S]*?\*\//g, "");
+            raw = raw.replace(/\/\/.*$/gm, "");
+            raw = raw.replace(/,\s*([}\]])/g, "$1");
+        }
 
         try {
-            let jsonAttempt = raw;
-            if (end == "]") jsonAttempt = "[" + raw + "]";
-            res = JSON.parse(jsonAttempt);
+            if (end == "]") raw = "[" + raw + "]";
+            res = JSON.parse(raw);
             foundValidJSON = true;
             console.log("Found valid ending for " + start + "!");
             break;
         } catch (e) {
-            // handle trailing commas or single quotes by using loose JS evaluation
-            try {
-                let evalAttempt = raw;
-                if (end == "]") evalAttempt = "[" + raw + "]";
-                // ensure it starts with an array or object
-                if(evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
-                    res = new Function("return " + evalAttempt)();
-                    foundValidJSON = true;
-                    console.log("Found valid ending for " + start + " via loose evaluation!");
-                    break;
-                }
-            } catch (e2) {}
-
-            // handle bad escaped characters (legacy fallback)
-            if (e instanceof SyntaxError && e.message.includes("bad escaped character")) {
-                try {
-                    const cleanRaw = raw.replaceAll("\\'", "'");
-                    let attempt = cleanRaw;
-                    if (end == "]") attempt = "[" + cleanRaw + "]";
-                    res = JSON.parse(attempt);
-                    foundValidJSON = true;
-                    console.log("Found valid ending for " + start + " after sanitizing escaped quotes!");
-                    break;
-                } catch (e2) {}
-            }
+            console.log(`Error while parsing JSON for ${start}: ${e} going to try next ending instead`);
         }
     }
 
@@ -1433,196 +1360,240 @@ function loadDataFromFile(raw_json) {
     let answers = {};
     let states = {};
     let feedbacks = {};
+
     let answer_score_globals = {};
     let answer_score_issues = {};
     let answer_score_states = {};
+
     let state_issue_scores = {};
+
     let candidate_issue_scores = {};
     let candidate_state_multipliers = {};
     let running_mate_issue_scores = {};
-    let issues = {};
-    let jet_data = {};
 
-    // map to track remapped IDs ( Old_Bad_ID => New_Safe_ID )
-    let pkReplacements = new Map();
+    let issues = {};
+
+    let jet_data = {};
 
     const code = extractCode(raw_json);
 
-    // Logging helpers for duplicates
-    const duplicateCounters = new Map();
-    function _recordDuplicate(label) {
-        let c = duplicateCounters.get(label) || { total: 0 };
+    var duplicates = false;
+
+    // duplicate PK logging control to avoid console spam
+    const DUP_LOG_THRESHOLD = 5; // log at most this many individual messages per model
+    const duplicateCounters = new Map(); // label -> { total, replaced }
+    function _labelForObj(obj) {
+        const m = obj && obj.model ? obj.model : 'collection';
+        if (typeof m === 'string' && m.includes('.')) return m.split('.').pop();
+        return m;
+    }
+    function _recordDuplicate(obj, replaced) {
+        const label = _labelForObj(obj);
+        let c = duplicateCounters.get(label);
+        if (!c) {
+            c = { total: 0, replaced: 0 };
+            duplicateCounters.set(label, c);
+        }
         c.total += 1;
-        duplicateCounters.set(label, c);
+        if (replaced) c.replaced += 1;
+        const count = c.total;
+        return { label, count, replaced: c.replaced };
     }
 
-    // prepare JSON
-    raw_json = raw_json.replaceAll("\r", "").replace(/campaignTrail_temp\.([a-zA-Z0-9_]+)\s*=\s*/g, "campaignTrail_temp.$1 = ").replaceAll(/ +/g, " ");
-    const preferJSONParsePrimary = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
+    raw_json = raw_json.replaceAll("\n", "");
+    raw_json = raw_json.replaceAll("\r", "");
+    raw_json = raw_json.replaceAll(/ +/g, " ");
+
+    // detect original style (array literal vs JSON.parse)
+    // we prefer direct array literals; JSON.parse is treated as fallback unless
+    // a JSON.parse pattern is detected anywhere (then we flip priorities).
+    const jsonParseDetected = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
+    const preferJSONParsePrimary = jsonParseDetected;
 
     function getSection(name, required = true, fallback = []) {
-        const startPrimary = `campaignTrail_temp.${name} = ${preferJSONParsePrimary ? "JSON.parse(" : "["}`;
-        const endPrimary = preferJSONParsePrimary ? ");" : "]";
-        const startBackup = `campaignTrail_temp.${name} = ${preferJSONParsePrimary ? "[" : "JSON.parse("}`;
-        const endBackup = preferJSONParsePrimary ? "]" : ");";
+        // name example: "states_json"
+        const primaryIsJSON = preferJSONParsePrimary;
+        const startPrimary = `campaignTrail_temp.${name} = ${primaryIsJSON ? "JSON.parse(" : "["}`;
+        const endPrimary = primaryIsJSON ? ");" : "]";
+        const startBackup = `campaignTrail_temp.${name} = ${primaryIsJSON ? "[" : "JSON.parse("}`;
+        const endBackup = primaryIsJSON ? "]" : ");";
         return extractJSON(raw_json, startPrimary, endPrimary, startBackup, endBackup, required, fallback);
     }
 
     // sanitize/normalize PKs to avoid insane values (e.g. scientific-notation randoms)
-    function normalizePk(obj, container) {
-        let raw = obj.pk;
-        let pkNum = Number(raw);
-        let needsRemap = false;
+    function normalizePk(obj) {
+        // coerce to a number
+        const raw = obj.pk;
+        const pkNum = Number(raw);
+        // invalid or non-integer or non-finite
+        if (!Number.isFinite(pkNum) || !Number.isInteger(pkNum) || pkNum <= 0) {
+            console.log(`Normalizing invalid PK (${raw}) for model ${obj.model || '<unknown>'}; assigning new pk`);
+            obj.pk = ++highest_pk;
+            return;
+        }
+        // floor to integer (defensive)
+        let pk = Math.floor(pkNum);
 
-        // check for non-finite or unsafe integers
-        if (!Number.isFinite(pkNum) || Math.abs(pkNum) > Number.MAX_SAFE_INTEGER) {
-            console.log(`PK ${raw} exceeds JS safety limits. Remapping...`);
-            needsRemap = true;
+        // if PK exceeds safe JS integer range, remap
+        const SAFE_MAX = Number.MAX_SAFE_INTEGER; // ~9e15
+        if (pk > SAFE_MAX) {
+            console.log(`PK ${pk} exceeds Number.MAX_SAFE_INTEGER; remapping to avoid unsafe integer.`);
+            obj.pk = ++highest_pk;
+            return;
         }
 
-        // check for duplicates only if not already needing remap
-        else {
-            let isTaken = (container instanceof Map ? container.has(pkNum) : (pkNum in container));
-            if (isTaken) {
-                _recordDuplicate(obj.model || "unknown");
-                needsRemap = true;
-            }
+        // avoid huge jumps (someone scrambled PKs); if new pk is far above current highest, remap
+        const MAX_GAP = 1_000_000; // conservative threshold
+        if (pk - highest_pk > MAX_GAP) {
+            console.log(`PK ${pk} is far above current highest_pk ${highest_pk}; remapping to avoid huge gaps`);
+            obj.pk = ++highest_pk;
+            return;
         }
 
-        if (needsRemap) {
-            // assign a new safe integer at the end of the list
-            let newPk = ++highest_pk;
-
-            // store the mapping so we can fix foreign keys later
-            pkReplacements.set(raw, newPk);
-
-            // apply new PK
-            obj.pk = newPk;
-        } else {
-            // it's valid (even if float), keep it
-            obj.pk = pkNum;
-
-            // update highest_pk logic to account for this existing ID
-            // we use Ceil to ensure the next generated ID is a clean integer above this one
-            if (pkNum > highest_pk && pkNum < Number.MAX_SAFE_INTEGER) {
-                highest_pk = Math.ceil(pkNum);
-            }
-        }
+        obj.pk = pk;
+        // update highest_pk (safe)
+        if (pk > highest_pk) highest_pk = pk;
     }
 
-    function ensureUniqueAndStore(container, obj) {
+    // helper to remap duplicates safely
+    function ensureUniqueAndStore(container, obj, autoRemap = false) {
         if (!obj || typeof obj !== 'object') return;
-        if (!obj.fields || typeof obj.fields !== 'object') obj.fields = {};
 
-        normalizePk(obj, container);
+        // tolerate extra fields (volatility_range, map_bias, etc.)
+        if (!obj.fields || typeof obj.fields !== 'object') {
+            obj.fields = {};
+        }
+
+        // normalize before storing so insane values don't blow up highest_pk
+        normalizePk(obj);
 
         if (container instanceof Map) {
+            if (container.has(obj.pk)) {
+                const rec = _recordDuplicate(obj, autoRemap);
+                if (rec.count <= DUP_LOG_THRESHOLD) {
+                    console.log(`WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`);
+                } else if (rec.count === DUP_LOG_THRESHOLD + 1) {
+                    console.log(`Note: multiple duplicate PKs detected in ${rec.label}; suppressing further logs. A summary will be printed at the end.`);
+                }
+                duplicates = true;
+                if (autoRemap) {
+                    highest_pk = Math.max(highest_pk, obj.pk);
+                    obj.pk = ++highest_pk;
+                }
+            }
+            highest_pk = Math.max(highest_pk, obj.pk);
             container.set(obj.pk, obj);
         } else {
+            if (obj.pk in container) {
+                const rec = _recordDuplicate(obj, autoRemap);
+                if (rec.count <= DUP_LOG_THRESHOLD) {
+                    console.log(`WARNING: Found duplicate pk ${obj.pk} in ${obj.model || 'collection'}${autoRemap ? '. Auto-remapping.' : ''}`);
+                } else if (rec.count === DUP_LOG_THRESHOLD + 1) {
+                    console.log(`Note: multiple duplicate PKs detected in ${rec.label}; suppressing further logs. A summary will be printed at the end.`);
+                }
+                duplicates = true;
+                if (autoRemap) {
+                    highest_pk = Math.max(highest_pk, obj.pk);
+                    obj.pk = ++highest_pk;
+                }
+            }
+            highest_pk = Math.max(highest_pk, obj.pk);
             container[obj.pk] = obj;
         }
     }
 
-    // load states (establishes baseline highest_pk)
-    getSection("states_json").forEach(state => ensureUniqueAndStore(states, state));
-
-    // load questions
-    getSection("questions_json").forEach(q => {
-        if (q?.fields?.description) q.fields.description = q.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
-        ensureUniqueAndStore(questions, q);
+    // STATES
+    const states_json = getSection("states_json");
+    states_json.forEach(state => {
+        ensureUniqueAndStore(states, state);
     });
 
-    // load answers
-    getSection("answers_json").forEach(a => {
-        if (a?.fields?.description) a.fields.description = a.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
-        ensureUniqueAndStore(answers, a);
+    // QUESTIONS
+    const questions_json = getSection("questions_json");
+    questions_json.forEach(question => {
+        if (question.fields && question.fields.description) {
+            question.fields.description = question.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        }
+        // use unified helper (autoRemap = true to remap duplicates)
+        ensureUniqueAndStore(questions, question, true);
     });
 
-    // load feedback
-    getSection("answer_feedback_json").forEach(f => {
-        if (f?.fields?.answer_feedback) f.fields.answer_feedback = f.fields.answer_feedback.replaceAll("â€™", "'").replaceAll("â€”", "—");
-        ensureUniqueAndStore(feedbacks, f);
+    // ANSWERS
+    const answers_json = getSection("answers_json");
+    answers_json.forEach(answer => {
+        if (answer.fields && answer.fields.description) {
+            answer.fields.description = answer.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        }
+        ensureUniqueAndStore(answers, answer, true);
     });
 
-    // load everything else
-    const collections = [
-        [answer_score_globals, "answer_score_global_json"],
-        [answer_score_issues, "answer_score_issue_json"],
-        [answer_score_states, "answer_score_state_json"],
-        [candidate_issue_scores, "candidate_issue_score_json"],
-        [candidate_state_multipliers, "candidate_state_multiplier_json"],
-        [running_mate_issue_scores, "running_mate_issue_score_json"],
-        [state_issue_scores, "state_issue_score_json"]
-    ];
-
-    collections.forEach(([cont, name]) => {
-        getSection(name).forEach(x => ensureUniqueAndStore(cont, x));
+    // FEEDBACKS (auto-remap duplicates)
+    const answer_feedbacks_json = getSection("answer_feedback_json");
+    answer_feedbacks_json.forEach(feedback => {
+        if (feedback.fields.answer_feedback) {
+            feedback.fields.answer_feedback = feedback.fields.answer_feedback.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        }
+        ensureUniqueAndStore(feedbacks, feedback, true);
     });
 
+    // GLOBAL ANSWER SCORES (auto-remap)
+    const answer_score_globals_json = getSection("answer_score_global_json");
+    answer_score_globals_json.forEach(x => ensureUniqueAndStore(answer_score_globals, x, true));
+
+    // ISSUE ANSWER SCORES (auto-remap)
+    const answer_score_issues_json = getSection("answer_score_issue_json");
+    answer_score_issues_json.forEach(x => ensureUniqueAndStore(answer_score_issues, x, true));
+
+    // STATE ANSWER SCORES (auto-remap)
+    const answer_score_states_json = getSection("answer_score_state_json");
+    answer_score_states_json.forEach(x => ensureUniqueAndStore(answer_score_states, x, true));
+
+    // CANDIDATE ISSUE SCORES
+    const candidate_issue_scores_json = getSection("candidate_issue_score_json");
+    // Auto-remap duplicates; base scenarios often reuse PK ranges per issue/candidate
+    candidate_issue_scores_json.forEach(x => ensureUniqueAndStore(candidate_issue_scores, x, true));
+
+    // CANDIDATE STATE MULTIPLIERS
+    const candidate_state_multipliers_json = getSection("candidate_state_multiplier_json");
+    // Auto-remap duplicates; multipliers commonly reuse PK ranges across states
+    candidate_state_multipliers_json.forEach(x => ensureUniqueAndStore(candidate_state_multipliers, x, true));
+
+    // RUNNING MATE ISSUE SCORES
+    const running_mate_issue_scores_json = getSection("running_mate_issue_score_json");
+    // Auto-remap duplicates for running mate issue scores as well
+    running_mate_issue_scores_json.forEach(x => ensureUniqueAndStore(running_mate_issue_scores, x, true));
+
+    // STATE ISSUE SCORES
+    const state_issue_scores_json = getSection("state_issue_score_json");
+    // auto-remap duplicates because scenarios may reuse PK ranges per state
+    state_issue_scores_json.forEach(x => ensureUniqueAndStore(state_issue_scores, x, true));
+
+    // ISSUES
     const issues_json = getSection("issues_json");
     issues_json.forEach(x => ensureUniqueAndStore(issues, x));
 
-    if (pkReplacements.size > 0) {
-        console.log(`Patching ${pkReplacements.size} ID references (duplicates/overflows)...`);
-
-        const allContainers = [
-            questions, answers, states, feedbacks,
-            answer_score_globals, answer_score_issues, answer_score_states,
-            state_issue_scores, candidate_issue_scores, candidate_state_multipliers,
-            running_mate_issue_scores, issues
-        ];
-
-        // fields that act as Foreign Keys
-        const foreignKeyFields = [
-            "question", "answer", "candidate", "issue", "state", "affected_candidate", "running_mate"
-        ];
-
-        allContainers.forEach(container => {
-            const values = container instanceof Map ? Array.from(container.values()) : Object.values(container);
-
-            values.forEach(item => {
-                if (!item.fields) return;
-
-                foreignKeyFields.forEach(field => {
-                    const val = item.fields[field];
-                    // if the field value matches a bad ID we replaced
-                    if (val !== undefined && pkReplacements.has(val)) {
-                        item.fields[field] = pkReplacements.get(val);
-                    }
-                });
-            });
-        });
+    if (duplicates) {
+        alert("WARNING: Duplicate PKs found during import process, see console for details. Some items may have been remapped.");
     }
 
+    // keeping jet_data unchanged (still simple array literal); we keep legacy extraction but could be extended similarly
     jet_data = extractJSON(raw_json, "campaignTrail_temp.jet_data = [", "]", null, null, false, [{}])[0];
-
-    // fallback extraction for jet_data
-    if (!jet_data || Object.keys(jet_data).length === 0) {
-        try {
-            let startMarker = "campaignTrail_temp.jet_data = [";
-            let parts = raw_json.split(startMarker);
-            if (parts.length > 1) {
-                let segment = parts[1];
-                let lastBracket = segment.lastIndexOf("]");
-                if (lastBracket !== -1) {
-                    let rawObj = segment.substring(0, lastBracket);
-                    const commentCleanerRegex = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
-                    rawObj = rawObj.replace(commentCleanerRegex, (match, str, block, line) => str ? str : "");
-                    rawObj = rawObj.replace(/,\s*([}\]])/g, "$1").replaceAll("\\'", "'");
-                    jet_data = JSON.parse("[" + rawObj + "]")[0];
-                }
-            }
-        } catch (e) { }
-    }
-
     jet_data.code_to_add = code;
 
     let data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
 
+    // print concise summaries for models with many duplicates
     for (const [label, c] of duplicateCounters) {
-        if (c.total > 0) console.log(`Remapped ${c.total} duplicates in ${label}`);
+        if (c.total > DUP_LOG_THRESHOLD) {
+            const suppressed = c.total - DUP_LOG_THRESHOLD;
+            const rep = c.replaced || 0;
+            if (rep > 0) {
+                console.log(`Note: replaced ${rep} duplicate PK${rep !== 1 ? 's' : ''} in ${label} (suppressed ${suppressed} logs)`);
+            } else {
+                console.log(`Note: found ${c.total} duplicate PK${c.total !== 1 ? 's' : ''} in ${label} (suppressed ${suppressed} logs)`);
+            }
+        }
     }
-
     return data;
 }
 

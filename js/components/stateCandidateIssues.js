@@ -209,6 +209,8 @@ window.defineComponent('data-table', {
     }
 });
 
+// a focused editor to quickly add, edit, and delete per-state "shift" values.
+// used wherever an Answer lists state shifts to make the numbers easy to change.
 window.defineComponent('state-shift-editor', {
     props: ['shifts', 'title'],
     data() {
@@ -218,13 +220,14 @@ window.defineComponent('state-shift-editor', {
         };
     },
     computed: {
+        // compose the rows with useful context for editing
         items() {
             const states = Vue.prototype.$TCT.states;
             return (this.shifts || []).map(s => {
                 const st = states[s.state];
                 const fields = st ? st.fields : {};
                 return {
-                    state: s.state,
+                    state: s.state, // keyField
                     abbr: fields.abbr || '',
                     stateName: fields.name || `State ${s.state}`,
                     electoral_votes: fields.electoral_votes || 0,
@@ -255,6 +258,7 @@ window.defineComponent('state-shift-editor', {
             this.$emit('update-shift', item.state, value);
         },
         onDeleteSelected(keys) {
+            // keys are state PKs because keyField="state"
             this.$emit('remove-shifts', keys);
         },
         addShift() {
@@ -303,6 +307,9 @@ window.defineComponent('state', {
         return {
             temp: 1,
             activeTab: 'details',
+            showMargins: false,
+            showMultipliers: false,
+            showIssueScores: false,
             stateColumns: [
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'name', label: 'Name', editable: true, width: 3 },
@@ -438,7 +445,7 @@ window.defineComponent('state', {
 
     methods: {
         deleteState: function () {
-            Vue.prototype.$TCT.deleteState(Number(this.pk));
+            Vue.prototype.$TCT.deleteState(this.pk);
             Vue.prototype.$globalData.state = Vue.prototype.$TCT.getFirstStatePK();
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.mode = STATE;
@@ -452,67 +459,67 @@ window.defineComponent('state', {
             if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-            Vue.prototype.$TCT.states[Number(this.pk)].fields[evt.target.name] = value;
+            Vue.prototype.$TCT.states[this.pk].fields[evt.target.name] = value;
+            // force recompute of computed properties displaying derived totals
             this.temp *= -1;
         },
 
         refreshMargins: function () {
+            // toggle a reactive flag so margins recompute immediately
             this.temp *= -1;
         },
 
         updateMultiplier: function (item, field, value) {
             Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields[field] = value;
+            // state shifters affect PV immediately
             this.temp *= -1;
         },
 
         updateIssueScore: function (item, field, value) {
             Vue.prototype.$TCT.state_issue_scores[item.pk].fields[field] = value;
+            // issue weights/scores affect PV immediately
             this.temp *= -1;
         }
     },
 
     computed: {
-        statePk() {
-            return Number(this.pk);
-        },
-
         stateName: function () {
-            this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.name;
+            this.temp; // make header reactive to edits
+            return Vue.prototype.$TCT.states[this.pk].fields.name;
         },
 
         abbr: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.abbr;
+            return Vue.prototype.$TCT.states[this.pk].fields.abbr;
         },
 
         electoralVotes: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.electoral_votes;
+            return Vue.prototype.$TCT.states[this.pk].fields.electoral_votes;
         },
 
         popularVotes: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.popular_votes;
+            return Vue.prototype.$TCT.states[this.pk].fields.popular_votes;
         },
 
         pollClosingTime: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.poll_closing_time;
+            return Vue.prototype.$TCT.states[this.pk].fields.poll_closing_time;
         },
 
         winnerTakeAll: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.winner_take_all_flg;
+            return Vue.prototype.$TCT.states[this.pk].fields.winner_take_all_flg;
         },
 
         election: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.election;
+            return Vue.prototype.$TCT.states[this.pk].fields.election;
         },
 
         candidateStateMultipliers: function () {
-            return Vue.prototype.$TCT.getCandidateStateMultipliersForState(this.statePk);
+            return Vue.prototype.$TCT.getCandidateStateMultipliersForState(this.pk);
         },
 
         stateMultipliersWithNames: function () {
@@ -527,7 +534,7 @@ window.defineComponent('state', {
         },
 
         stateIssueScores: function () {
-            return Vue.prototype.$TCT.getIssueScoreForState(this.statePk) || [];
+            return Vue.prototype.$TCT.getIssueScoreForState(this.pk);
         },
 
         stateIssueScoresWithNames: function () {
@@ -543,14 +550,17 @@ window.defineComponent('state', {
         },
 
         margins: function () {
+            // depend on temp so PV recomputes after any edit
             this.temp;
-            return Vue.prototype.$TCT.getPVForState(this.statePk);
+            return Vue.prototype.$TCT.getPVForState(this.pk);
         }
     }
 });
 
 window.defineComponent('candidate-state-multiplier', {
+
     props: ['pk'],
+
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center">
@@ -565,33 +575,42 @@ window.defineComponent('candidate-state-multiplier', {
         </div>
     </li>
     `,
+
     methods: {
         onInput: function (evt) {
             let value = evt.target.value;
-            if (shouldBeSavedAsNumber(value)) value = Number(value);
+            if (shouldBeSavedAsNumber(value)) {
+                value = Number(value);
+            }
             Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields[evt.target.name] = value;
         }
     },
+
     computed: {
         stateMultiplier: function () {
             return Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.state_multiplier;
         },
+
         candidate: function () {
             return Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.candidate;
         },
+
         nickname: function () {
             Vue.prototype.$globalData.filename;
             return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
         },
+
         stateName: function () {
             const statePk = Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.state;
-            return Vue.prototype.$TCT.states[statePk]?.fields.name || 'Unknown State';
+            return Object.values(Vue.prototype.$TCT.states).filter(x => x.pk == statePk)[0].fields.name;
         }
     }
 })
 
 window.defineComponent('state-issue-score', {
+
     props: ['pk', 'hideIssuePK'],
+
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center mb-3">
@@ -603,107 +622,174 @@ window.defineComponent('state-issue-score', {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block font-medium">Issue:</label>
-                <select v-if="!hideIssuePK" @change="onInput($event)" name="issue" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                <select 
+                    v-if="!hideIssuePK" 
+                    @change="onInput($event)" 
+                    name="issue" 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                >
                     <option v-for="issue in issues" :selected="issue.pk == currentIssue" :value="issue.pk" :key="issue.pk">
                         {{issue.pk}} - {{issue.fields.name}}
                     </option>
                 </select>
                 <div v-else class="py-2 text-gray-700">{{getIssueName(currentIssue)}}</div>
             </div>
+            
             <div>
                 <label class="block font-medium">Score (-1 to 1):</label>
-                <input @input="onInput($event)" :value="stateIssueScore" name="state_issue_score" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                <input 
+                    @input="onInput($event)" 
+                    :value="stateIssueScore" 
+                    name="state_issue_score" 
+                    type="number" 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                >
                 <p class="text-xs text-gray-500 mt-1">-1.0 = Stance 1, 1.0 = Stance 7</p>
             </div>
+            
             <div>
                 <label class="block font-medium">Weight:</label>
-                <input @input="onInput($event)" :value="weight" name="weight" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                <input 
+                    @input="onInput($event)" 
+                    :value="weight" 
+                    name="weight" 
+                    type="number" 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                >
             </div>
         </div>
     </li>
     `,
+
     methods: {
         onInput: function (evt) {
-            const entry = Vue.prototype.$TCT?.state_issue_scores?.[this.pk];
-            if (!entry) return;
             let value = evt.target.value;
-            if (shouldBeSavedAsNumber(value)) value = Number(value);
-            entry.fields[evt.target.name] = value;
+            if (shouldBeSavedAsNumber(value)) {
+                value = Number(value);
+            }
+            Vue.prototype.$TCT.state_issue_scores[this.pk].fields[evt.target.name] = value;
         },
+
         getIssueName: function (issuePk) {
             if (!Vue.prototype.$TCT.issues[issuePk]) return 'Unknown Issue';
             return `${issuePk} - ${Vue.prototype.$TCT.issues[issuePk].fields.name}`;
         }
     },
+
     computed: {
         issues: function () {
             let a = [Vue.prototype.$globalData.filename];
-            return Object.values(Vue.prototype.$TCT?.issues || {});
+            return Object.values(Vue.prototype.$TCT.issues);
         },
+
         currentIssue: function () {
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.issue;
+            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.issue;
         },
+
         stateName: function () {
-            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
-            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.name || '';
+            const statePK = Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state;
+            return Vue.prototype.$TCT.states[statePK].fields.name;
         },
+
         stateIssueScore: function () {
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state_issue_score ?? 0;
+            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state_issue_score;
         },
+
         weight: function () {
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.weight ?? 0;
+            return Vue.prototype.$TCT.state_issue_scores[this.pk].fields.weight;
         },
+
         stateAbbr: function () {
-            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
-            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.abbr || '';
+            const statePK = Vue.prototype.$TCT.state_issue_scores[this.pk].fields.state;
+            const s = Vue.prototype.$TCT.states[statePK];
+            return s && s.fields ? s.fields.abbr : null;
         }
     }
 })
 
 window.defineComponent('issue', {
+
     props: ['pk'],
+
     template: `
     <div class="bg-white rounded-lg shadow-sm">
+        <!-- Header -->
         <div class="border-b p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
                 <span class="text-gray-500">PK: {{ pk }}</span>
             </div>
-            <button :class="['px-3 py-1 rounded-sm', canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed']" :disabled="!canDelete" v-on:click="deleteIssue()">Delete Issue</button>
+            <button
+                :class="[
+                    'px-3 py-1 rounded-sm',
+                    canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed'
+                ]"
+                :disabled="!canDelete"
+                v-on:click="deleteIssue()"
+            >Delete Issue</button>
         </div>
+
+        <!-- Content -->
         <div class="p-4 space-y-6">
+            <!-- Basic Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Issue name</label>
-                    <input @input="onInputUpdatePicker($event)" :value="name" name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                    <input 
+                        @input="onInputUpdatePicker($event)" 
+                        :value="name" 
+                        name="name" 
+                        type="text" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                    >
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Issue description (optional)</label>
-                    <textarea @input="onInput2($event)" :value="description" name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500" rows="3"></textarea>
+                    <textarea 
+                        @input="onInput2($event)" 
+                        :value="description" 
+                        name="description" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500" 
+                        rows="3"
+                    ></textarea>
                 </div>
             </div>
+
+            <!-- Stances -->
             <div>
                 <h2 class="font-bold text-lg mb-2">Stances</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <stance v-for="n in 7" :key="n" :pk="issuePk" :n="n"></stance>
+                    <stance v-for="n in 7" :key="n" :pk="pk" :n="n"></stance>
                 </div>
             </div>
+
+            <!-- Candidate Issue Scores -->
             <details open class="border rounded-md">
-                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">Candidate Issue Scores ({{this.candidateIssueScores.length}})</summary>
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">
+                    Candidate Issue Scores ({{this.candidateIssueScores.length}})
+                </summary>
                 <ul class="p-4">
                     <candidate-issue-score isRunning="false" v-for="c in candidateIssueScores" :pk="c.pk" :key="c.pk"></candidate-issue-score>
                 </ul>
             </details>
+
+            <!-- Running Mate Issue Scores -->
             <details open class="border rounded-md">
-                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">Running Mate Issue Scores ({{this.runningMateIssueScores.length}})</summary>
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">
+                    Running Mate Issue Scores ({{this.runningMateIssueScores.length}})
+                </summary>
                 <ul class="p-4">
                     <candidate-issue-score isRunning="true" v-for="c in runningMateIssueScores" :pk="c.pk" :key="c.pk"></candidate-issue-score>
                 </ul>
             </details>
+
+            <!-- State Issue Scores For This Issue -->
             <details open class="border rounded-md">
-                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">State Issue Scores For This Issue</summary>
+                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">
+                    State Issue Scores For This Issue
+                </summary>
                 <div class="p-4 space-y-4">
-                    <issue-state-map-editor :issuePk="issuePk"></issue-state-map-editor>
+                    <issue-state-map-editor :issuePk="pk"></issue-state-map-editor>
                     <ul class="space-y-3">
                         <state-issue-score :hideIssuePK="true" v-for="c in stateIssueScores" :pk="c.pk" :key="c.pk"></state-issue-score>
                     </ul>
@@ -712,24 +798,32 @@ window.defineComponent('issue', {
         </div>
     </div>
     `,
+
     methods: {
         onInput: function (evt) {
+
             let value = evt.target.value;
-            if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = value;
+            if (shouldBeSavedAsNumber(value)) {
+                value = Number(value);
+            }
+
+            Vue.prototype.$TCT.issues[this.pk].fields[evt.target.name] = value;
         },
+
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields.description = evt.target.value;
+            Vue.prototype.$TCT.issues[this.pk].fields.description = evt.target.value;
         },
+
         onInputUpdatePicker: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
+            Vue.prototype.$TCT.issues[this.pk].fields[evt.target.name] = evt.target.value;
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
         },
+
         deleteIssue: function () {
             try {
-                Vue.prototype.$TCT.removeIssue(this.issuePk);
+                Vue.prototype.$TCT.removeIssue(this.pk);
                 const remaining = Object.values(Vue.prototype.$TCT.issues);
                 Vue.prototype.$globalData.issue = remaining.length ? remaining[0].pk : null;
                 const temp = Vue.prototype.$globalData.filename;
@@ -740,31 +834,35 @@ window.defineComponent('issue', {
             }
         }
     },
+
     computed: {
-        issuePk() { return Number(this.pk); },
         name: function () {
-            return Vue.prototype.$TCT?.issues?.[this.issuePk]?.fields?.name || '';
+            return Vue.prototype.$TCT.issues[this.pk].fields.name;
         },
+
         description: function () {
-            const issue = Vue.prototype.$TCT?.issues?.[this.issuePk];
-            if (!issue || !issue.fields) return '';
-            if (issue.fields.description == null || issue.fields.description == "'") {
-                issue.fields.description = "";
+            if (Vue.prototype.$TCT.issues[this.pk].fields.description == null || Vue.prototype.$TCT.issues[this.pk].fields.description == "'") {
+                Vue.prototype.$TCT.issues[this.pk].fields.description = "";
             }
-            return issue.fields.description;
+            return Vue.prototype.$TCT.issues[this.pk].fields.description;
         },
+
         candidateIssueScores: function () {
-            return Vue.prototype.$TCT?.getCandidateIssueScoreForIssue?.(this.issuePk) || [];
+            return Vue.prototype.$TCT.getCandidateIssueScoreForIssue(this.pk);
         },
+
         runningMateIssueScores: function () {
-            return Vue.prototype.$TCT?.getRunningMateIssueScoreForIssue?.(this.issuePk) || [];
+            return Vue.prototype.$TCT.getRunningMateIssueScoreForIssue(this.pk);
         },
+
         stateIssueScores: function () {
-            return Vue.prototype.$TCT?.getStateIssueScoresForIssue?.(this.issuePk) || [];
+            return Vue.prototype.$TCT.getStateIssueScoresForIssue(this.pk);
         },
+
         issueCount() {
-            return Object.keys(Vue.prototype.$TCT?.issues || {}).length;
+            return Object.keys(Vue.prototype.$TCT.issues).length;
         },
+
         canDelete() {
             return this.issueCount > 1;
         }
@@ -772,160 +870,221 @@ window.defineComponent('issue', {
 })
 
 window.defineComponent('stance', {
+
     props: ['pk', 'n'],
+
     template: `
     <div class="bg-white rounded-sm shadow-sm p-3">
         <label class="block font-medium">Stance {{n}}</label>
-        <input @input="onInput($event)" :value="stance" name="stance" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+        <input 
+            @input="onInput($event)" 
+            :value="stance" 
+            name="stance" 
+            type="text" 
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+        >
         <label class="block font-medium mt-3">Stance {{n}} description (optional)</label>
-        <textarea @input="onInput2($event)" :value="stance_desc" name="stance_desc" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500" rows="2"></textarea>
+        <textarea 
+            @input="onInput2($event)" 
+            :value="stance_desc" 
+            name="stance_desc" 
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+            rows="2"
+        ></textarea>
     </div>
     `,
+
     methods: {
+
         onInput: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n] = evt.target.value;
+            Vue.prototype.$TCT.issues[this.pk].fields["stance_" + this.n] = evt.target.value;
         },
+
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n] = evt.target.value;
+            Vue.prototype.$TCT.issues[this.pk].fields["stance_desc_" + this.n] = evt.target.value;
         },
+
     },
+
     computed: {
         stance: function () {
-            return Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n];
+            return Vue.prototype.$TCT.issues[this.pk].fields["stance_" + this.n];
         },
+
         stance_desc: function () {
-            const val = Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n];
-            return (val == null || val == "'") ? "" : val;
+            if (Vue.prototype.$TCT.issues[this.pk].fields["stance_desc_" + this.n] == null || Vue.prototype.$TCT.issues[this.pk].fields["stance_desc_" + this.n] == "'") {
+                Vue.prototype.$TCT.issues[this.pk].fields["stance_desc_" + this.n] = "";
+            }
+            return Vue.prototype.$TCT.issues[this.pk].fields["stance_desc_" + this.n];
         },
     }
 })
 
 window.defineComponent('candidate-issue-score', {
+
     props: ['pk', 'isRunning'],
+
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block font-medium">Candidate PK <span v-if="nickname" class="text-gray-500 ml-1">({{this.nickname}})</span></label>
-                <input @input="onInput($event)" :value="candidate" name="candidate" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                <label class="block font-medium">
+                    Candidate PK 
+                    <span v-if="nickname" class="text-gray-500 ml-1">({{this.nickname}})</span>
+                </label>
+                <input 
+                    @input="onInput($event)" 
+                    :value="candidate" 
+                    name="candidate" 
+                    type="number"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                >
             </div>
             <div>
                 <label class="block font-medium">Issue Score</label>
-                <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
+                <input 
+                    @input="onInput($event)" 
+                    :value="issueScore" 
+                    name="issue_score" 
+                    type="number"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
+                >
                 <p class="text-xs text-gray-500 mt-1">(-1.0 = Stance 1, 1.0 = Stance 7)</p>
             </div>
         </div>
     </li>
     `,
+
     methods: {
+
         onInput: function (evt) {
+
             let value = evt.target.value;
-            if (shouldBeSavedAsNumber(value)) value = Number(value);
+            if (shouldBeSavedAsNumber(value)) {
+                value = Number(value);
+            }
+
             if (this.isRunning != "true") {
                 Vue.prototype.$TCT.candidate_issue_score[this.pk].fields[evt.target.name] = value;
-            } else {
+            }
+            else {
                 Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields[evt.target.name] = value;
             }
         },
+
     },
+
     computed: {
         candidate: function () {
             if (this.isRunning != "true") {
                 return Vue.prototype.$TCT.candidate_issue_score[this.pk].fields["candidate"];
-            } else {
+            }
+            else {
                 return Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields["candidate"];
             }
+
         },
+
         nickname: function () {
             return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
         },
+
         issueScore: function () {
             if (this.isRunning != "true") {
                 return Vue.prototype.$TCT.candidate_issue_score[this.pk].fields["issue_score"];
-            } else {
+            }
+            else {
                 return Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields["issue_score"];
             }
+
         },
     }
 })
 
 window.defineComponent('candidate', {
+
     props: ['pk'],
-    data() { return { temp: [0] }; },
+
+    data() {
+        return {
+            temp: [0]
+        };
+    },
+
     template: `
-    <div class="bg-white rounded-lg shadow-sm mx-auto">
-        <div class="border-b p-4 flex justify-between items-center">
-            <div>
-                <h1 class="font-bold text-xl">Candidate PK {{ this.pk }} <span v-if="nickname" class="italic text-gray-400">({{ nickname }})</span></h1>
-            </div>
-            <button @click="deleteCandidate" class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm">
-                Delete candidate
-            </button>
-        </div>
+    <div class="mx-auto bg-gray-100 p-4">
 
-        <div class="p-4 space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Nickname</label>
-                <input @input="onInputNickname($event)" :value="nickname" name="nickname" type="text"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="e.g. J. Smith">
-                <p class="text-xs text-gray-500 mt-1">A nickname will display next to a candidate's PK, so you know who they are more easily!</p>
-            </div>
+        <button class="bg-red-500 text-white p-2 my-2 rounded-sm hover:bg-red-600" v-on:click="deleteCandidate()">Delete Candidate</button><br>
 
-            <details open class="border rounded-md">
-                <summary class="px-4 py-2 font-semibold cursor-pointer select-none">
-                    Candidate state multipliers ({{ this.stateMultipliersForCandidate.length }})
-                </summary>
-                <div class="p-4">
-                    <button @click="generateStateMultipliers()"
-                        class="bg-green-500 text-white px-3 py-1 rounded-sm hover:bg-green-600 mb-3"
-                        v-if="stateMultipliersForCandidate.length == 0">
-                        Generate missing state multipliers
-                    </button>
-                    <ul class="space-y-2">
-                        <candidate-state-multiplier v-for="c in stateMultipliersForCandidate" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
-                    </ul>
-                </div>
-            </details>
-        </div>
+        <h1 class="font-bold">Candidate PK {{this.pk}} <span v-if="nickname" class="italic text-gray-400">({{this.nickname}})</span></h1><br>
+
+        <br>
+        <p>A nickname will display next to a candidate's pk so you know who they are more easily!</p>
+        <label for="nickname">Nickname:</label><br>
+        <input @input="onInputNickname($event)" :value="nickname" name="nickname" type="text"><br><br>
+
+        <details open>
+        <summary>Candidate State Multipliers ({{this.stateMultipliersForCandidate.length}})</summary>
+        <button @click="generateStateMultipliers()" class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-if="stateMultipliersForCandidate.length == 0">Generate Missing State Multipliers</button>
+        <ul>
+            <candidate-state-multiplier v-for="c in stateMultipliersForCandidate" :pk="c.pk" :key="c.pk"></candidate-state-multiplier>
+        </ul>
+        </details>
+
     </div>
     `,
+
     methods: {
+
         generateStateMultipliers: function () {
-            const candidatePk = Number(this.pk);
-            if (!Number.isFinite(candidatePk)) return;
-            if (typeof Vue.prototype.$TCT?.addStateMultipliersForCandidate !== 'function') return;
             this.temp = [];
-            Vue.prototype.$TCT.addStateMultipliersForCandidate(candidatePk);
+            Vue.prototype.$TCT.addStateMultipliersForCandidate(this.pk);
         },
+
         onInput: function (evt, pk) {
+
             let value = evt.target.value;
-            if (shouldBeSavedAsNumber(value)) value = Number(value);
+            if (shouldBeSavedAsNumber(value)) {
+                value = Number(value);
+            }
+
             Vue.prototype.$TCT.candidate_state_multiplier[pk].fields[evt.target.name] = value;
         },
+
         onInputNickname: function (evt) {
-            if (Vue.prototype.$TCT.jet_data.nicknames == null) Vue.prototype.$TCT.jet_data.nicknames = {};
-            Vue.prototype.$TCT.jet_data.nicknames[Number(this.pk)] = evt.target.value;
+
+            if (Vue.prototype.$TCT.jet_data.nicknames == null) {
+                Vue.prototype.$TCT.jet_data.nicknames = {}
+            }
+
+            Vue.prototype.$TCT.jet_data.nicknames[this.pk] = evt.target.value;
+
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
         },
+
         deleteCandidate: function () {
-            Vue.prototype.$TCT.deleteCandidate(Number(this.pk));
+            Vue.prototype.$TCT.deleteCandidate(this.pk);
             Vue.prototype.$globalData.candidate = Vue.prototype.$TCT.getAllCandidatePKs()[0];
+
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
         }
+
     },
+
     computed: {
+
         nickname: function () {
             Vue.prototype.$globalData.filename;
-            return Vue.prototype.$TCT.getNicknameForCandidate(Number(this.pk));
+            return Vue.prototype.$TCT.getNicknameForCandidate(this.pk);
         },
+
         stateMultipliersForCandidate: function () {
             this.temp;
-            return Vue.prototype.$TCT.getStateMultiplierForCandidate(Number(this.pk));
+            return Vue.prototype.$TCT.getStateMultiplierForCandidate(this.pk);
         },
     }
 })
