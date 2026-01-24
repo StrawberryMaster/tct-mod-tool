@@ -661,7 +661,7 @@ window.defineComponent('state-issue-score', {
 window.defineComponent('issue', {
     props: ['pk'],
     template: `
-    <div class="bg-white rounded-lg shadow-sm">
+    <div class="bg-white rounded-lg shadow-sm" v-if="issueExists">
         <div class="border-b p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
@@ -709,21 +709,31 @@ window.defineComponent('issue', {
             </details>
         </div>
     </div>
+    <div v-else class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mx-4 mt-4" role="alert">
+        <strong class="font-bold">Error:</strong>
+        <span class="block sm:inline"> Issue PK {{ pk }} not found in loaded data.</span>
+    </div>
     `,
     methods: {
         onInput: function (evt) {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = value;
+            if (this.issueObj) {
+                this.issueObj.fields[evt.target.name] = value;
+            }
         },
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields.description = evt.target.value;
+            if (this.issueObj) {
+                Vue.prototype.$TCT.issues[this.issuePk].fields.description = evt.target.value;
+            }
         },
         onInputUpdatePicker: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            if (this.issueObj) {
+                Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
+                const temp = Vue.prototype.$globalData.filename;
+                Vue.prototype.$globalData.filename = "";
+                Vue.prototype.$globalData.filename = temp;
+            }
         },
         deleteIssue: function () {
             try {
@@ -740,14 +750,21 @@ window.defineComponent('issue', {
     },
     computed: {
         issuePk() { return Number(this.pk); },
+        issueObj() {
+            return (Vue.prototype.$TCT && Vue.prototype.$TCT.issues) ? Vue.prototype.$TCT.issues[this.issuePk] : null;
+        },
+        issueExists() {
+            return !!this.issueObj;
+        },
         name: function () {
-            return Vue.prototype.$TCT.issues[this.issuePk].fields.name;
+            return this.issueObj ? this.issueObj.fields.name : "";
         },
         description: function () {
-            if (Vue.prototype.$TCT.issues[this.issuePk].fields.description == null || Vue.prototype.$TCT.issues[this.issuePk].fields.description == "'") {
-                Vue.prototype.$TCT.issues[this.issuePk].fields.description = "";
+            if (!this.issueObj) return "";
+            if (this.issueObj.fields.description == null || this.issueObj.fields.description == "'") {
+                this.issueObj.fields.description = "";
             }
-            return Vue.prototype.$TCT.issues[this.issuePk].fields.description;
+            return this.issueObj.fields.description;
         },
         candidateIssueScores: function () {
             return Vue.prototype.$TCT.getCandidateIssueScoreForIssue(this.issuePk);
@@ -759,7 +776,7 @@ window.defineComponent('issue', {
             return Vue.prototype.$TCT.getStateIssueScoresForIssue(this.issuePk);
         },
         issueCount() {
-            return Object.keys(Vue.prototype.$TCT.issues).length;
+            return Vue.prototype.$TCT.issues ? Object.keys(Vue.prototype.$TCT.issues).length : 0;
         },
         canDelete() {
             return this.issueCount > 1;
@@ -779,18 +796,24 @@ window.defineComponent('stance', {
     `,
     methods: {
         onInput: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n] = evt.target.value;
+            const issue = Vue.prototype.$TCT.issues[Number(this.pk)];
+            if(issue) issue.fields["stance_" + this.n] = evt.target.value;
         },
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n] = evt.target.value;
+            const issue = Vue.prototype.$TCT.issues[Number(this.pk)];
+            if(issue) issue.fields["stance_desc_" + this.n] = evt.target.value;
         },
     },
     computed: {
+        issueObj() {
+            return (Vue.prototype.$TCT && Vue.prototype.$TCT.issues) ? Vue.prototype.$TCT.issues[Number(this.pk)] : null;
+        },
         stance: function () {
-            return Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n];
+            return this.issueObj ? this.issueObj.fields["stance_" + this.n] : "";
         },
         stance_desc: function () {
-            const val = Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n];
+            if(!this.issueObj) return "";
+            const val = this.issueObj.fields["stance_desc_" + this.n];
             return (val == null || val == "'") ? "" : val;
         },
     }
@@ -875,7 +898,7 @@ window.defineComponent('candidate', {
                 <div class="p-4">
                     <button @click="generateStateMultipliers()"
                         class="bg-green-500 text-white px-3 py-1 rounded-sm hover:bg-green-600 mb-3"
-                        v-if="stateMultipliersForCandidate.length == 0">
+                        v-if="isMissingMultipliers">
                         Generate missing state multipliers
                     </button>
                     <ul class="space-y-2">
@@ -888,7 +911,7 @@ window.defineComponent('candidate', {
     `,
     methods: {
         generateStateMultipliers: function () {
-            this.temp = [];
+            this.temp = [Date.now()];
             Vue.prototype.$TCT.addStateMultipliersForCandidate(Number(this.pk));
         },
         onInput: function (evt, pk) {
@@ -920,6 +943,10 @@ window.defineComponent('candidate', {
             this.temp;
             return Vue.prototype.$TCT.getStateMultiplierForCandidate(Number(this.pk));
         },
+        isMissingMultipliers() {
+            const totalStates = Vue.prototype.$TCT.states ? Object.keys(Vue.prototype.$TCT.states).length : 0;
+            return this.stateMultipliersForCandidate.length < totalStates;
+        }
     }
 })
 
