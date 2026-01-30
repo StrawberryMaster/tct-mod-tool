@@ -10,7 +10,7 @@ window.defineComponent('cyoa', {
     template: `
     <div class="mx-auto bg-white rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between mb-3">
-            <h1 class="font-bold text-xl">CYOA Options</h1>
+            <h1 class="font-bold text-xl">CYOA toolkit</h1>
             <div class="space-x-2">
                 <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()" aria-label="Enable CYOA">Enable</button>
                 <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()" aria-label="Disable CYOA">Disable</button>
@@ -21,6 +21,7 @@ window.defineComponent('cyoa', {
             <!-- Variables section -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA variables</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Your variable can be used in conditions and effects, e.g., to track player choices or stats.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button 
@@ -40,7 +41,8 @@ window.defineComponent('cyoa', {
 
             <!-- Branching events section -->
             <details open class="bg-gray-50 rounded-sm border">
-                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA events</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">CYOA events (tunneling)</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Also known as tunneling, these events let you immediately jump to specific questions based on player answers/variables.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button 
@@ -63,6 +65,7 @@ window.defineComponent('cyoa', {
             <!-- Question Swap section -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Question swap rules</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Use these rules to swap the positions of questions based on player answers and variable conditions.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button class="bg-indigo-500 text-white px-3 py-2 rounded-sm hover:bg-indigo-600" @click="addQuestionSwapRule">
@@ -87,6 +90,7 @@ window.defineComponent('cyoa', {
             <!-- Answer swap rules -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Answer swap rules</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Use these rules to swap the positions of answers based on player answers and variable conditions.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button class="bg-purple-500 text-white px-3 py-2 rounded-sm hover:bg-purple-600" @click="addAnswerSwapRule">
@@ -762,7 +766,7 @@ window.defineComponent('cyoa-variable', {
         
         <div class="grid grid-cols-2 gap-3">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Variable Name:</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Variable name:</label>
                 <input 
                     v-model="nameVal" 
                     @input="onChange" 
@@ -772,7 +776,7 @@ window.defineComponent('cyoa-variable', {
                     placeholder="e.g. wins, trust">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Default Value:</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Default value:</label>
                 <input 
                     v-model.number="defaultValueVal" 
                     @input="onChange" 
