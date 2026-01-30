@@ -2,11 +2,11 @@ window.defineComponent('mapping', {
 
     data() {
         return {
-            mapSvg : Vue.prototype.$TCT.jet_data.mapping_data?.mapSvg ?? "",
-            x : Vue.prototype.$TCT.jet_data.mapping_data?.x ?? 925,
-            y : Vue.prototype.$TCT.jet_data.mapping_data?.y ?? 925,
-            dx : Vue.prototype.$TCT.jet_data.mapping_data?.dx ?? 0,
-            dy : Vue.prototype.$TCT.jet_data.mapping_data?.dy ?? 0,
+            mapSvg: Vue.prototype.$TCT.jet_data.mapping_data?.mapSvg ?? "",
+            x: Vue.prototype.$TCT.jet_data.mapping_data?.x ?? 925,
+            y: Vue.prototype.$TCT.jet_data.mapping_data?.y ?? 925,
+            dx: Vue.prototype.$TCT.jet_data.mapping_data?.dx ?? 0,
+            dy: Vue.prototype.$TCT.jet_data.mapping_data?.dy ?? 0,
             isDragging: false,
             dragStartX: 0,
             dragStartY: 0,
@@ -143,19 +143,19 @@ window.defineComponent('mapping', {
 
     methods: {
 
-        loadMapFromSVG: function() {
+        loadMapFromSVG: function () {
 
-            if(Vue.prototype.$TCT.jet_data.mapping_data == null) {
+            if (Vue.prototype.$TCT.jet_data.mapping_data == null) {
                 Vue.prototype.$TCT.jet_data.mapping_data = {}
             }
 
-            if(this.mapSvg == null) {
+            if (this.mapSvg == null) {
                 alert("There was an issue getting the SVG from the input field. Go out of this tab and go back in and try again.")
                 return;
             }
 
             Vue.prototype.$TCT.jet_data.mapping_data.mapSvg = this.mapSvg;
-            
+
             // apply zoom to the actual dimensions that will be used
             Vue.prototype.$TCT.jet_data.mapping_data.x = this.effectiveX;
             Vue.prototype.$TCT.jet_data.mapping_data.y = this.effectiveY;
@@ -166,29 +166,25 @@ window.defineComponent('mapping', {
             Vue.prototype.$globalData.state = Object.keys(Vue.prototype.$TCT.states)[0];
             alert("Custom map SVG loaded in. If there were any errors they are in the console. Check your states dropdown to confirm it is working.")
             Vue.prototype.$globalData.mode = STATE;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
-            
+            Vue.prototype.$globalData.dataVersion++;
+
             // reset zoom after applying to avoid confusion
             this.zoomLevel = 1;
         },
 
-        toggleEnabled: function(evt) {
+        toggleEnabled: function (evt) {
             Vue.prototype.$TCT.jet_data.mapping_enabled = !Vue.prototype.$TCT.jet_data.mapping_enabled;
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
 
-        onInput: function(evt) {
+        onInput: function (evt) {
             Vue.prototype.$TCT.jet_data.mapping_data[evt.target.name] = evt.target.value;
         },
 
-        startDrag: function(evt) {
+        startDrag: function (evt) {
             this.isDragging = true;
-            
+
             // get the starting position
             if (evt.type === 'touchstart') {
                 evt.preventDefault();
@@ -198,17 +194,17 @@ window.defineComponent('mapping', {
                 this.dragStartX = evt.clientX;
                 this.dragStartY = evt.clientY;
             }
-            
+
             // store the initial offset values
             this.dragStartDx = this.dx;
             this.dragStartDy = this.dy;
         },
 
-        onDrag: function(evt) {
+        onDrag: function (evt) {
             if (!this.isDragging) return;
-            
+
             let currentX, currentY;
-            
+
             if (evt.type === 'touchmove') {
                 evt.preventDefault();
                 currentX = evt.touches[0].clientX;
@@ -217,82 +213,80 @@ window.defineComponent('mapping', {
                 currentX = evt.clientX;
                 currentY = evt.clientY;
             }
-            
+
             // calculate the distance moved
             const deltaX = currentX - this.dragStartX;
             const deltaY = currentY - this.dragStartY;
-            
+
             // update offsets (invert deltaX/deltaY because dragging right means moving the viewBox left)
             this.dx = this.dragStartDx - deltaX;
             this.dy = this.dragStartDy - deltaY;
         },
 
-        endDrag: function() {
+        endDrag: function () {
             if (this.isDragging) {
                 this.isDragging = false;
-                
+
                 // save the new offset values to the global data
                 Vue.prototype.$TCT.jet_data.mapping_data.dx = this.dx;
                 Vue.prototype.$TCT.jet_data.mapping_data.dy = this.dy;
             }
         },
 
-        onWheel: function(evt) {
+        onWheel: function (evt) {
             evt.preventDefault();
-            
+
             // zoom in or out based on wheel direction
             const delta = evt.deltaY > 0 ? -0.1 : 0.1;
             this.zoomLevel = Math.max(0.1, Math.min(5, this.zoomLevel + delta));
         },
 
-        zoomIn: function() {
+        zoomIn: function () {
             this.zoomLevel = Math.min(5, this.zoomLevel + 0.25);
         },
 
-        zoomOut: function() {
+        zoomOut: function () {
             this.zoomLevel = Math.max(0.1, this.zoomLevel - 0.25);
         },
 
-        resetZoom: function() {
+        resetZoom: function () {
             this.zoomLevel = 1;
         },
-        
+
     },
 
     computed: {
 
-        effectiveX: function() {
+        effectiveX: function () {
             return this.x / this.zoomLevel;
         },
 
-        effectiveY: function() {
+        effectiveY: function () {
             return this.y / this.zoomLevel;
         },
 
-        effectiveDx: function() {
+        effectiveDx: function () {
             return this.dx;
         },
 
-        effectiveDy: function() {
+        effectiveDy: function () {
             return this.dy;
         },
 
-        electionPk: function() {
+        electionPk: function () {
             return Vue.prototype.$TCT.jet_data.mapping_data.electionPk;
         },
 
-        enabled: function() {
-            if(Vue.prototype.$TCT.jet_data.mapping_enabled == null) {
+        enabled: function () {
+            if (Vue.prototype.$TCT.jet_data.mapping_enabled == null) {
                 Vue.prototype.$TCT.jet_data.mapping_enabled = false;
             }
 
-            if(Vue.prototype.$TCT.jet_data.mapping_data == null) {
+            if (Vue.prototype.$TCT.jet_data.mapping_data == null) {
                 Vue.prototype.$TCT.jet_data.mapping_data = {};
             }
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion; // register dependency
 
             return Vue.prototype.$TCT.jet_data.mapping_enabled;
         }
@@ -313,8 +307,8 @@ window.defineComponent('map-preview', {
 
     computed: {
 
-        mapCode: function() {
-            if(this.svg == null || this.svg == "") {
+        mapCode: function () {
+            if (this.svg == null || this.svg == "") {
                 console.log("no svg")
                 return [];
             }
@@ -322,7 +316,7 @@ window.defineComponent('map-preview', {
             return Vue.prototype.$TCT.getMapForPreview(this.svg);
         },
 
-        viewBox: function() {
+        viewBox: function () {
             return `${this.dx ?? 0} ${this.dy ?? 0} ${this.x ?? 925} ${this.y ?? 595}`
         }
     }

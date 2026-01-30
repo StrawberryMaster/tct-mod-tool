@@ -723,18 +723,14 @@ window.defineComponent('issue', {
         },
         onInputUpdatePicker: function (evt) {
             Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
         deleteIssue: function () {
             try {
                 Vue.prototype.$TCT.removeIssue(this.issuePk);
                 const remaining = Object.values(Vue.prototype.$TCT.issues);
                 Vue.prototype.$globalData.issue = remaining.length ? remaining[0].pk : null;
-                const temp = Vue.prototype.$globalData.filename;
-                Vue.prototype.$globalData.filename = "";
-                Vue.prototype.$globalData.filename = temp;
+                Vue.prototype.$globalData.dataVersion++;
             } catch (err) {
                 alert(err.message || 'Zoinks! Failed to delete issue.');
             }
@@ -945,7 +941,7 @@ window.defineComponent('issue-state-map-editor', {
             usingBasicShapes: false,
             stateDropdownPk: null,
             renderVersion: 0,
-            
+
             zoom: 1,
             minZoom: 0.25,
             maxZoom: 10,
@@ -1019,10 +1015,10 @@ window.defineComponent('issue-state-map-editor', {
             this.states.forEach(s => {
                 metrics[s.pk] = { score: 0, weight: 0, pk: s.pk };
             });
-            
+
             this.currentEntries.forEach(entry => {
                 const sPk = entry.fields.state;
-                if(metrics[sPk]) {
+                if (metrics[sPk]) {
                     metrics[sPk].score = Number(entry.fields.state_issue_score) || 0;
                     metrics[sPk].weight = Number(entry.fields.weight) || 0;
                 }
@@ -1048,7 +1044,7 @@ window.defineComponent('issue-state-map-editor', {
                         this.mapData = Vue.prototype.$TCT.getMapForPreview(svg) || [];
                         if (this.mapData.length) {
                             this.mapAvailable = true;
-                            this.fallbackViewBox = '0 0 1000 589'; 
+                            this.fallbackViewBox = '0 0 1000 589';
                             this.initializeViewport(true);
                             return;
                         }
@@ -1057,7 +1053,7 @@ window.defineComponent('issue-state-map-editor', {
             } catch (err) {
                 console.warn('Issue map load failed, falling back to grid:', err);
             }
-            
+
             this.createBasicStateShapes();
         },
 
@@ -1070,7 +1066,7 @@ window.defineComponent('issue-state-map-editor', {
             const cols = Math.ceil(Math.sqrt(states.length));
             const size = 40;
             const padding = 10;
-            
+
             this.mapData = states.map((state, index) => {
                 const row = Math.floor(index / cols);
                 const col = index % cols;
@@ -1079,7 +1075,7 @@ window.defineComponent('issue-state-map-editor', {
                 const path = `M${x},${y} h${size} v${size} h-${size} Z`;
                 return [state.fields?.abbr || `S${state.pk}`, path];
             });
-            
+
             this.usingBasicShapes = true;
             this.mapAvailable = true;
             this.fallbackViewBox = `0 0 ${cols * (size + padding) + 100} ${Math.ceil(states.length / cols) * (size + padding) + 100}`;
@@ -1126,7 +1122,7 @@ window.defineComponent('issue-state-map-editor', {
 
         setZoom(next, centerPoint = null) {
             const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
-            if(target === this.zoom) return;
+            if (target === this.zoom) return;
 
             const oldZoom = this.zoom;
             this.zoom = target;
@@ -1156,10 +1152,10 @@ window.defineComponent('issue-state-map-editor', {
 
         onPan(evt) {
             if (!this.isPanning || !this.svgBounds) return;
-            
+
             const dx = evt.clientX - this.lastPointer.x;
             const dy = evt.clientY - this.lastPointer.y;
-            
+
             if (!this.dragMoved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
                 this.dragMoved = true;
             }
@@ -1181,19 +1177,19 @@ window.defineComponent('issue-state-map-editor', {
                 evt.currentTarget?.releasePointerCapture?.(evt.pointerId);
             }
         },
-        
+
         onResize() {
             // recalculate bounds if needed
         },
 
         toggleStateSelection(statePk) {
             const isSelected = !!this.selectedStates[statePk];
-            
+
             if (isSelected) {
                 delete this.selectedStates[statePk];
             } else {
                 this.selectedStates[statePk] = true;
-                
+
                 const keys = Object.keys(this.selectedStates);
                 if (keys.length === 1) {
                     const metrics = this.stateMetrics[statePk];
@@ -1235,7 +1231,7 @@ window.defineComponent('issue-state-map-editor', {
 
         ensureEntry(statePk) {
             let entry = this.currentEntries.find(item => item.fields.state == statePk);
-            
+
             if (!entry) {
                 const newPk = Vue.prototype.$TCT.getNewPk();
                 entry = {
@@ -1267,7 +1263,7 @@ window.defineComponent('issue-state-map-editor', {
             });
 
             this.loadStateScores();
-            
+
             const temp = Vue.prototype.$globalData.filename;
             Vue.prototype.$globalData.filename = "";
             Vue.prototype.$globalData.filename = temp;
@@ -1275,14 +1271,14 @@ window.defineComponent('issue-state-map-editor', {
 
         getStateColor(statePk) {
             const score = this.stateMetrics[statePk]?.score ?? 0;
-            if (Math.abs(score) < 0.05) return '#f3f4f6'; 
+            if (Math.abs(score) < 0.05) return '#f3f4f6';
 
             const reds = ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
             const blues = ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
-            
+
             const intensity = Math.min(1, Math.abs(score));
-            const bucket = Math.floor(intensity * 4.99); 
-            
+            const bucket = Math.floor(intensity * 4.99);
+
             return score > 0 ? blues[bucket] : reds[bucket];
         },
 

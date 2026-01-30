@@ -211,9 +211,7 @@ window.defineComponent('question-picker', {
                     ordered.forEach(q => map.set(q.pk, q));
                 }
                 // force dropdowns to refresh
-                const temp = Vue.prototype.$globalData.filename;
-                Vue.prototype.$globalData.filename = "";
-                Vue.prototype.$globalData.filename = temp;
+                Vue.prototype.$globalData.dataVersion++;
 
                 // autosave if enabled
                 if (localStorage.getItem("autosaveEnabled") === "true") {
@@ -242,9 +240,7 @@ window.defineComponent('question-picker', {
 
             Vue.prototype.$TCT.questions.set(newPk, question);
             
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.question = newPk;
@@ -261,9 +257,7 @@ window.defineComponent('question-picker', {
             Vue.prototype.$TCT.questions.delete(pk);
             Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
 
             this.resetOrderFromMap(); 
         },
@@ -300,9 +294,7 @@ window.defineComponent('question-picker', {
         cloneQuestion: function() {
             const newQuestion = Vue.prototype.$TCT.cloneQuestion(Vue.prototype.$globalData.question);
             
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.question = newQuestion.pk;
@@ -329,7 +321,7 @@ window.defineComponent('question-picker', {
 
     computed: {
         questions: function () {
-          let a = [Vue.prototype.$globalData.filename];
+          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
           return Array.from(Vue.prototype.$TCT.questions.values());
         },
 
@@ -394,9 +386,7 @@ window.defineComponent('state-picker', {
 
             let newPk = Vue.prototype.$TCT.createNewState();
            
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = STATE;
             Vue.prototype.$globalData.state = newPk;
@@ -407,7 +397,7 @@ window.defineComponent('state-picker', {
 
     computed: {
         states: function () {
-          let a = [Vue.prototype.$globalData.filename];
+          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
           return Object.values(Vue.prototype.$TCT.states);
         },
 
@@ -458,9 +448,7 @@ window.defineComponent('issue-picker', {
             const basePk = Vue.prototype.$globalData.issue || list[0].pk;
             try {
                 const newIssue = Vue.prototype.$TCT.cloneIssue(basePk);
-                const temp = Vue.prototype.$globalData.filename;
-                Vue.prototype.$globalData.filename = "";
-                Vue.prototype.$globalData.filename = temp;
+                Vue.prototype.$globalData.dataVersion++;
                 Vue.prototype.$globalData.mode = ISSUE;
                 Vue.prototype.$globalData.issue = newIssue.pk;
             } catch (err) {
@@ -477,9 +465,7 @@ window.defineComponent('issue-picker', {
                 Vue.prototype.$TCT.removeIssue(current);
                 const remaining = this.issues;
                 Vue.prototype.$globalData.issue = next ?? (remaining[0]?.pk ?? null);
-                const temp = Vue.prototype.$globalData.filename;
-                Vue.prototype.$globalData.filename = "";
-                Vue.prototype.$globalData.filename = temp;
+                Vue.prototype.$globalData.dataVersion++;
             } catch (err) {
                 alert(err.message || 'Failed to delete issue.');
             }
@@ -497,7 +483,7 @@ window.defineComponent('issue-picker', {
 
     computed: {
         issues: function () {
-          let a = [Vue.prototype.$globalData.filename];
+          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
           return Object.values(Vue.prototype.$TCT.issues);
         }
     }

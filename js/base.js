@@ -1230,7 +1230,7 @@ function getQuestionNumberFromPk(pk) {
                             variable: effect.variable,
                             operation: effect.operation,
                             amount: effect.amount,
-                             answers: []
+                            answers: []
                         };
                     }
                     effectGroups[key].answers.push(effect.answer);
@@ -1326,7 +1326,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
                 try {
                     let candidate = jsonText;
-                    candidate = candidate.replace(/,\s*([}\]])/g, "$1"); 
+                    candidate = candidate.replace(/,\s*([}\]])/g, "$1");
                     if (end == "]") candidate = "[" + candidate + "]";
                     res = JSON.parse(candidate);
                     console.log("Found valid JSON via JSON.parse-string extraction for " + start + "!");
@@ -1355,7 +1355,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
     for (let i = 0; i < possibleEndings.length; i++) {
         let raw = startString.slice(0, possibleEndings[i]);
-        
+
         if (raw[0] == '"' || raw[0] == "'") raw = raw.substring(1);
         if (raw.slice(-1) == '"' || raw.slice(-1) == "'") raw = raw.substring(0, raw.length - 1);
 
@@ -1371,7 +1371,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             if (str) return str; // keep strings
             return ""; // remove comments
         });
-        
+
         // remove trailing commas
         // note: strict JSON.parse will still fail if regex misses newlines, so we have a fallback below
         raw = raw.replace(/,\s*([}\]])/g, "$1");
@@ -1389,13 +1389,13 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                 let evalAttempt = raw;
                 if (end == "]") evalAttempt = "[" + raw + "]";
                 // ensure it starts with an array or object
-                if(evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
+                if (evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
                     res = new Function("return " + evalAttempt)();
                     foundValidJSON = true;
                     console.log("Found valid ending for " + start + " via loose evaluation!");
                     break;
                 }
-            } catch (e2) {}
+            } catch (e2) { }
 
             // handle bad escaped characters (legacy fallback)
             if (e instanceof SyntaxError && e.message.includes("bad escaped character")) {
@@ -1407,7 +1407,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     foundValidJSON = true;
                     console.log("Found valid ending for " + start + " after sanitizing escaped quotes!");
                     break;
-                } catch (e2) {}
+                } catch (e2) { }
             }
         }
     }

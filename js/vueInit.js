@@ -125,7 +125,8 @@ async function loadData(dataName, isFirstLoad) {
                 state: firstStatePk,
                 issue: firstIssuePk,
                 candidate: firstCandidate,
-                filename: "default"
+                filename: "default",
+                dataVersion: 0
             });
 
             app.config.globalProperties.$globalData = globalData;

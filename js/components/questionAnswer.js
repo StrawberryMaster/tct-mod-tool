@@ -402,6 +402,7 @@ window.defineComponent('question', {
             };
             this.temp_answers = [Date.now()];
             Vue.prototype.$TCT.answers[newPk] = answer;
+            Vue.prototype.$TCT._invalidateCache('answers_by_question');
             this.selectAnswer(newPk);
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -419,6 +420,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -437,6 +439,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -455,6 +458,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -474,6 +478,7 @@ window.defineComponent('question', {
                 }
             };
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -514,6 +519,7 @@ window.defineComponent('question', {
 
             this.temp_answers = [Date.now()];
             delete Vue.prototype.$TCT.answers[pk];
+            Vue.prototype.$TCT._invalidateCache('answers_by_question');
 
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
@@ -537,6 +543,7 @@ window.defineComponent('question', {
 
         deleteFeedback: function (pk) {
             delete Vue.prototype.$TCT.answer_feedback[pk];
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -544,6 +551,7 @@ window.defineComponent('question', {
 
         deleteGlobalScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_global[pk];
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -551,6 +559,7 @@ window.defineComponent('question', {
 
         deleteIssueScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_issue[pk];
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -558,6 +567,7 @@ window.defineComponent('question', {
 
         deleteStateScore: function (pk) {
             delete Vue.prototype.$TCT.answer_score_state[pk];
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -655,10 +665,10 @@ window.defineComponent('question', {
             if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) {
                 Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
             }
-            
+
             const variables = Vue.prototype.$TCT.getAllCyoaVariables();
             if (variables.length === 0) return; // No variables to affect
-            
+
             const newPk = Vue.prototype.$TCT.getNewPk();
             Vue.prototype.$TCT.jet_data.cyoa_variable_effects[newPk] = {
                 id: newPk,
@@ -1412,7 +1422,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             effectListVersion: 0,
             useListEditor: false,
             stateDropdownPk: null,
-            
+
             // pan and zoom state
             zoom: 1,
             minZoom: 0.25,
@@ -1457,14 +1467,14 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         districtStates() {
-             const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
-             return this.states.filter(state => {
+            const districtRegex = /(?:Maine|Nebraska|ME|NE|M|N|CD|District|Congressional)[-\s]?(\d+)/i;
+            return this.states.filter(state => {
                 if (!state?.fields) return false;
-                if (state.fields.abbr === 'DC') return false; 
+                if (state.fields.abbr === 'DC') return false;
                 if (districtRegex.test(state.fields.name || '')) return true;
                 if (state.fields.abbr && /^[MN]\d$/.test(state.fields.abbr)) return true;
-                return (state.fields.name || '').includes("CD") || 
-                       (state.fields.name || '').includes("District");
+                return (state.fields.name || '').includes("CD") ||
+                    (state.fields.name || '').includes("District");
             });
         },
 
@@ -1503,7 +1513,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             const height = this.baseHeight / this.zoom;
             return `${this.panX} ${this.panY} ${width} ${height}`;
         },
-        
+
         zoomLabel() {
             return `${Math.round(this.zoom * 100)}%`;
         }
@@ -1513,7 +1523,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         loadStateEffects() {
             const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
             const states = Object.values(Vue.prototype.$TCT.states);
-            
+
             this.stateEffects = {};
             for (const state of states) {
                 this.stateEffects[state.pk] = 0;
@@ -1564,7 +1574,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             } catch (err) {
                 console.warn('Map load failed, falling back to grid:', err);
             }
-            
+
             this.createBasicStateShapes();
         },
 
@@ -1669,7 +1679,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
         zoomIn() { this.setZoom(this.zoom * 1.25); },
         zoomOut() { this.setZoom(this.zoom / 1.25); },
-        
+
         onWheel(evt) {
             const direction = evt.deltaY > 0 ? 0.9 : 1.1;
             this.setZoom(this.zoom * direction);
@@ -1704,7 +1714,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
             this.lastPointer = null;
             this.svgBounds = null;
             if (evt?.pointerId !== undefined && evt.currentTarget?.releasePointerCapture) {
-                try { evt.currentTarget.releasePointerCapture(evt.pointerId); } catch(e){}
+                try { evt.currentTarget.releasePointerCapture(evt.pointerId); } catch (e) { }
             }
         },
 
@@ -1757,13 +1767,13 @@ window.defineComponent('integrated-state-effect-visualizer', {
         getStatePath(state) {
             const abbr = state.fields?.abbr;
             if (!abbr && !state.d) return 'M0,0 h20 v20 h-20 Z';
-            
+
             let entry = this.mapData.find(item => item[0] === abbr);
             if (!entry && abbr) {
                 const normalized = abbr.replaceAll('-', '_');
                 entry = this.mapData.find(item => item[0] === normalized);
             }
-            
+
             if (!entry && state.d) return state.d;
             return entry ? entry[1] : 'M0,0 h20 v20 h-20 Z';
         },
