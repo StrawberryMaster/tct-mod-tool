@@ -17,7 +17,7 @@ window.defineComponent('toolbar', {
 
     created() {
         this.ensureLoadPresets().catch(err => {
-                console.warn('Failed to load mod presets on created():', err);
+            console.warn('Failed to load mod presets on created():', err);
         });
     },
 
@@ -458,7 +458,7 @@ window.defineComponent('toolbar', {
             try {
                 await this.clearPresetStore();
                 for (const p of this.modPresets) {
-                    if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2,8);
+                    if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2, 8);
                     if (!p.created) p.created = new Date().toISOString();
 
                     await this.putPresetToDB(p).catch(err => {
@@ -525,7 +525,7 @@ window.defineComponent('toolbar', {
             try {
                 // load the preset mod data
                 Vue.prototype.$TCT = loadDataFromFile(preset.modData);
-                
+
                 // reset the interface to first items
                 Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
                 Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0]?.pk || null;
@@ -633,7 +633,7 @@ window.defineComponent('toolbar', {
                     if (Array.isArray(arr) && arr.length > 0) {
                         await this.clearPresetStore();
                         for (const p of arr) {
-                            if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2,8);
+                            if (!p.id) p.id = Date.now().toString() + Math.random().toString(36).slice(2, 8);
                             if (typeof p.modData !== 'string') {
                                 try {
                                     p.modData = this.safeStringify ? this.safeStringify(p.modData) : JSON.stringify(p.modData);

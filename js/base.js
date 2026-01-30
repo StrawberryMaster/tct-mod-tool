@@ -217,6 +217,7 @@ class TCTData {
             };
         });
         this._invalidateCache('candidate_issue_score_by_issue');
+        this._invalidateCache('candidate_issue_score_by_candidate');
 
         const runningMateScores = this.getRunningMateIssueScoreForIssue(sourcePk);
         runningMateScores.forEach(score => {
@@ -231,6 +232,7 @@ class TCTData {
             };
         });
         this._invalidateCache('running_mate_issue_score_by_issue');
+        this._invalidateCache('running_mate_issue_score_by_candidate');
 
         const stateScores = this.getStateIssueScoresForIssue(sourcePk);
         stateScores.forEach(score => {
@@ -245,6 +247,7 @@ class TCTData {
             };
         });
         this._invalidateCache('state_issue_scores_by_issue');
+        this._invalidateCache('state_issue_scores_by_state');
 
         return clonedIssue;
     }
@@ -268,16 +271,19 @@ class TCTData {
             delete this.candidate_issue_score[score.pk];
         });
         this._invalidateCache('candidate_issue_score_by_issue');
+        this._invalidateCache('candidate_issue_score_by_candidate');
 
         runningMateScores.forEach(score => {
             delete this.running_mate_issue_score[score.pk];
         });
         this._invalidateCache('running_mate_issue_score_by_issue');
+        this._invalidateCache('running_mate_issue_score_by_candidate');
 
         stateScores.forEach(score => {
             delete this.state_issue_scores[score.pk];
         });
         this._invalidateCache('state_issue_scores_by_issue');
+        this._invalidateCache('state_issue_scores_by_state');
     }
 
     cloneAnswer(toClone, newQuestionPk) {

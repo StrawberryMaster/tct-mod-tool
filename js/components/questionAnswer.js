@@ -553,6 +553,7 @@ window.defineComponent('question', {
             delete Vue.prototype.$TCT.answer_score_global[pk];
             Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -561,6 +562,7 @@ window.defineComponent('question', {
             delete Vue.prototype.$TCT.answer_score_issue[pk];
             Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -569,6 +571,7 @@ window.defineComponent('question', {
             delete Vue.prototype.$TCT.answer_score_state[pk];
             Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -860,18 +863,24 @@ window.defineComponent('answer', {
         deleteGlobalScore: function (pk) {
             this.globalScores = this.globalScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_global[pk];
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteIssueScore: function (pk) {
             this.issueScores = this.issueScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_issue[pk];
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteStateScore: function (pk) {
             this.stateScores = this.stateScores.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_score_state[pk];
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -1004,7 +1013,7 @@ window.defineComponent('global-score-card', {
                 <input @input="onInput($event)" :value="multiplier" name="global_multiplier" type="number" step="0.001" :id="'gsc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
-                    <div class="h-full rounded"
+                    <div class="h-full rounded transition-all duration-200"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
                                  backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
                     </div>
@@ -1023,6 +1032,7 @@ window.defineComponent('global-score-card', {
 
             Vue.prototype.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            Vue.prototype.$globalData.dataVersion++;
         }
     },
 
@@ -1040,14 +1050,17 @@ window.defineComponent('global-score-card', {
         },
 
         candidate: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_global[this.pk].fields.candidate;
         },
 
         affected: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_global[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_global[this.pk].fields.global_multiplier;
         }
     }
@@ -1085,8 +1098,9 @@ window.defineComponent('issue-score-card', {
                     <input @input="onInput($event)" :value="issueScore" name="issue_score" type="number" step="0.1" :id="'isc-score-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
-                        <div class="h-full rounded bg-green-500"
-                            :style="{ width: Math.min(Math.max((parseFloat(issueScore) + 1) * 50, 0), 100) + '%' }">
+                        <div class="h-full rounded transition-all duration-200"
+                            :style="{ width: Math.min(Math.max((parseFloat(issueScore) + 1) * 50, 0), 100) + '%',
+                                     backgroundColor: issueScore < 0 ? '#ef4444' : '#22c55e' }">
                         </div>
                     </div>
                 </div>
@@ -1099,7 +1113,7 @@ window.defineComponent('issue-score-card', {
                     <input @input="onInput($event)" :value="issueImportance" name="issue_importance" type="number" step="1" min="0" :id="'isc-importance-' + pk"
                         class="p-1 text-sm block w-20 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
-                        <div class="h-full rounded bg-blue-500"
+                        <div class="h-full rounded bg-blue-500 transition-all duration-200"
                             :style="{ width: Math.min(Math.max(parseFloat(issueImportance) * 20, 0), 100) + '%' }">
                         </div>
                     </div>
@@ -1119,23 +1133,28 @@ window.defineComponent('issue-score-card', {
 
             Vue.prototype.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            Vue.prototype.$globalData.dataVersion++;
         }
     },
 
     computed: {
         issues: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Object.values(Vue.prototype.$TCT.issues);
         },
 
         issue: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue;
         },
 
         issueScore: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue_score;
         },
 
         issueImportance: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue_importance;
         },
 
@@ -1199,7 +1218,7 @@ window.defineComponent('state-score-card', {
                 <input @input="onInput($event)" :value="multiplier" name="state_multiplier" type="number" step="0.001" :id="'ssc-mult-' + pk"
                     class="p-1 text-sm block w-24 border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-blue-500 focus:border-blue-500">
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
-                    <div class="h-full rounded"
+                    <div class="h-full rounded transition-all duration-200"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
                                  backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
                     </div>
@@ -1223,6 +1242,7 @@ window.defineComponent('state-score-card', {
 
             Vue.prototype.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            Vue.prototype.$globalData.dataVersion++;
         }
     },
 
@@ -1236,22 +1256,27 @@ window.defineComponent('state-score-card', {
         },
 
         candidate: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.candidate;
         },
 
         affected: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state_multiplier;
         },
 
         state: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state;
         },
 
         states: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Object.values(Vue.prototype.$TCT.states);
         }
     }

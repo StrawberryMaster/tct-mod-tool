@@ -229,7 +229,8 @@ window.defineComponent('bulk', {
                     Vue.prototype.$TCT.answer_score_state[newPk] = x;
                 }
             }
-
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             alert("Bulk generated state scores for answer with PK " + this.answerPk + " (do not submit again)");
         },
 
@@ -240,7 +241,7 @@ window.defineComponent('bulk', {
                     Vue.prototype.$TCT.state_issue_scores[item.pk].fields.weight = Number(this.issueWeight);
                 }
             }
-
+            Vue.prototype.$globalData.dataVersion++;
             alert("Set issue scores!");
         },
 
@@ -250,6 +251,7 @@ window.defineComponent('bulk', {
                     Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier = Number(this.stateMultiplier);
                 }
             }
+            Vue.prototype.$globalData.dataVersion++;
             alert("Set state multipliers!");
         },
 
@@ -259,6 +261,7 @@ window.defineComponent('bulk', {
                     Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields.state_multiplier *= Number(this.multiplier);
                 }
             }
+            Vue.prototype.$globalData.dataVersion++;
             alert("Multiplied state multipliers!");
         },
 
