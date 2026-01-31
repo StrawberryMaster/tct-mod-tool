@@ -1,4 +1,15 @@
 "use strict";
+
+// global component registration queue
+window.TCTComponentQueue = [];
+window.registerComponent = function(name, definition) {
+    if (window.TCTApp) {
+        window.TCTApp.component(name, definition);
+    } else {
+        window.TCTComponentQueue.push({ name, definition });
+    }
+};
+
 const TEMPLATE_NAMES =
     [
         "1844-Clay.txt",

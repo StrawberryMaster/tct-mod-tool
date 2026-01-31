@@ -1,12 +1,12 @@
-window.defineComponent('mapping', {
+registerComponent('mapping', {
 
     data() {
         return {
-            mapSvg: Vue.prototype.$TCT.jet_data.mapping_data?.mapSvg ?? "",
-            x: Vue.prototype.$TCT.jet_data.mapping_data?.x ?? 925,
-            y: Vue.prototype.$TCT.jet_data.mapping_data?.y ?? 925,
-            dx: Vue.prototype.$TCT.jet_data.mapping_data?.dx ?? 0,
-            dy: Vue.prototype.$TCT.jet_data.mapping_data?.dy ?? 0,
+            mapSvg: this.$TCT.jet_data.mapping_data?.mapSvg ?? "",
+            x: this.$TCT.jet_data.mapping_data?.x ?? 925,
+            y: this.$TCT.jet_data.mapping_data?.y ?? 925,
+            dx: this.$TCT.jet_data.mapping_data?.dx ?? 0,
+            dy: this.$TCT.jet_data.mapping_data?.dy ?? 0,
             isDragging: false,
             dragStartX: 0,
             dragStartY: 0,
@@ -145,8 +145,8 @@ window.defineComponent('mapping', {
 
         loadMapFromSVG: function () {
 
-            if (Vue.prototype.$TCT.jet_data.mapping_data == null) {
-                Vue.prototype.$TCT.jet_data.mapping_data = {}
+            if (this.$TCT.jet_data.mapping_data == null) {
+                this.$TCT.jet_data.mapping_data = {}
             }
 
             if (this.mapSvg == null) {
@@ -154,32 +154,32 @@ window.defineComponent('mapping', {
                 return;
             }
 
-            Vue.prototype.$TCT.jet_data.mapping_data.mapSvg = this.mapSvg;
+            this.$TCT.jet_data.mapping_data.mapSvg = this.mapSvg;
 
             // apply zoom to the actual dimensions that will be used
-            Vue.prototype.$TCT.jet_data.mapping_data.x = this.effectiveX;
-            Vue.prototype.$TCT.jet_data.mapping_data.y = this.effectiveY;
-            Vue.prototype.$TCT.jet_data.mapping_data.dx = this.dx;
-            Vue.prototype.$TCT.jet_data.mapping_data.dy = this.dy;
+            this.$TCT.jet_data.mapping_data.x = this.effectiveX;
+            this.$TCT.jet_data.mapping_data.y = this.effectiveY;
+            this.$TCT.jet_data.mapping_data.dx = this.dx;
+            this.$TCT.jet_data.mapping_data.dy = this.dy;
 
-            Vue.prototype.$TCT.loadMap();
-            Vue.prototype.$globalData.state = Object.keys(Vue.prototype.$TCT.states)[0];
+            this.$TCT.loadMap();
+            this.$globalData.state = Object.keys(this.$TCT.states)[0];
             alert("Custom map SVG loaded in. If there were any errors they are in the console. Check your states dropdown to confirm it is working.")
-            Vue.prototype.$globalData.mode = STATE;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.mode = STATE;
+            this.$globalData.dataVersion++;
 
             // reset zoom after applying to avoid confusion
             this.zoomLevel = 1;
         },
 
         toggleEnabled: function (evt) {
-            Vue.prototype.$TCT.jet_data.mapping_enabled = !Vue.prototype.$TCT.jet_data.mapping_enabled;
+            this.$TCT.jet_data.mapping_enabled = !this.$TCT.jet_data.mapping_enabled;
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         onInput: function (evt) {
-            Vue.prototype.$TCT.jet_data.mapping_data[evt.target.name] = evt.target.value;
+            this.$TCT.jet_data.mapping_data[evt.target.name] = evt.target.value;
         },
 
         startDrag: function (evt) {
@@ -228,8 +228,8 @@ window.defineComponent('mapping', {
                 this.isDragging = false;
 
                 // save the new offset values to the global data
-                Vue.prototype.$TCT.jet_data.mapping_data.dx = this.dx;
-                Vue.prototype.$TCT.jet_data.mapping_data.dy = this.dy;
+                this.$TCT.jet_data.mapping_data.dx = this.dx;
+                this.$TCT.jet_data.mapping_data.dy = this.dy;
             }
         },
 
@@ -274,26 +274,26 @@ window.defineComponent('mapping', {
         },
 
         electionPk: function () {
-            return Vue.prototype.$TCT.jet_data.mapping_data.electionPk;
+            return this.$TCT.jet_data.mapping_data.electionPk;
         },
 
         enabled: function () {
-            if (Vue.prototype.$TCT.jet_data.mapping_enabled == null) {
-                Vue.prototype.$TCT.jet_data.mapping_enabled = false;
+            if (this.$TCT.jet_data.mapping_enabled == null) {
+                this.$TCT.jet_data.mapping_enabled = false;
             }
 
-            if (Vue.prototype.$TCT.jet_data.mapping_data == null) {
-                Vue.prototype.$TCT.jet_data.mapping_data = {};
+            if (this.$TCT.jet_data.mapping_data == null) {
+                this.$TCT.jet_data.mapping_data = {};
             }
 
-            Vue.prototype.$globalData.dataVersion; // register dependency
+            this.$globalData.dataVersion; // register dependency
 
-            return Vue.prototype.$TCT.jet_data.mapping_enabled;
+            return this.$TCT.jet_data.mapping_enabled;
         }
     }
 });
 
-window.defineComponent('map-preview', {
+registerComponent('map-preview', {
 
     props: ['svg', 'x', 'y', 'dx', 'dy'],
 
@@ -313,7 +313,7 @@ window.defineComponent('map-preview', {
                 return [];
             }
 
-            return Vue.prototype.$TCT.getMapForPreview(this.svg);
+            return this.$TCT.getMapForPreview(this.svg);
         },
 
         viewBox: function () {

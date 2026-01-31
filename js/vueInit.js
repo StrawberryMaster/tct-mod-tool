@@ -1,7 +1,5 @@
 const { createApp, reactive, ref, computed, watch } = Vue;
 
-Vue.prototype = Vue.prototype || {};
-
 let app = null;
 let autosaveInterval = null;
 let autosaveEnabled = localStorage.getItem("autosaveEnabled") === "true";
@@ -45,6 +43,11 @@ const MODES = {
 };
 Object.assign(window, MODES);
 
+function updateGlobalTCT(newTCT) {
+    window.$TCT = newTCT;
+}
+window.$updateGlobalTCT = updateGlobalTCT;
+
 function shouldBeSavedAsNumber(value) {
     return !isNaN(value) && !(value != "0" && Number(value) === 0);
 }
@@ -55,7 +58,7 @@ function startAutosave() {
 }
 
 function saveAutosave() {
-    const tct = Vue.prototype.$TCT;
+    const tct = window.$TCT;
     if (!tct || typeof tct.exportCode2 !== 'function') return;
 
     try {
@@ -76,8 +79,8 @@ function promptChangePk(type, oldPk) {
     if (newPk === null || newPk === "" || Number(newPk) === Number(oldPk)) return;
 
     if (confirm(`Are you sure you want to change ${type} PK ${oldPk} to ${newPk}? This will update all references.`)) {
-        const tct = Vue.prototype.$TCT;
-        const gd = Vue.prototype.$globalData;
+        const tct = window.$TCT;
+        const gd = window.$globalData;
 
         tct.changePk(type, oldPk, newPk);
         gd.dataVersion++;
@@ -97,7 +100,7 @@ function promptChangePk(type, oldPk) {
     }
 }
 
-Vue.prototype.$promptChangePk = promptChangePk;
+window.$promptChangePk = promptChangePk;
 
 async function loadData(dataName, isFirstLoad) {
     let raw;
@@ -119,8 +122,8 @@ async function loadData(dataName, isFirstLoad) {
 
         const parsedTCT = loadDataFromFile(raw);
 
-        // attach to Vue prototype for global access
-        Vue.prototype.$TCT = parsedTCT;
+        // attach to window for global access
+        window.$updateGlobalTCT(parsedTCT);
 
         const questions = Array.from(parsedTCT.questions.values());
 
@@ -138,7 +141,14 @@ async function loadData(dataName, isFirstLoad) {
         // initialize or update app
         if (!app) {
             app = createApp({});
-            app.config.globalProperties.$TCT = parsedTCT;
+            
+            // set up reactive-ish pointers to global state
+            Object.defineProperty(app.config.globalProperties, '$TCT', {
+                get() { return window.$TCT; },
+                set(v) { window.$TCT = v; },
+                configurable: true
+            });
+
             app.config.globalProperties.$promptChangePk = promptChangePk;
 
             const globalData = reactive({
@@ -153,11 +163,16 @@ async function loadData(dataName, isFirstLoad) {
 
             app.config.globalProperties.$globalData = globalData;
 
-            if (typeof window.initializeTCTApp === 'function') {
-                window.initializeTCTApp(app);
+            // register queued components
+            window.TCTApp = app;
+            if (window.TCTComponentQueue) {
+                window.TCTComponentQueue.forEach(({ name, definition }) => {
+                    app.component(name, definition);
+                });
+                window.TCTComponentQueue = [];
             }
 
-            Vue.prototype.$globalData = globalData;
+            window.$globalData = globalData;
             app.mount('#app');
         }
         else {
@@ -168,7 +183,7 @@ async function loadData(dataName, isFirstLoad) {
             gd.candidate = firstCandidate;
             gd.filename = dataName;
 
-            app.config.globalProperties.$TCT = parsedTCT;
+            window.$updateGlobalTCT(parsedTCT);
         }
 
         console.log(`Loaded data. Mode:`, app.config.globalProperties.$globalData.mode);
@@ -180,7 +195,7 @@ async function loadData(dataName, isFirstLoad) {
 }
 
 function getListOfCandidates() {
-    const scores = Vue.prototype.$TCT?.candidate_issue_score;
+    const scores = window.$TCT?.candidate_issue_score;
     if (!scores || Object.keys(scores).length === 0) {
         return [[null, null]];
     }
@@ -193,7 +208,7 @@ function getListOfCandidates() {
 
     // map to [id, label] format
     return uniqueCandidates.map(c => {
-        const nickname = Vue.prototype.$TCT.getNicknameForCandidate(c);
+        const nickname = window.$TCT.getNicknameForCandidate(c);
         const label = (nickname) ? `${c} (${nickname})` : c;
         return [c, label];
     });

@@ -1,4 +1,4 @@
-window.defineComponent('pk-editor', {
+registerComponent('pk-editor', {
     props: ['type', 'pk', 'cssClass'],
     data() {
         return {
@@ -40,8 +40,8 @@ window.defineComponent('pk-editor', {
             }
 
             if (confirm(`Are you sure you want to change ${this.type} PK ${this.pk} to ${newVal}? This will update every reference in the mod.`)) {
-                Vue.prototype.$TCT.changePk(this.type, this.pk, newVal);
-                Vue.prototype.$globalData.dataVersion++;
+                this.$TCT.changePk(this.type, this.pk, newVal);
+                this.$globalData.dataVersion++;
 
                 // update selection if the active item was changed
                 const activeItemMap = {
@@ -52,8 +52,8 @@ window.defineComponent('pk-editor', {
                 };
 
                 const field = activeItemMap[this.type];
-                if (field && Vue.prototype.$globalData[field] == this.pk) {
-                    Vue.prototype.$globalData[field] = newVal;
+                if (field && this.$globalData[field] == this.pk) {
+                    this.$globalData[field] = newVal;
                 }
             }
             this.isEditing = false;
@@ -64,7 +64,7 @@ window.defineComponent('pk-editor', {
     }
 });
 
-window.defineComponent('question-picker', {
+registerComponent('question-picker', {
 
     data() {
         return {
@@ -233,13 +233,13 @@ window.defineComponent('question-picker', {
         },
 
         gotoSelect(pk) {
-            Vue.prototype.$globalData.mode = QUESTION;
-            Vue.prototype.$globalData.question = pk;
+            this.$globalData.mode = QUESTION;
+            this.$globalData.question = pk;
             this.closeManageModal();
         },
 
         resetOrderFromMap() {
-            const list = Array.from(Vue.prototype.$TCT.questions.values());
+            const list = Array.from(this.$TCT.questions.values());
             this.orderList = list.map(q => ({
                 pk: q.pk,
                 text: this.questionDescription(q)
@@ -266,18 +266,18 @@ window.defineComponent('question-picker', {
             const orderedPks = this.orderList.map(x => x.pk);
             try {
                 // reorder the internal map
-                if (typeof Vue.prototype.$TCT.reorderQuestions === 'function') {
-                    Vue.prototype.$TCT.reorderQuestions(orderedPks);
+                if (typeof this.$TCT.reorderQuestions === 'function') {
+                    this.$TCT.reorderQuestions(orderedPks);
                 } else {
                     // fallback: mutate the existing Map in-place
-                    const map = Vue.prototype.$TCT.questions;
+                    const map = this.$TCT.questions;
                     const lookup = new Map(Array.from(map.values()).map(q => [q.pk, q]));
                     const ordered = orderedPks.map(pk => lookup.get(pk)).filter(Boolean);
                     map.clear();
                     ordered.forEach(q => map.set(q.pk, q));
                 }
                 // force dropdowns to refresh
-                Vue.prototype.$globalData.dataVersion++;
+                this.$globalData.dataVersion++;
 
                 // autosave if enabled
                 if (localStorage.getItem("autosaveEnabled") === "true") {
@@ -294,7 +294,7 @@ window.defineComponent('question-picker', {
         },
 
         addQuestion: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
 
             let question = {
                 "model": "campaign_trail.question",
@@ -304,26 +304,26 @@ window.defineComponent('question-picker', {
                 }
             }
 
-            Vue.prototype.$TCT.questions.set(newPk, question);
+            this.$TCT.questions.set(newPk, question);
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
 
-            Vue.prototype.$globalData.mode = QUESTION;
-            Vue.prototype.$globalData.question = newPk;
+            this.$globalData.mode = QUESTION;
+            this.$globalData.question = newPk;
         },
 
         deleteQuestion(pk) {
             if (!confirm(`Are you sure you want to delete question #${pk}?`)) return;
 
-            let referencedAnswers = Vue.prototype.$TCT.getAnswersForQuestion(pk);
+            let referencedAnswers = this.$TCT.getAnswersForQuestion(pk);
             for (let i = 0; i < referencedAnswers.length; i++) {
                 this.deleteAnswer(referencedAnswers[i].pk, true);
             }
 
-            Vue.prototype.$TCT.questions.delete(pk);
-            Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
+            this.$TCT.questions.delete(pk);
+            this.$globalData.question = Array.from(this.$TCT.questions.values())[0]?.pk || null;
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
 
             this.resetOrderFromMap();
         },
@@ -333,42 +333,42 @@ window.defineComponent('question-picker', {
                 if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
             }
 
-            let referencedFeedbacks = Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
+            let referencedFeedbacks = this.$TCT.getAdvisorFeedbackForAnswer(pk);
             for (let i = 0; i < referencedFeedbacks.length; i++) {
-                delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
+                delete this.$TCT.answer_feedback[referencedFeedbacks[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            this.$TCT._invalidateCache('feedback_by_answer');
 
-            let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
+            let x = this.$TCT.getStateScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
+                delete this.$TCT.answer_score_state[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            this.$TCT._invalidateCache('state_score_by_answer');
 
-            x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
+            x = this.$TCT.getIssueScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
+                delete this.$TCT.answer_score_issue[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            this.$TCT._invalidateCache('issue_score_by_answer');
 
-            x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
+            x = this.$TCT.getGlobalScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
+                delete this.$TCT.answer_score_global[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            this.$TCT._invalidateCache('global_score_by_answer');
 
-            delete Vue.prototype.$TCT.answers[pk];
-            Vue.prototype.$TCT._invalidateCache('answers_by_question');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answers[pk];
+            this.$TCT._invalidateCache('answers_by_question');
+            this.$globalData.dataVersion++;
         },
 
         cloneQuestion: function () {
-            const newQuestion = Vue.prototype.$TCT.cloneQuestion(Vue.prototype.$globalData.question);
+            const newQuestion = this.$TCT.cloneQuestion(this.$globalData.question);
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
 
-            Vue.prototype.$globalData.mode = QUESTION;
-            Vue.prototype.$globalData.question = newQuestion.pk;
+            this.$globalData.mode = QUESTION;
+            this.$globalData.question = newQuestion.pk;
         },
 
         questionDescription: function (question) {
@@ -379,25 +379,25 @@ window.defineComponent('question-picker', {
         },
 
         onChange: function (evt) {
-            Vue.prototype.$globalData.mode = QUESTION;
-            Vue.prototype.$globalData.question = evt.target.value;
+            this.$globalData.mode = QUESTION;
+            this.$globalData.question = evt.target.value;
         },
 
         onClick: function (evt) {
-            if (Vue.prototype.$globalData.mode != QUESTION) {
-                Vue.prototype.$globalData.mode = QUESTION;
+            if (this.$globalData.mode != QUESTION) {
+                this.$globalData.mode = QUESTION;
             }
         }
     },
 
     computed: {
         questions: function () {
-            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-            return Array.from(Vue.prototype.$TCT.questions.values());
+            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            return Array.from(this.$TCT.questions.values());
         },
 
         currentQuestion: function () {
-            return Vue.prototype.$globalData.question;
+            return this.$globalData.question;
         },
 
         numberOfQuestions() {
@@ -417,7 +417,7 @@ window.defineComponent('question-picker', {
     }
 })
 
-window.defineComponent('state-picker', {
+registerComponent('state-picker', {
 
     template: `
     <div class="mx-auto p-3">
@@ -438,24 +438,24 @@ window.defineComponent('state-picker', {
 
     methods: {
         onChange: function (evt) {
-            Vue.prototype.$globalData.mode = STATE;
-            Vue.prototype.$globalData.state = evt.target.value;
+            this.$globalData.mode = STATE;
+            this.$globalData.state = evt.target.value;
         },
 
         onClick: function (evt) {
-            if (Vue.prototype.$globalData.mode != STATE) {
-                Vue.prototype.$globalData.mode = STATE;
+            if (this.$globalData.mode != STATE) {
+                this.$globalData.mode = STATE;
             }
         },
 
         addState: function (evt) {
 
-            let newPk = Vue.prototype.$TCT.createNewState();
+            let newPk = this.$TCT.createNewState();
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
 
-            Vue.prototype.$globalData.mode = STATE;
-            Vue.prototype.$globalData.state = newPk;
+            this.$globalData.mode = STATE;
+            this.$globalData.state = newPk;
 
             this.onChange(newPk);
         }
@@ -463,17 +463,17 @@ window.defineComponent('state-picker', {
 
     computed: {
         states: function () {
-            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-            return Object.values(Vue.prototype.$TCT.states);
+            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            return Object.values(this.$TCT.states);
         },
 
         currentState: function () {
-            return Vue.prototype.$globalData.state;
+            return this.$globalData.state;
         }
     }
 })
 
-window.defineComponent('issue-picker', {
+registerComponent('issue-picker', {
 
     template: `
     <div class="mx-auto p-3">
@@ -495,13 +495,13 @@ window.defineComponent('issue-picker', {
     methods: {
 
         onChange: function (evt) {
-            Vue.prototype.$globalData.mode = ISSUE;
-            Vue.prototype.$globalData.issue = evt.target.value;
+            this.$globalData.mode = ISSUE;
+            this.$globalData.issue = evt.target.value;
         },
 
         onClick: function (evt) {
-            if (Vue.prototype.$globalData.mode != ISSUE) {
-                Vue.prototype.$globalData.mode = ISSUE;
+            if (this.$globalData.mode != ISSUE) {
+                this.$globalData.mode = ISSUE;
             }
         },
 
@@ -511,27 +511,27 @@ window.defineComponent('issue-picker', {
                 alert('No issues available to clone from.');
                 return;
             }
-            const basePk = Vue.prototype.$globalData.issue || list[0].pk;
+            const basePk = this.$globalData.issue || list[0].pk;
             try {
-                const newIssue = Vue.prototype.$TCT.cloneIssue(basePk);
-                Vue.prototype.$globalData.dataVersion++;
-                Vue.prototype.$globalData.mode = ISSUE;
-                Vue.prototype.$globalData.issue = newIssue.pk;
+                const newIssue = this.$TCT.cloneIssue(basePk);
+                this.$globalData.dataVersion++;
+                this.$globalData.mode = ISSUE;
+                this.$globalData.issue = newIssue.pk;
             } catch (err) {
                 alert(err.message || 'Jinkies! Failed to clone issue.');
             }
         },
 
         deleteCurrentIssue() {
-            const current = Vue.prototype.$globalData.issue;
+            const current = this.$globalData.issue;
             if (!current) return;
             if (!confirm('Do you really wish to delete this issue?')) return;
             try {
                 const next = this.nextIssue(current);
-                Vue.prototype.$TCT.removeIssue(current);
+                this.$TCT.removeIssue(current);
                 const remaining = this.issues;
-                Vue.prototype.$globalData.issue = next ?? (remaining[0]?.pk ?? null);
-                Vue.prototype.$globalData.dataVersion++;
+                this.$globalData.issue = next ?? (remaining[0]?.pk ?? null);
+                this.$globalData.dataVersion++;
             } catch (err) {
                 alert(err.message || 'Failed to delete issue.');
             }
@@ -549,17 +549,17 @@ window.defineComponent('issue-picker', {
 
     computed: {
         issues: function () {
-            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-            return Object.values(Vue.prototype.$TCT.issues);
+            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            return Object.values(this.$TCT.issues);
         },
 
         currentIssue: function () {
-            return Vue.prototype.$globalData.issue;
+            return this.$globalData.issue;
         }
     }
 })
 
-window.defineComponent('candidate-picker', {
+registerComponent('candidate-picker', {
 
     template: `
     <div class="mx-auto p-3">
@@ -578,37 +578,37 @@ window.defineComponent('candidate-picker', {
     methods: {
 
         addCandidate: function () {
-            const newCandidatePk = Vue.prototype.$TCT.addCandidate();
-            Vue.prototype.$globalData.mode = CANDIDATE;
-            Vue.prototype.$globalData.candidate = newCandidatePk;
+            const newCandidatePk = this.$TCT.addCandidate();
+            this.$globalData.mode = CANDIDATE;
+            this.$globalData.candidate = newCandidatePk;
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         onChange: function (evt) {
-            Vue.prototype.$globalData.mode = CANDIDATE;
-            Vue.prototype.$globalData.candidate = evt.target.value;
+            this.$globalData.mode = CANDIDATE;
+            this.$globalData.candidate = evt.target.value;
         },
 
         onClick: function (evt) {
-            if (Vue.prototype.$globalData.mode != CANDIDATE) {
-                Vue.prototype.$globalData.mode = CANDIDATE;
+            if (this.$globalData.mode != CANDIDATE) {
+                this.$globalData.mode = CANDIDATE;
             }
         }
     },
 
     computed: {
         currentCandidate: function () {
-            return Vue.prototype.$globalData.candidate;
+            return this.$globalData.candidate;
         },
         candidates: function () {
-            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
+            let a = [this.$globalData.filename, this.$globalData.dataVersion];
             return getListOfCandidates();
         }
     }
 })
 
-window.defineComponent('cyoa-picker', {
+registerComponent('cyoa-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -620,12 +620,12 @@ window.defineComponent('cyoa-picker', {
 
     methods: {
         gotoCyoa: function (evt) {
-            Vue.prototype.$globalData.mode = CYOA;
+            this.$globalData.mode = CYOA;
         },
     }
 })
 
-window.defineComponent('banner-picker', {
+registerComponent('banner-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -637,12 +637,12 @@ window.defineComponent('banner-picker', {
 
     methods: {
         gotoBanner: function (evt) {
-            Vue.prototype.$globalData.mode = BANNER;
+            this.$globalData.mode = BANNER;
         },
     }
 })
 
-window.defineComponent('template-picker', {
+registerComponent('template-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -675,7 +675,7 @@ window.defineComponent('template-picker', {
     }
 })
 
-window.defineComponent('ending-picker', {
+registerComponent('ending-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -687,12 +687,12 @@ window.defineComponent('ending-picker', {
 
     methods: {
         gotoEndings: function (evt) {
-            Vue.prototype.$globalData.mode = ENDINGS;
+            this.$globalData.mode = ENDINGS;
         },
     }
 })
 
-window.defineComponent('mapping-picker', {
+registerComponent('mapping-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -704,12 +704,12 @@ window.defineComponent('mapping-picker', {
 
     methods: {
         gotoMapping: function (evt) {
-            Vue.prototype.$globalData.mode = MAPPING;
+            this.$globalData.mode = MAPPING;
         },
     }
 })
 
-window.defineComponent('bulk-picker', {
+registerComponent('bulk-picker', {
 
     template: `
     <div class="mx-auto py-1 px-3">
@@ -721,12 +721,12 @@ window.defineComponent('bulk-picker', {
 
     methods: {
         gotoBulk: function (evt) {
-            Vue.prototype.$globalData.mode = BULK;
+            this.$globalData.mode = BULK;
         },
     }
 })
 
-window.defineComponent('unified-tools-picker', {
+registerComponent('unified-tools-picker', {
     data() {
         return {
             showDropdown: false,
@@ -803,19 +803,19 @@ window.defineComponent('unified-tools-picker', {
 
     methods: {
         gotoCyoa() {
-            Vue.prototype.$globalData.mode = CYOA;
+            this.$globalData.mode = CYOA;
         },
         gotoBanner() {
-            Vue.prototype.$globalData.mode = BANNER;
+            this.$globalData.mode = BANNER;
         },
         gotoEndings() {
-            Vue.prototype.$globalData.mode = ENDINGS;
+            this.$globalData.mode = ENDINGS;
         },
         gotoMapping() {
-            Vue.prototype.$globalData.mode = MAPPING;
+            this.$globalData.mode = MAPPING;
         },
         gotoBulk() {
-            Vue.prototype.$globalData.mode = BULK;
+            this.$globalData.mode = BULK;
         },
         onChange(evt) {
             if (confirm("This will overwrite your existing data. Are you sure?")) {
@@ -835,7 +835,7 @@ window.defineComponent('unified-tools-picker', {
     }
 })
 
-window.defineComponent('unified-data-picker', {
+registerComponent('unified-data-picker', {
     template: `
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Header -->

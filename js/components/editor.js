@@ -1,4 +1,4 @@
-window.defineComponent('toolbar', {
+registerComponent('toolbar', {
 
     data() {
         return {
@@ -297,19 +297,20 @@ window.defineComponent('toolbar', {
                     try {
                         const raw = evt.target.result;
                         // preserve original (with comments) for export
-                        Vue.prototype.$TCT_raw = raw;
+                        this.$TCT_raw = raw;
 
                         // strip comments before handing to loader
                         const stripped = stripJsonComments(raw);
 
                         // parse!
-                        Vue.prototype.$TCT = loadDataFromFile(stripped);
-                        Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0].pk;
-                        Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0].pk;
-                        Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0].pk;
-                        Vue.prototype.$globalData.candidate = getListOfCandidates()[0][0];
-                        Vue.prototype.$globalData.filename = file.name;
-                        Vue.prototype.$globalData.dataVersion++;
+                        const parsed = loadDataFromFile(stripped);
+                        window.$updateGlobalTCT(parsed);
+                        this.$globalData.question = Array.from(parsed.questions.values())[0].pk;
+                        this.$globalData.state = Object.values(parsed.states)[0].pk;
+                        this.$globalData.issue = Object.values(parsed.issues)[0].pk;
+                        this.$globalData.candidate = getListOfCandidates()[0][0];
+                        this.$globalData.filename = file.name;
+                        this.$globalData.dataVersion++;
                     } catch (e) {
                         alert("Error parsing uploaded file: " + e)
                     }
@@ -331,14 +332,14 @@ window.defineComponent('toolbar', {
 
 
         exportCode2: function () {
-            let f = Vue.prototype.$TCT.exportCode2();
+            let f = this.$TCT.exportCode2();
             if (window.TCTAnswerSwapHelper) {
                 f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
             }
 
             let element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(f));
-            element.setAttribute('download', Vue.prototype.$globalData.filename);
+            element.setAttribute('download', this.$globalData.filename);
 
             element.style.display = 'none';
             document.body.appendChild(element);
@@ -349,7 +350,7 @@ window.defineComponent('toolbar', {
         },
 
         clipboardCode2: function () {
-            let f = Vue.prototype.$TCT.exportCode2();
+            let f = this.$TCT.exportCode2();
             // inject Answer Swapper code
             if (window.TCTAnswerSwapHelper) {
                 f = window.TCTAnswerSwapHelper.injectAnswerSwapIntoCode2(f);
@@ -484,7 +485,7 @@ window.defineComponent('toolbar', {
 
         getCurrentModData() {
             // get the current mod data by exporting it
-            return Vue.prototype.$TCT.exportCode2();
+            return this.$TCT.exportCode2();
         },
 
         async saveCurrentAsPreset() {
@@ -525,16 +526,17 @@ window.defineComponent('toolbar', {
 
             try {
                 // load the preset mod data
-                Vue.prototype.$TCT = loadDataFromFile(preset.modData);
+                const parsed = loadDataFromFile(preset.modData);
+                window.$updateGlobalTCT(parsed);
 
                 // reset the interface to first items
-                Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
-                Vue.prototype.$globalData.state = Object.values(Vue.prototype.$TCT.states)[0]?.pk || null;
-                Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0]?.pk || null;
-                Vue.prototype.$globalData.candidate = getListOfCandidates()[0]?.[0] || null;
-                Vue.prototype.$globalData.filename = `${preset.name}.txt`;
-                Vue.prototype.$globalData.mode = QUESTION;
-                Vue.prototype.$globalData.dataVersion++;
+                this.$globalData.question = Array.from(parsed.questions.values())[0]?.pk || null;
+                this.$globalData.state = Object.values(parsed.states)[0]?.pk || null;
+                this.$globalData.issue = Object.values(parsed.issues)[0]?.pk || null;
+                this.$globalData.candidate = getListOfCandidates()[0]?.[0] || null;
+                this.$globalData.filename = `${preset.name}.txt`;
+                this.$globalData.mode = QUESTION;
+                this.$globalData.dataVersion++;
 
                 this.closeModPresets();
                 alert(`Mod preset "${preset.name}" loaded successfully!`);
@@ -678,7 +680,7 @@ window.defineComponent('toolbar', {
     }
 })
 
-window.defineComponent('editor', {
+registerComponent('editor', {
     template: `
     <div class="mx-auto bg-gray-100 p-4">
 
@@ -697,23 +699,23 @@ window.defineComponent('editor', {
     computed: {
 
         currentMode: function () {
-            return Vue.prototype.$globalData.mode;
+            return this.$globalData.mode;
         },
 
         question: function () {
-            return Vue.prototype.$globalData.question;
+            return this.$globalData.question;
         },
 
         state: function () {
-            return Vue.prototype.$globalData.state;
+            return this.$globalData.state;
         },
 
         issue: function () {
-            return Vue.prototype.$globalData.issue;
+            return this.$globalData.issue;
         },
 
         candidate: function () {
-            return Vue.prototype.$globalData.candidate;
+            return this.$globalData.candidate;
         },
     }
 })

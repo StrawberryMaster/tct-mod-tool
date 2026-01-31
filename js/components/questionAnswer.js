@@ -8,7 +8,7 @@ function loadDefaultUSMap() {
         });
 }
 
-window.defineComponent('question', {
+registerComponent('question', {
     props: {
         pk: Number
     },
@@ -45,7 +45,7 @@ window.defineComponent('question', {
         },
         // push edits into store and debounce autosave so typing is smooth
         localDescription(newVal) {
-            const q = Vue.prototype.$TCT.questions.get(this.pk);
+            const q = this.$TCT.questions.get(this.pk);
             if (q) {
                 q.fields.description = newVal;
                 this.markDirty();
@@ -62,7 +62,7 @@ window.defineComponent('question', {
                 this.localAnswerDescription = '';
                 return;
             }
-            const a = Vue.prototype.$TCT.answers[newVal];
+            const a = this.$TCT.answers[newVal];
             this.localAnswerDescription = a?.fields.description || '';
         },
         // if the underlying store changes externally (clone, delete, etc.)
@@ -74,7 +74,7 @@ window.defineComponent('question', {
         // push edits into store with debounced autosave like question text
         localAnswerDescription(newVal) {
             if (!this.activeAnswer) return;
-            const a = Vue.prototype.$TCT.answers[this.activeAnswer];
+            const a = this.$TCT.answers[this.activeAnswer];
             if (a) {
                 a.fields.description = newVal;
                 this.markDirty();
@@ -376,13 +376,13 @@ window.defineComponent('question', {
 
         selectAnswer(pk) {
             // guard against selecting deleted/non-existent answers
-            if (!Vue.prototype.$TCT.answers[pk]) {
+            if (!this.$TCT.answers[pk]) {
                 this.activeAnswer = null;
                 this.localAnswerDescription = '';
                 return;
             }
             this.activeAnswer = pk;
-            this.localAnswerDescription = Vue.prototype.$TCT.answers[pk]?.fields.description || '';
+            this.localAnswerDescription = this.$TCT.answers[pk]?.fields.description || '';
             // no save here; just selection
         },
         updateAnswerDescription(evt) {
@@ -391,7 +391,7 @@ window.defineComponent('question', {
         },
 
         addAnswer: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let answer = {
                 "model": "campaign_trail.answer",
                 "pk": newPk,
@@ -401,90 +401,90 @@ window.defineComponent('question', {
                 }
             };
             this.temp_answers = [Date.now()];
-            Vue.prototype.$TCT.answers[newPk] = answer;
-            Vue.prototype.$TCT._invalidateCache('answers_by_question');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.answers[newPk] = answer;
+            this.$TCT._invalidateCache('answers_by_question');
+            this.$globalData.dataVersion++;
             this.selectAnswer(newPk);
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         addFeedback: function (answerPk) {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let feedback = {
                 "model": "campaign_trail.answer_feedback",
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
                     "answer_feedback": "Enter feedback text here"
                 }
             };
-            Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            this.$TCT.answer_feedback[newPk] = feedback;
+            this.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         addGlobalScore: function (answerPk) {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_global",
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
                     "global_multiplier": 0
                 }
             };
-            Vue.prototype.$TCT.answer_score_global[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            this.$TCT.answer_score_global[newPk] = x;
+            this.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         addIssueScore: function (answerPk) {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_issue",
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "issue": Vue.prototype.$TCT.getFirstIssuePK(),
+                    "issue": this.$TCT.getFirstIssuePK(),
                     "issue_score": 0,
                     "issue_importance": 0
                 }
             };
-            Vue.prototype.$TCT.answer_score_issue[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            this.$TCT.answer_score_issue[newPk] = x;
+            this.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         addStateScore: function (answerPk) {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_state",
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "state": Vue.prototype.$TCT.getFirstStatePK(),
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "state": this.$TCT.getFirstStatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
                     "state_multiplier": 0
                 }
             };
-            Vue.prototype.$TCT.answer_score_state[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            this.$TCT.answer_score_state[newPk] = x;
+            this.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -502,34 +502,34 @@ window.defineComponent('question', {
                 if (!confirm(`Are you sure you want to delete answer #${pk}?`)) return;
             }
 
-            let referencedFeedbacks = Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
+            let referencedFeedbacks = this.$TCT.getAdvisorFeedbackForAnswer(pk);
             for (let i = 0; i < referencedFeedbacks.length; i++) {
-                delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
+                delete this.$TCT.answer_feedback[referencedFeedbacks[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            this.$TCT._invalidateCache('feedback_by_answer');
 
-            let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
+            let x = this.$TCT.getStateScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
+                delete this.$TCT.answer_score_state[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            this.$TCT._invalidateCache('state_score_by_answer');
 
-            x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
+            x = this.$TCT.getIssueScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
+                delete this.$TCT.answer_score_issue[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            this.$TCT._invalidateCache('issue_score_by_answer');
 
-            x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
+            x = this.$TCT.getGlobalScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
-                delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
+                delete this.$TCT.answer_score_global[x[i].pk];
             }
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            this.$TCT._invalidateCache('global_score_by_answer');
 
             this.temp_answers = [Date.now()];
-            delete Vue.prototype.$TCT.answers[pk];
-            Vue.prototype.$TCT._invalidateCache('answers_by_question');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answers[pk];
+            this.$TCT._invalidateCache('answers_by_question');
+            this.$globalData.dataVersion++;
 
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
@@ -540,11 +540,11 @@ window.defineComponent('question', {
         },
 
         cloneAnswer: function (pk) {
-            const thisAnswer = Vue.prototype.$TCT.answers[pk];
+            const thisAnswer = this.$TCT.answers[pk];
             // try to get the new PK and select it; still refresh the list even if undefined
-            const clonedPk = Vue.prototype.$TCT.cloneAnswer?.(thisAnswer, thisAnswer.fields.question);
+            const clonedPk = this.$TCT.cloneAnswer?.(thisAnswer, thisAnswer.fields.question);
             this.temp_answers = [Date.now()]; // trigger reactivity
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             if (clonedPk) {
                 this.selectAnswer(clonedPk);
             }
@@ -553,37 +553,37 @@ window.defineComponent('question', {
         },
 
         deleteFeedback: function (pk) {
-            delete Vue.prototype.$TCT.answer_feedback[pk];
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            delete this.$TCT.answer_feedback[pk];
+            this.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteGlobalScore: function (pk) {
-            delete Vue.prototype.$TCT.answer_score_global[pk];
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            delete this.$TCT.answer_score_global[pk];
+            this.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteIssueScore: function (pk) {
-            delete Vue.prototype.$TCT.answer_score_issue[pk];
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            delete this.$TCT.answer_score_issue[pk];
+            this.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteStateScore: function (pk) {
-            delete Vue.prototype.$TCT.answer_score_state[pk];
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            delete this.$TCT.answer_score_state[pk];
+            this.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -593,15 +593,15 @@ window.defineComponent('question', {
             if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-            Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = value;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.questions.get(this.pk).fields[evt.target.name] = value;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         onInputUpdatePicker: function (evt) {
-            Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -609,15 +609,15 @@ window.defineComponent('question', {
         deleteQuestion() {
             if (!confirm(`Are you sure you want to delete question #${this.pk}?`)) return;
 
-            let referencedAnswers = Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
+            let referencedAnswers = this.$TCT.getAnswersForQuestion(this.pk);
             for (let i = 0; i < referencedAnswers.length; i++) {
                 this.deleteAnswer(referencedAnswers[i].pk, true);
             }
 
-            Vue.prototype.$TCT.questions.delete(this.pk);
-            Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
+            this.$TCT.questions.delete(this.pk);
+            this.$globalData.question = Array.from(this.$TCT.questions.values())[0]?.pk || null;
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
 
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -633,23 +633,23 @@ window.defineComponent('question', {
         },
 
         getFeedbackForAnswer(pk) {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
+            this.$globalData.dataVersion;
+            return this.$TCT.getAdvisorFeedbackForAnswer(pk);
         },
 
         getGlobalScoresForAnswer(pk) {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
+            this.$globalData.dataVersion;
+            return this.$TCT.getGlobalScoreForAnswer(pk);
         },
 
         getIssueScoresForAnswer(pk) {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
+            this.$globalData.dataVersion;
+            return this.$TCT.getIssueScoreForAnswer(pk);
         },
 
         getStateScoresForAnswer(pk) {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getStateScoreForAnswer(pk);
+            this.$globalData.dataVersion;
+            return this.$TCT.getStateScoreForAnswer(pk);
         },
 
         hasFeedback(pk) {
@@ -669,9 +669,9 @@ window.defineComponent('question', {
         },
 
         getVariableEffectsForAnswer(pk) {
-            Vue.prototype.$globalData.dataVersion;
-            if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) return [];
-            return Object.values(Vue.prototype.$TCT.jet_data.cyoa_variable_effects).filter(effect => effect.answer === pk);
+            this.$globalData.dataVersion;
+            if (!this.$TCT.jet_data.cyoa_variable_effects) return [];
+            return Object.values(this.$TCT.jet_data.cyoa_variable_effects).filter(effect => effect.answer === pk);
         },
 
         hasVariableEffects(pk) {
@@ -679,15 +679,15 @@ window.defineComponent('question', {
         },
 
         addVariableEffect(answerPk) {
-            if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) {
-                Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {};
+            if (!this.$TCT.jet_data.cyoa_variable_effects) {
+                this.$TCT.jet_data.cyoa_variable_effects = {};
             }
 
-            const variables = Vue.prototype.$TCT.getAllCyoaVariables();
+            const variables = this.$TCT.getAllCyoaVariables();
             if (variables.length === 0) return; // No variables to affect
 
-            const newPk = Vue.prototype.$TCT.getNewPk();
-            Vue.prototype.$TCT.jet_data.cyoa_variable_effects[newPk] = {
+            const newPk = this.$TCT.getNewPk();
+            this.$TCT.jet_data.cyoa_variable_effects[newPk] = {
                 id: newPk,
                 answer: answerPk,
                 variable: variables[0].name,
@@ -695,15 +695,15 @@ window.defineComponent('question', {
                 amount: 1
             };
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         deleteVariableEffect(pk) {
-            delete Vue.prototype.$TCT.jet_data.cyoa_variable_effects[pk];
+            delete this.$TCT.jet_data.cyoa_variable_effects[pk];
             this.temp_answers = [Date.now()];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         }
@@ -712,38 +712,38 @@ window.defineComponent('question', {
     computed: {
         answers: function () {
             this.temp_answers;
-            return Vue.prototype.$TCT.getAnswersForQuestion(this.pk);
+            return this.$TCT.getAnswersForQuestion(this.pk);
         },
 
         description: function () {
-            return Vue.prototype.$TCT.questions.get(this.pk)?.fields.description;
+            return this.$TCT.questions.get(this.pk)?.fields.description;
         },
 
         hasCyoaVariables: function () {
-            return Vue.prototype.$TCT.getAllCyoaVariables().length > 0;
+            return this.$TCT.getAllCyoaVariables().length > 0;
         },
 
         getAnswerDescription: function () {
             if (!this.activeAnswer) return '';
-            const ans = Vue.prototype.$TCT.answers[this.activeAnswer];
+            const ans = this.$TCT.answers[this.activeAnswer];
             return ans ? ans.fields.description : '';
         }
     }
 });
 
-window.defineComponent('answer', {
+registerComponent('answer', {
 
     props: ['pk'],
 
     data() {
         return {
-            feedbacks: Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(this.pk),
+            feedbacks: this.$TCT.getAdvisorFeedbackForAnswer(this.pk),
 
-            globalScores: Vue.prototype.$TCT.getGlobalScoreForAnswer(this.pk),
+            globalScores: this.$TCT.getGlobalScoreForAnswer(this.pk),
 
-            issueScores: Vue.prototype.$TCT.getIssueScoreForAnswer(this.pk),
+            issueScores: this.$TCT.getIssueScoreForAnswer(this.pk),
 
-            stateScores: Vue.prototype.$TCT.getStateScoreForAnswer(this.pk),
+            stateScores: this.$TCT.getStateScoreForAnswer(this.pk),
         };
     },
 
@@ -795,82 +795,82 @@ window.defineComponent('answer', {
 
         cloneAnswer: function () {
             this.$emit('cloneAnswer', this.pk)
-            const thisAnswer = Vue.prototype.$TCT.answers[this.pk];
+            const thisAnswer = this.$TCT.answers[this.pk];
         },
 
         addFeedback: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let feedback = {
                 "model": "campaign_trail.answer_feedback",
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
                     "answer_feedback": "put feedback here, don't forget to change candidate"
                 }
             }
             this.feedbacks.push(feedback)
-            Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.answer_feedback[newPk] = feedback;
+            this.$TCT._invalidateCache('feedback_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addGlobalScore: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_global",
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
                     "global_multiplier": 0
                 }
             }
             this.globalScores.push(x)
-            Vue.prototype.$TCT.answer_score_global[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.answer_score_global[newPk] = x;
+            this.$TCT._invalidateCache('global_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addIssueScore: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_issue",
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "issue": Vue.prototype.$TCT.getFirstIssuePK(),
+                    "issue": this.$TCT.getFirstIssuePK(),
                     "issue_score": 0,
                     "issue_importance": 0
                 }
             }
             this.issueScores.push(x)
-            Vue.prototype.$TCT.answer_score_issue[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.answer_score_issue[newPk] = x;
+            this.$TCT._invalidateCache('issue_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         addStateScore: function () {
-            const newPk = Vue.prototype.$TCT.getNewPk();
+            const newPk = this.$TCT.getNewPk();
             let x = {
                 "model": "campaign_trail.answer_score_state",
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "state": Vue.prototype.$TCT.getFirstStatePK(),
-                    "candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": Vue.prototype.$TCT.getFirstCandidatePK(),
+                    "state": this.$TCT.getFirstStatePK(),
+                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
                     "state_multiplier": 0
                 }
             }
             this.stateScores.push(x)
-            Vue.prototype.$TCT.answer_score_state[newPk] = x;
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.answer_score_state[newPk] = x;
+            this.$TCT._invalidateCache('state_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -880,33 +880,33 @@ window.defineComponent('answer', {
 
         deleteFeedback: function (pk) {
             this.feedbacks = this.feedbacks.filter(a => a.pk != pk);
-            delete Vue.prototype.$TCT.answer_feedback[pk];
-            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answer_feedback[pk];
+            this.$TCT._invalidateCache('feedback_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteGlobalScore: function (pk) {
             this.globalScores = this.globalScores.filter(a => a.pk != pk);
-            delete Vue.prototype.$TCT.answer_score_global[pk];
-            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answer_score_global[pk];
+            this.$TCT._invalidateCache('global_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteIssueScore: function (pk) {
             this.issueScores = this.issueScores.filter(a => a.pk != pk);
-            delete Vue.prototype.$TCT.answer_score_issue[pk];
-            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answer_score_issue[pk];
+            this.$TCT._invalidateCache('issue_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
         deleteStateScore: function (pk) {
             this.stateScores = this.stateScores.filter(a => a.pk != pk);
-            delete Vue.prototype.$TCT.answer_score_state[pk];
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            delete this.$TCT.answer_score_state[pk];
+            this.$TCT._invalidateCache('state_score_by_answer');
+            this.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -916,7 +916,7 @@ window.defineComponent('answer', {
                 value = Number(value);
             }
 
-            Vue.prototype.$TCT.answers[this.pk].fields[evt.target.name] = value;
+            this.$TCT.answers[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
@@ -927,13 +927,13 @@ window.defineComponent('answer', {
             this.globalScores;
             this.issueScores;
             this.stateScores;
-            return Vue.prototype.$TCT.answers[this.pk].fields.description;
+            return this.$TCT.answers[this.pk].fields.description;
         },
     }
 })
 
 // Feedback Card Component
-window.defineComponent('answer-feedback-card', {
+registerComponent('answer-feedback-card', {
     props: ['pk'],
 
     template: `
@@ -972,18 +972,18 @@ window.defineComponent('answer-feedback-card', {
                 value = Number(value);
             }
 
-            Vue.prototype.$TCT.answer_feedback[this.pk].fields[evt.target.name] = value;
+            this.$TCT.answer_feedback[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         }
     },
 
     computed: {
         candidate: function () {
-            return Vue.prototype.$TCT.answer_feedback[this.pk].fields.candidate;
+            return this.$TCT.answer_feedback[this.pk].fields.candidate;
         },
 
         candidateNickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+            return this.$TCT.getNicknameForCandidate(this.candidate);
         },
 
         candidates() {
@@ -991,13 +991,13 @@ window.defineComponent('answer-feedback-card', {
         },
 
         answerFeedback: function () {
-            return Vue.prototype.$TCT.answer_feedback[this.pk].fields.answer_feedback;
+            return this.$TCT.answer_feedback[this.pk].fields.answer_feedback;
         }
     }
 });
 
 // Global Score Card Component
-window.defineComponent('global-score-card', {
+registerComponent('global-score-card', {
     props: ['pk'],
 
     template: `
@@ -1056,9 +1056,9 @@ window.defineComponent('global-score-card', {
                 value = Number(value);
             }
 
-            Vue.prototype.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
+            this.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         }
     },
 
@@ -1068,32 +1068,32 @@ window.defineComponent('global-score-card', {
         },
 
         candidateNickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+            return this.$TCT.getNicknameForCandidate(this.candidate);
         },
 
         affectedNickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.affected);
+            return this.$TCT.getNicknameForCandidate(this.affected);
         },
 
         candidate: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_global[this.pk].fields.candidate;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_global[this.pk].fields.candidate;
         },
 
         affected: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_global[this.pk].fields.affected_candidate;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_global[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_global[this.pk].fields.global_multiplier;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_global[this.pk].fields.global_multiplier;
         }
     }
 });
 
 // Issue Score Card Component
-window.defineComponent('issue-score-card', {
+registerComponent('issue-score-card', {
     props: ['pk'],
 
     template: `
@@ -1157,31 +1157,31 @@ window.defineComponent('issue-score-card', {
                 value = Number(value);
             }
 
-            Vue.prototype.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
+            this.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         }
     },
 
     computed: {
         issues: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Object.values(Vue.prototype.$TCT.issues);
+            this.$globalData.dataVersion;
+            return Object.values(this.$TCT.issues);
         },
 
         issue: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.issue;
         },
 
         issueScore: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue_score;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.issue_score;
         },
 
         issueImportance: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_issue[this.pk].fields.issue_importance;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.issue_importance;
         },
 
         issueScoreDisplay: function () {
@@ -1194,7 +1194,7 @@ window.defineComponent('issue-score-card', {
     }
 });
 // State Score Card Component
-window.defineComponent('state-score-card', {
+registerComponent('state-score-card', {
     props: ['pk'],
 
     template: `
@@ -1266,49 +1266,49 @@ window.defineComponent('state-score-card', {
                 value = Number(value);
             }
 
-            Vue.prototype.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
+            this.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         }
     },
 
     computed: {
         candidateNickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+            return this.$TCT.getNicknameForCandidate(this.candidate);
         },
 
         affectedNickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.affected);
+            return this.$TCT.getNicknameForCandidate(this.affected);
         },
 
         candidate: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_state[this.pk].fields.candidate;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_state[this.pk].fields.candidate;
         },
 
         affected: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_state[this.pk].fields.affected_candidate;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_state[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state_multiplier;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_state[this.pk].fields.state_multiplier;
         },
 
         state: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.answer_score_state[this.pk].fields.state;
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_state[this.pk].fields.state;
         },
 
         states: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Object.values(Vue.prototype.$TCT.states);
+            this.$globalData.dataVersion;
+            return Object.values(this.$TCT.states);
         }
     }
 });
 
-window.defineComponent('state-effect-presets', {
+registerComponent('state-effect-presets', {
     props: {
         onSelectPreset: Function,
         selectedStatesCount: Number
@@ -1327,7 +1327,7 @@ window.defineComponent('state-effect-presets', {
         },
 
         selectPreset(category) {
-            const states = Object.values(Vue.prototype.$TCT.states);
+            const states = Object.values(this.$TCT.states);
             let statePks = [];
 
             switch (category) {
@@ -1441,7 +1441,7 @@ window.defineComponent('state-effect-presets', {
     `
 });
 
-window.defineComponent('integrated-state-effect-visualizer', {
+registerComponent('integrated-state-effect-visualizer', {
     props: ['answerId'],
 
     watch: {
@@ -1460,8 +1460,8 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
     data() {
         return {
-            candidateId: Vue.prototype.$TCT.getFirstCandidatePK(),
-            affectedCandidateId: Vue.prototype.$TCT.getFirstCandidatePK(),
+            candidateId: this.$TCT.getFirstCandidatePK(),
+            affectedCandidateId: this.$TCT.getFirstCandidatePK(),
             selectedStates: {},
             stateEffects: {},
             highlightedState: null,
@@ -1504,11 +1504,11 @@ window.defineComponent('integrated-state-effect-visualizer', {
         candidates() {
             return typeof getListOfCandidates === 'function'
                 ? getListOfCandidates()
-                : Object.values(Vue.prototype.$TCT.candidates || {}).map(c => [c.pk, c.fields?.name || `Candidate ${c.pk}`]);
+                : Object.values(this.$TCT.candidates || {}).map(c => [c.pk, c.fields?.name || `Candidate ${c.pk}`]);
         },
 
         states() {
-            return Object.values(Vue.prototype.$TCT.states || {}).filter(
+            return Object.values(this.$TCT.states || {}).filter(
                 s => s && s.pk != null && s.fields && s.fields.abbr && s.fields.name
             );
         },
@@ -1536,9 +1536,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
         allStateEffectsForAnswer() {
             this.effectListVersion;
-            Vue.prototype.$globalData.dataVersion;
-            const stateScores = (typeof Vue.prototype.$TCT.getStateScoreForAnswer === 'function')
-                ? Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId) || []
+            this.$globalData.dataVersion;
+            const stateScores = (typeof this.$TCT.getStateScoreForAnswer === 'function')
+                ? this.$TCT.getStateScoreForAnswer(this.answerId) || []
                 : [];
 
             if (!Array.isArray(stateScores) || stateScores.length === 0) return [];
@@ -1546,10 +1546,10 @@ window.defineComponent('integrated-state-effect-visualizer', {
             return stateScores
                 .map(score => {
                     try {
-                        const stateObj = Vue.prototype.$TCT.states?.[score.fields.state];
+                        const stateObj = this.$TCT.states?.[score.fields.state];
                         const stateName = stateObj?.fields?.name || `State ${score.fields.state}`;
-                        const candidateNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.candidate) || null;
-                        const affectedNick = Vue.prototype.$TCT.getNicknameForCandidate?.(score.fields.affected_candidate) || null;
+                        const candidateNick = this.$TCT.getNicknameForCandidate?.(score.fields.candidate) || null;
+                        const affectedNick = this.$TCT.getNicknameForCandidate?.(score.fields.affected_candidate) || null;
                         const multiplier = Number(score.fields.state_multiplier) || 0;
                         return {
                             pk: score.pk,
@@ -1578,8 +1578,8 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
     methods: {
         loadStateEffects() {
-            const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
-            const states = Object.values(Vue.prototype.$TCT.states);
+            const stateScores = this.$TCT.getStateScoreForAnswer(this.answerId);
+            const states = Object.values(this.$TCT.states);
 
             this.stateEffects = {};
             for (const state of states) {
@@ -1598,9 +1598,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
         async loadMapData() {
             try {
-                const mapping = Vue.prototype.$TCT.jet_data?.mapping_data;
+                const mapping = this.$TCT.jet_data?.mapping_data;
                 if (mapping?.mapSvg) {
-                    this.mapData = Vue.prototype.$TCT.getMapForPreview(mapping.mapSvg) || [];
+                    this.mapData = this.$TCT.getMapForPreview(mapping.mapSvg) || [];
                     if (this.mapData.length) {
                         this.mapLoaded = true;
                         this.initializeViewport(true);
@@ -1619,7 +1619,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 if (typeof loadDefaultUSMap === 'function') {
                     const svg = await loadDefaultUSMap();
                     if (svg) {
-                        this.mapData = Vue.prototype.$TCT.getMapForPreview(svg) || [];
+                        this.mapData = this.$TCT.getMapForPreview(svg) || [];
                         if (this.mapData.length) {
                             this.mapLoaded = true;
                             this.fallbackViewBox = '0 0 1000 589';
@@ -1676,7 +1676,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         resolveBaseDimensions() {
-            const mapping = Vue.prototype.$TCT.jet_data?.mapping_data || {};
+            const mapping = this.$TCT.jet_data?.mapping_data || {};
             const mapWidth = Number(mapping.x);
             const mapHeight = Number(mapping.y);
             if (mapWidth > 0 && mapHeight > 0) {
@@ -1880,7 +1880,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
         },
 
         updateOrCreateStateEffect(statePk, value) {
-            const stateScores = Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId);
+            const stateScores = this.$TCT.getStateScoreForAnswer(this.answerId);
             let existingScorePk = null;
 
             for (const score of stateScores) {
@@ -1893,9 +1893,9 @@ window.defineComponent('integrated-state-effect-visualizer', {
             }
 
             if (existingScorePk) {
-                Vue.prototype.$TCT.answer_score_state[existingScorePk].fields.state_multiplier = value;
+                this.$TCT.answer_score_state[existingScorePk].fields.state_multiplier = value;
             } else if (value !== 0) {
-                const newPk = Vue.prototype.$TCT.getNewPk();
+                const newPk = this.$TCT.getNewPk();
                 const newEffect = {
                     "model": "campaign_trail.answer_score_state",
                     "pk": newPk,
@@ -1907,18 +1907,18 @@ window.defineComponent('integrated-state-effect-visualizer', {
                         "state_multiplier": value
                     }
                 };
-                Vue.prototype.$TCT.answer_score_state[newPk] = newEffect;
+                this.$TCT.answer_score_state[newPk] = newEffect;
             }
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT._invalidateCache('state_score_by_answer');
+            this.$globalData.dataVersion++;
         },
 
         deleteStateEffect(effectPk) {
-            delete Vue.prototype.$TCT.answer_score_state[effectPk];
-            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            delete this.$TCT.answer_score_state[effectPk];
+            this.$TCT._invalidateCache('state_score_by_answer');
             this.loadStateEffects();
             this.effectListVersion++;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         selectPresetStates(statePks) {
@@ -2139,7 +2139,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 });
 
 // Variable Effect Card Component
-window.defineComponent('variable-effect-card', {
+registerComponent('variable-effect-card', {
     props: ['pk'],
 
     template: `
@@ -2184,32 +2184,32 @@ window.defineComponent('variable-effect-card', {
 
     methods: {
         onInput(evt) {
-            const effectsRoot = Vue.prototype.$TCT.jet_data.cyoa_variable_effects || (Vue.prototype.$TCT.jet_data.cyoa_variable_effects = {});
+            const effectsRoot = this.$TCT.jet_data.cyoa_variable_effects || (this.$TCT.jet_data.cyoa_variable_effects = {});
             if (!effectsRoot[this.pk]) return;
 
             const val = evt.target.name === 'amount' ? Number(evt.target.value) : evt.target.value;
             effectsRoot[this.pk][evt.target.name] = val;
 
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         }
     },
 
     computed: {
         availableVariables() {
-            return Vue.prototype.$TCT.getAllCyoaVariables();
+            return this.$TCT.getAllCyoaVariables();
         },
 
         variable: function () {
-            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.variable || '';
+            return this.$TCT.jet_data.cyoa_variable_effects[this.pk]?.variable || '';
         },
 
         operation: function () {
-            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.operation || 'add';
+            return this.$TCT.jet_data.cyoa_variable_effects[this.pk]?.operation || 'add';
         },
 
         amount: function () {
-            return Vue.prototype.$TCT.jet_data.cyoa_variable_effects[this.pk]?.amount || 1;
+            return this.$TCT.jet_data.cyoa_variable_effects[this.pk]?.amount || 1;
         }
     }
 });

@@ -1,4 +1,4 @@
-window.defineComponent('banner-settings', {
+registerComponent('banner-settings', {
     data() {
         return {
             previewQuestion: 1,
@@ -191,18 +191,18 @@ window.defineComponent('banner-settings', {
 
     methods: {
         toggleEnabled() {
-            Vue.prototype.$TCT.jet_data.banner_enabled = !Vue.prototype.$TCT.jet_data.banner_enabled;
+            this.$TCT.jet_data.banner_enabled = !this.$TCT.jet_data.banner_enabled;
             this.pingGlobal();
         },
         pingGlobal() {
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
         // ensure reactive keys exist on the banner_data object
         ensureReactiveBannerData() {
-            if (Vue.prototype.$TCT.jet_data.banner_data == null) {
-                Vue.prototype.$TCT.jet_data.banner_data = {};
+            if (this.$TCT.jet_data.banner_data == null) {
+                this.$TCT.jet_data.banner_data = {};
             }
-            const obj = Vue.prototype.$TCT.jet_data.banner_data;
+            const obj = this.$TCT.jet_data.banner_data;
             if (!Object.prototype.hasOwnProperty.call(obj, 'canName')) obj.canName = '';
             if (!Object.prototype.hasOwnProperty.call(obj, 'canImage')) obj.canImage = '';
             if (!Object.prototype.hasOwnProperty.call(obj, 'runName')) obj.runName = '';
@@ -236,16 +236,16 @@ window.defineComponent('banner-settings', {
 
     computed: {
         enabled() {
-            if (Vue.prototype.$TCT.jet_data.banner_enabled == null) {
-                Vue.prototype.$TCT.jet_data.banner_enabled = false;
+            if (this.$TCT.jet_data.banner_enabled == null) {
+                this.$TCT.jet_data.banner_enabled = false;
             }
-            if (Vue.prototype.$TCT.jet_data.banner_data == null) {
-                Vue.prototype.$TCT.jet_data.banner_data = {};
+            if (this.$TCT.jet_data.banner_data == null) {
+                this.$TCT.jet_data.banner_data = {};
             }
             this.ensureReactiveBannerData();
             // sync local fields when enabling
-            if (Vue.prototype.$TCT.jet_data.banner_enabled) {
-                const d = Vue.prototype.$TCT.jet_data.banner_data;
+            if (this.$TCT.jet_data.banner_enabled) {
+                const d = this.$TCT.jet_data.banner_data;
                 this.formCanName = d.canName || '';
                 this.formCanImage = d.canImage || '';
                 this.formRunName = d.runName || '';
@@ -254,7 +254,7 @@ window.defineComponent('banner-settings', {
                 this.resetImageState('run');
             }
             this.pingGlobal();
-            return Vue.prototype.$TCT.jet_data.banner_enabled;
+            return this.$TCT.jet_data.banner_enabled;
         },
 
         // cache-busted preview src + keys to force re-render (use local fields)
@@ -283,24 +283,24 @@ window.defineComponent('banner-settings', {
         // push local changes to global and refresh preview
         formCanName(val) {
             this.ensureReactiveBannerData();
-            Vue.prototype.$TCT.jet_data.banner_data.canName = val;
+            this.$TCT.jet_data.banner_data.canName = val;
             this.pingGlobal();
         },
         formRunName(val) {
             this.ensureReactiveBannerData();
-            Vue.prototype.$TCT.jet_data.banner_data.runName = val;
+            this.$TCT.jet_data.banner_data.runName = val;
             this.pingGlobal();
         },
         formCanImage(val) {
             this.ensureReactiveBannerData();
-            Vue.prototype.$TCT.jet_data.banner_data.canImage = val;
+            this.$TCT.jet_data.banner_data.canImage = val;
             this.resetImageState('can');
             this.previewTick++;
             this.pingGlobal();
         },
         formRunImage(val) {
             this.ensureReactiveBannerData();
-            Vue.prototype.$TCT.jet_data.banner_data.runImage = val;
+            this.$TCT.jet_data.banner_data.runImage = val;
             this.resetImageState('run');
             this.previewTick++;
             this.pingGlobal();
@@ -310,7 +310,7 @@ window.defineComponent('banner-settings', {
     mounted() {
         // initialize from global into local, then set image states
         this.ensureReactiveBannerData();
-        const d = Vue.prototype.$TCT.jet_data.banner_data;
+        const d = this.$TCT.jet_data.banner_data;
         this.formCanName = d.canName || '';
         this.formCanImage = d.canImage || '';
         this.formRunName = d.runName || '';

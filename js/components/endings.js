@@ -1,4 +1,4 @@
-window.defineComponent('endings', {
+registerComponent('endings', {
 
     data() {
         return {
@@ -113,14 +113,14 @@ window.defineComponent('endings', {
     methods: {
 
         toggleEnabled: function(evt) {
-            Vue.prototype.$TCT.jet_data.endings_enabled = !Vue.prototype.$TCT.jet_data.endings_enabled;
+            this.$TCT.jet_data.endings_enabled = !this.$TCT.jet_data.endings_enabled;
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         addEnding: function(evt) {
             let id = Date.now();
-            Vue.prototype.$TCT.jet_data.ending_data[id] = {
+            this.$TCT.jet_data.ending_data[id] = {
                 'id':id,
                 'variable':0,
                 'operator':'>',
@@ -129,13 +129,13 @@ window.defineComponent('endings', {
                 'endingText':"Put ending text here, you can and should use <p>HTML tags</p>!"
             }
             this.temp_endings = [];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         deleteEnding: function(id) {
-            delete Vue.prototype.$TCT.jet_data.ending_data[id];
+            delete this.$TCT.jet_data.ending_data[id];
             this.temp_endings = [];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         openManageModal(tab = 'list') {
@@ -183,8 +183,8 @@ window.defineComponent('endings', {
             try {
                 // persist explicit ordering to jet_data.endings_order
                 // this avoids relying on object insertion order
-                if (!Vue.prototype.$TCT.jet_data) Vue.prototype.$TCT.jet_data = {};
-                Vue.prototype.$TCT.jet_data.endings_order = orderedIds;
+                if (!this.$TCT.jet_data) this.$TCT.jet_data = {};
+                this.$TCT.jet_data.endings_order = orderedIds;
 
                 // force re-render of the component list by clearing any temp cache
                 this.temp_endings = [];
@@ -240,27 +240,27 @@ window.defineComponent('endings', {
     computed: {
 
         endings: function() {
-            let a = [Vue.prototype.$globalData.dataVersion];
-            return this.temp_endings.concat(Vue.prototype.$TCT.getAllEndings());
+            let a = [this.$globalData.dataVersion];
+            return this.temp_endings.concat(this.$TCT.getAllEndings());
         },
 
         enabled: function() {
-            if(Vue.prototype.$TCT.jet_data.endings_enabled == null) {
-                Vue.prototype.$TCT.jet_data.endings_enabled = false;
+            if(this.$TCT.jet_data.endings_enabled == null) {
+                this.$TCT.jet_data.endings_enabled = false;
             }
 
-            if(Vue.prototype.$TCT.jet_data.ending_data == null) {
-                Vue.prototype.$TCT.jet_data.ending_data = {};
+            if(this.$TCT.jet_data.ending_data == null) {
+                this.$TCT.jet_data.ending_data = {};
             }
 
-            let a = [Vue.prototype.$globalData.dataVersion];
+            let a = [this.$globalData.dataVersion];
 
-            return Vue.prototype.$TCT.jet_data.endings_enabled;
+            return this.$TCT.jet_data.endings_enabled;
         }
     }
 })
 
-window.defineComponent('ending', {
+registerComponent('ending', {
 
     props: ['id'],
 
@@ -319,35 +319,35 @@ window.defineComponent('ending', {
         },
 
         onChange: function(evt) {
-            Vue.prototype.$TCT.jet_data.ending_data[this.id][evt.target.name] = evt.target.value;
+            this.$TCT.jet_data.ending_data[this.id][evt.target.name] = evt.target.value;
         },
 
         onInput: function(evt) {
-            Vue.prototype.$TCT.jet_data.ending_data[this.id][evt.target.name] = evt.target.value;
+            this.$TCT.jet_data.ending_data[this.id][evt.target.name] = evt.target.value;
         },
     },
 
     computed: {
 
         endingImage: function() {
-            return Vue.prototype.$TCT.jet_data.ending_data[this.id].endingImage;
+            return this.$TCT.jet_data.ending_data[this.id].endingImage;
         },
 
         getVariable: function() {
-            console.log(Vue.prototype.$TCT.jet_data.ending_data)
-            return Vue.prototype.$TCT.jet_data.ending_data[this.id].variable;
+            console.log(this.$TCT.jet_data.ending_data)
+            return this.$TCT.jet_data.ending_data[this.id].variable;
         },
 
         getOperator: function() {
-            return Vue.prototype.$TCT.jet_data.ending_data[this.id].operator;
+            return this.$TCT.jet_data.ending_data[this.id].operator;
         },
 
         getAmount: function() {
-            return Vue.prototype.$TCT.jet_data.ending_data[this.id].amount;
+            return this.$TCT.jet_data.ending_data[this.id].amount;
         },
 
         getEndingText: function() {
-            return Vue.prototype.$TCT.jet_data.ending_data[this.id].endingText;
+            return this.$TCT.jet_data.ending_data[this.id].endingText;
         }
     }
 })

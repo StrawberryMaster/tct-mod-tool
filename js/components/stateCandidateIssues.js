@@ -1,4 +1,4 @@
-window.defineComponent('data-table', {
+registerComponent('data-table', {
     props: ['items', 'columns', 'title', 'keyField', 'deletable', 'deleteLabel', 'pkChangeType'],
 
     data() {
@@ -219,7 +219,7 @@ window.defineComponent('data-table', {
     }
 });
 
-window.defineComponent('state-shift-editor', {
+registerComponent('state-shift-editor', {
     props: ['shifts', 'title'],
     data() {
         return {
@@ -229,8 +229,8 @@ window.defineComponent('state-shift-editor', {
     },
     computed: {
         items() {
-            Vue.prototype.$globalData.dataVersion;
-            const states = Vue.prototype.$TCT.states;
+            this.$globalData.dataVersion;
+            const states = this.$TCT.states;
             return (this.shifts || []).map(s => {
                 const st = states[s.state];
                 const fields = st ? st.fields : {};
@@ -252,9 +252,9 @@ window.defineComponent('state-shift-editor', {
             ];
         },
         availableStates() {
-            Vue.prototype.$globalData.dataVersion;
+            this.$globalData.dataVersion;
             const used = new Set((this.shifts || []).map(s => s.state));
-            const states = Vue.prototype.$TCT.states || {};
+            const states = this.$TCT.states || {};
             return Object.values(states)
                 .map(s => ({ pk: s.pk, abbr: s.fields.abbr, name: s.fields.name }))
                 .filter(s => !used.has(s.pk))
@@ -308,7 +308,7 @@ window.defineComponent('state-shift-editor', {
     `
 });
 
-window.defineComponent('state', {
+registerComponent('state', {
     props: ['pk'],
 
     data() {
@@ -452,13 +452,13 @@ window.defineComponent('state', {
 
     methods: {
         deleteState: function () {
-            Vue.prototype.$TCT.deleteState(Number(this.pk));
-            Vue.prototype.$globalData.state = Vue.prototype.$TCT.getFirstStatePK();
-            Vue.prototype.$globalData.mode = QUESTION;
-            Vue.prototype.$globalData.mode = STATE;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = null;
-            Vue.prototype.$globalData.filename = temp;
+            this.$TCT.deleteState(Number(this.pk));
+            this.$globalData.state = this.$TCT.getFirstStatePK();
+            this.$globalData.mode = QUESTION;
+            this.$globalData.mode = STATE;
+            const temp = this.$globalData.filename;
+            this.$globalData.filename = null;
+            this.$globalData.filename = temp;
         },
 
         onInput: function (evt) {
@@ -466,7 +466,7 @@ window.defineComponent('state', {
             if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
-            Vue.prototype.$TCT.states[Number(this.pk)].fields[evt.target.name] = value;
+            this.$TCT.states[Number(this.pk)].fields[evt.target.name] = value;
             this.temp *= -1;
         },
 
@@ -475,15 +475,15 @@ window.defineComponent('state', {
         },
 
         updateMultiplier: function (item, field, value) {
-            Vue.prototype.$TCT.candidate_state_multiplier[item.pk].fields[field] = value;
+            this.$TCT.candidate_state_multiplier[item.pk].fields[field] = value;
             this.temp *= -1;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
 
         updateIssueScore: function (item, field, value) {
-            Vue.prototype.$TCT.state_issue_scores[item.pk].fields[field] = value;
+            this.$TCT.state_issue_scores[item.pk].fields[field] = value;
             this.temp *= -1;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         }
     },
 
@@ -494,42 +494,42 @@ window.defineComponent('state', {
 
         stateName: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.name;
+            return this.$TCT.states[this.statePk]?.fields.name;
         },
 
         abbr: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.abbr;
+            return this.$TCT.states[this.statePk]?.fields.abbr;
         },
 
         electoralVotes: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.electoral_votes;
+            return this.$TCT.states[this.statePk]?.fields.electoral_votes;
         },
 
         popularVotes: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.popular_votes;
+            return this.$TCT.states[this.statePk]?.fields.popular_votes;
         },
 
         pollClosingTime: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.poll_closing_time;
+            return this.$TCT.states[this.statePk]?.fields.poll_closing_time;
         },
 
         winnerTakeAll: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.winner_take_all_flg;
+            return this.$TCT.states[this.statePk]?.fields.winner_take_all_flg;
         },
 
         election: function () {
             this.temp;
-            return Vue.prototype.$TCT.states[this.statePk]?.fields.election;
+            return this.$TCT.states[this.statePk]?.fields.election;
         },
 
         candidateStateMultipliers: function () {
             this.temp;
-            return Vue.prototype.$TCT.getCandidateStateMultipliersForState(this.statePk);
+            return this.$TCT.getCandidateStateMultipliersForState(this.statePk);
         },
 
         stateMultipliersWithNames: function () {
@@ -538,20 +538,20 @@ window.defineComponent('state', {
                 return {
                     ...multiplier.fields,
                     pk: multiplier.pk,
-                    candidateName: Vue.prototype.$TCT.getNicknameForCandidate(candidatePk)
+                    candidateName: this.$TCT.getNicknameForCandidate(candidatePk)
                 };
             });
         },
 
         stateIssueScores: function () {
             this.temp;
-            return Vue.prototype.$TCT.getIssueScoreForState(this.statePk) || [];
+            return this.$TCT.getIssueScoreForState(this.statePk) || [];
         },
 
         stateIssueScoresWithNames: function () {
             return this.stateIssueScores.map(score => {
                 const issuePk = score.fields.issue;
-                const issue = Vue.prototype.$TCT.issues[issuePk];
+                const issue = this.$TCT.issues[issuePk];
                 return {
                     ...score.fields,
                     pk: score.pk,
@@ -562,12 +562,12 @@ window.defineComponent('state', {
 
         margins: function () {
             this.temp;
-            return Vue.prototype.$TCT.getPVForState(this.statePk);
+            return this.$TCT.getPVForState(this.statePk);
         }
     }
 });
 
-window.defineComponent('candidate-state-multiplier', {
+registerComponent('candidate-state-multiplier', {
     props: ['pk'],
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
@@ -588,31 +588,31 @@ window.defineComponent('candidate-state-multiplier', {
         onInput: function (evt) {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields[evt.target.name] = value;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.candidate_state_multiplier[this.pk].fields[evt.target.name] = value;
+            this.$globalData.dataVersion++;
         }
     },
     computed: {
         stateMultiplier: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.state_multiplier;
+            this.$globalData.dataVersion;
+            return this.$TCT.candidate_state_multiplier[this.pk].fields.state_multiplier;
         },
         candidate: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.candidate;
+            this.$globalData.dataVersion;
+            return this.$TCT.candidate_state_multiplier[this.pk].fields.candidate;
         },
         nickname: function () {
-            Vue.prototype.$globalData.filename;
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+            this.$globalData.filename;
+            return this.$TCT.getNicknameForCandidate(this.candidate);
         },
         stateName: function () {
-            const statePk = Vue.prototype.$TCT.candidate_state_multiplier[this.pk].fields.state;
-            return Vue.prototype.$TCT.states[statePk]?.fields.name || 'Unknown State';
+            const statePk = this.$TCT.candidate_state_multiplier[this.pk].fields.state;
+            return this.$TCT.states[statePk]?.fields.name || 'Unknown State';
         }
     }
 })
 
-window.defineComponent('state-issue-score', {
+registerComponent('state-issue-score', {
     props: ['pk', 'hideIssuePK'],
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
@@ -647,47 +647,47 @@ window.defineComponent('state-issue-score', {
     `,
     methods: {
         onInput: function (evt) {
-            const entry = Vue.prototype.$TCT?.state_issue_scores?.[this.pk];
+            const entry = this.$TCT?.state_issue_scores?.[this.pk];
             if (!entry) return;
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
             entry.fields[evt.target.name] = value;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
         getIssueName: function (issuePk) {
-            if (!Vue.prototype.$TCT.issues[issuePk]) return 'Unknown Issue';
-            return `${issuePk} - ${Vue.prototype.$TCT.issues[issuePk].fields.name}`;
+            if (!this.$TCT.issues[issuePk]) return 'Unknown Issue';
+            return `${issuePk} - ${this.$TCT.issues[issuePk].fields.name}`;
         }
     },
     computed: {
         issues: function () {
-            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-            return Object.values(Vue.prototype.$TCT?.issues || {});
+            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            return Object.values(this.$TCT?.issues || {});
         },
         currentIssue: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.issue;
+            this.$globalData.dataVersion;
+            return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.issue;
         },
         stateName: function () {
-            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
-            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.name || '';
+            const statePK = this.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
+            return this.$TCT?.states?.[statePK]?.fields?.name || '';
         },
         stateIssueScore: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state_issue_score ?? 0;
+            this.$globalData.dataVersion;
+            return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.state_issue_score ?? 0;
         },
         weight: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.weight ?? 0;
+            this.$globalData.dataVersion;
+            return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.weight ?? 0;
         },
         stateAbbr: function () {
-            const statePK = Vue.prototype.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
-            return Vue.prototype.$TCT?.states?.[statePK]?.fields?.abbr || '';
+            const statePK = this.$TCT?.state_issue_scores?.[this.pk]?.fields?.state;
+            return this.$TCT?.states?.[statePK]?.fields?.abbr || '';
         }
     }
 })
 
-window.defineComponent('issue', {
+registerComponent('issue', {
     props: ['pk'],
     template: `
     <div class="bg-white rounded-lg shadow-sm">
@@ -743,21 +743,21 @@ window.defineComponent('issue', {
         onInput: function (evt) {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = value;
+            this.$TCT.issues[this.issuePk].fields[evt.target.name] = value;
         },
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields.description = evt.target.value;
+            this.$TCT.issues[this.issuePk].fields.description = evt.target.value;
         },
         onInputUpdatePicker: function (evt) {
-            Vue.prototype.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.issues[this.issuePk].fields[evt.target.name] = evt.target.value;
+            this.$globalData.dataVersion++;
         },
         deleteIssue: function () {
             try {
-                Vue.prototype.$TCT.removeIssue(this.issuePk);
-                const remaining = Object.values(Vue.prototype.$TCT.issues);
-                Vue.prototype.$globalData.issue = remaining.length ? remaining[0].pk : null;
-                Vue.prototype.$globalData.dataVersion++;
+                this.$TCT.removeIssue(this.issuePk);
+                const remaining = Object.values(this.$TCT.issues);
+                this.$globalData.issue = remaining.length ? remaining[0].pk : null;
+                this.$globalData.dataVersion++;
             } catch (err) {
                 alert(err.message || 'Zoinks! Failed to delete issue.');
             }
@@ -766,10 +766,10 @@ window.defineComponent('issue', {
     computed: {
         issuePk() { return Number(this.pk); },
         name: function () {
-            return Vue.prototype.$TCT?.issues?.[this.issuePk]?.fields?.name || '';
+            return this.$TCT?.issues?.[this.issuePk]?.fields?.name || '';
         },
         description: function () {
-            const issue = Vue.prototype.$TCT?.issues?.[this.issuePk];
+            const issue = this.$TCT?.issues?.[this.issuePk];
             if (!issue || !issue.fields) return '';
             if (issue.fields.description == null || issue.fields.description == "'") {
                 issue.fields.description = "";
@@ -777,19 +777,19 @@ window.defineComponent('issue', {
             return issue.fields.description;
         },
         candidateIssueScores: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.getCandidateIssueScoreForIssue?.(this.issuePk) || [];
+            this.$globalData.dataVersion;
+            return this.$TCT?.getCandidateIssueScoreForIssue?.(this.issuePk) || [];
         },
         runningMateIssueScores: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.getRunningMateIssueScoreForIssue?.(this.issuePk) || [];
+            this.$globalData.dataVersion;
+            return this.$TCT?.getRunningMateIssueScoreForIssue?.(this.issuePk) || [];
         },
         stateIssueScores: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT?.getStateIssueScoresForIssue?.(this.issuePk) || [];
+            this.$globalData.dataVersion;
+            return this.$TCT?.getStateIssueScoresForIssue?.(this.issuePk) || [];
         },
         issueCount() {
-            return Object.keys(Vue.prototype.$TCT?.issues || {}).length;
+            return Object.keys(this.$TCT?.issues || {}).length;
         },
         canDelete() {
             return this.issueCount > 1;
@@ -797,7 +797,7 @@ window.defineComponent('issue', {
     }
 })
 
-window.defineComponent('stance', {
+registerComponent('stance', {
     props: ['pk', 'n'],
     template: `
     <div class="bg-white rounded-sm shadow-sm p-3">
@@ -809,24 +809,24 @@ window.defineComponent('stance', {
     `,
     methods: {
         onInput: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n] = evt.target.value;
+            this.$TCT.issues[Number(this.pk)].fields["stance_" + this.n] = evt.target.value;
         },
         onInput2: function (evt) {
-            Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n] = evt.target.value;
+            this.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n] = evt.target.value;
         },
     },
     computed: {
         stance: function () {
-            return Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_" + this.n];
+            return this.$TCT.issues[Number(this.pk)].fields["stance_" + this.n];
         },
         stance_desc: function () {
-            const val = Vue.prototype.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n];
+            const val = this.$TCT.issues[Number(this.pk)].fields["stance_desc_" + this.n];
             return (val == null || val == "'") ? "" : val;
         },
     }
 })
 
-window.defineComponent('candidate-issue-score', {
+registerComponent('candidate-issue-score', {
     props: ['pk', 'isRunning'],
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
@@ -849,37 +849,37 @@ window.defineComponent('candidate-issue-score', {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
             if (this.isRunning != "true") {
-                Vue.prototype.$TCT.candidate_issue_score[this.pk].fields[evt.target.name] = value;
+                this.$TCT.candidate_issue_score[this.pk].fields[evt.target.name] = value;
             } else {
-                Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields[evt.target.name] = value;
+                this.$TCT.running_mate_issue_score[this.pk].fields[evt.target.name] = value;
             }
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
         },
     },
     computed: {
         candidate: function () {
-            Vue.prototype.$globalData.dataVersion;
+            this.$globalData.dataVersion;
             if (this.isRunning != "true") {
-                return Vue.prototype.$TCT.candidate_issue_score[this.pk].fields["candidate"];
+                return this.$TCT.candidate_issue_score[this.pk].fields["candidate"];
             } else {
-                return Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields["candidate"];
+                return this.$TCT.running_mate_issue_score[this.pk].fields["candidate"];
             }
         },
         nickname: function () {
-            return Vue.prototype.$TCT.getNicknameForCandidate(this.candidate);
+            return this.$TCT.getNicknameForCandidate(this.candidate);
         },
         issueScore: function () {
-            Vue.prototype.$globalData.dataVersion;
+            this.$globalData.dataVersion;
             if (this.isRunning != "true") {
-                return Vue.prototype.$TCT.candidate_issue_score[this.pk].fields["issue_score"];
+                return this.$TCT.candidate_issue_score[this.pk].fields["issue_score"];
             } else {
-                return Vue.prototype.$TCT.running_mate_issue_score[this.pk].fields["issue_score"];
+                return this.$TCT.running_mate_issue_score[this.pk].fields["issue_score"];
             }
         },
     }
 })
 
-window.defineComponent('candidate', {
+registerComponent('candidate', {
     props: ['pk'],
     data() { return { temp: [0] }; },
     template: `
@@ -924,39 +924,39 @@ window.defineComponent('candidate', {
         generateStateMultipliers: function () {
             const candidatePk = Number(this.pk);
             if (!Number.isFinite(candidatePk)) return;
-            if (typeof Vue.prototype.$TCT?.addStateMultipliersForCandidate !== 'function') return;
+            if (typeof this.$TCT?.addStateMultipliersForCandidate !== 'function') return;
             this.temp = [];
-            Vue.prototype.$TCT.addStateMultipliersForCandidate(candidatePk);
+            this.$TCT.addStateMultipliersForCandidate(candidatePk);
         },
         onInput: function (evt, pk) {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) value = Number(value);
-            Vue.prototype.$TCT.candidate_state_multiplier[pk].fields[evt.target.name] = value;
+            this.$TCT.candidate_state_multiplier[pk].fields[evt.target.name] = value;
         },
         onInputNickname: function (evt) {
-            if (Vue.prototype.$TCT.jet_data.nicknames == null) Vue.prototype.$TCT.jet_data.nicknames = {};
-            Vue.prototype.$TCT.jet_data.nicknames[Number(this.pk)] = evt.target.value;
-            Vue.prototype.$globalData.dataVersion++;
+            if (this.$TCT.jet_data.nicknames == null) this.$TCT.jet_data.nicknames = {};
+            this.$TCT.jet_data.nicknames[Number(this.pk)] = evt.target.value;
+            this.$globalData.dataVersion++;
         },
         deleteCandidate: function () {
-            Vue.prototype.$TCT.deleteCandidate(Number(this.pk));
-            Vue.prototype.$globalData.candidate = Vue.prototype.$TCT.getAllCandidatePKs()[0];
-            Vue.prototype.$globalData.dataVersion++;
+            this.$TCT.deleteCandidate(Number(this.pk));
+            this.$globalData.candidate = this.$TCT.getAllCandidatePKs()[0];
+            this.$globalData.dataVersion++;
         }
     },
     computed: {
         nickname: function () {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getNicknameForCandidate(Number(this.pk));
+            this.$globalData.dataVersion;
+            return this.$TCT.getNicknameForCandidate(Number(this.pk));
         },
         stateMultipliersForCandidate: function () {
             this.temp;
-            return Vue.prototype.$TCT.getStateMultiplierForCandidate(Number(this.pk));
+            return this.$TCT.getStateMultiplierForCandidate(Number(this.pk));
         },
     }
 })
 
-window.defineComponent('issue-state-map-editor', {
+registerComponent('issue-state-map-editor', {
     props: ['issuePk'],
     data() {
         return {
@@ -997,12 +997,12 @@ window.defineComponent('issue-state-map-editor', {
     },
     computed: {
         states() {
-            Vue.prototype.$globalData.dataVersion;
-            return Object.values(Vue.prototype.$TCT.states || {}).filter(s => s && s.pk != null);
+            this.$globalData.dataVersion;
+            return Object.values(this.$TCT.states || {}).filter(s => s && s.pk != null);
         },
         currentEntries() {
-            Vue.prototype.$globalData.dataVersion;
-            return Vue.prototype.$TCT.getStateIssueScoresForIssue(this.issuePk) || [];
+            this.$globalData.dataVersion;
+            return this.$TCT.getStateIssueScoresForIssue(this.issuePk) || [];
         },
         selectedCount() {
             return Object.values(this.selectedStates).filter(Boolean).length;
@@ -1061,9 +1061,9 @@ window.defineComponent('issue-state-map-editor', {
 
         async loadMapData() {
             try {
-                const mapping = Vue.prototype.$TCT.jet_data?.mapping_data;
+                const mapping = this.$TCT.jet_data?.mapping_data;
                 if (mapping?.mapSvg) {
-                    this.mapData = Vue.prototype.$TCT.getMapForPreview(mapping.mapSvg) || [];
+                    this.mapData = this.$TCT.getMapForPreview(mapping.mapSvg) || [];
                     if (this.mapData.length) {
                         this.mapAvailable = true;
                         this.initializeViewport(true);
@@ -1073,7 +1073,7 @@ window.defineComponent('issue-state-map-editor', {
                 if (typeof loadDefaultUSMap === 'function') {
                     const svg = await loadDefaultUSMap();
                     if (svg) {
-                        this.mapData = Vue.prototype.$TCT.getMapForPreview(svg) || [];
+                        this.mapData = this.$TCT.getMapForPreview(svg) || [];
                         if (this.mapData.length) {
                             this.mapAvailable = true;
                             this.fallbackViewBox = '0 0 1000 589';
@@ -1125,7 +1125,7 @@ window.defineComponent('issue-state-map-editor', {
         },
 
         resolveBaseDimensions() {
-            const mapping = Vue.prototype.$TCT.jet_data?.mapping_data || {};
+            const mapping = this.$TCT.jet_data?.mapping_data || {};
             const mapWidth = Number(mapping.x);
             const mapHeight = Number(mapping.y);
             if (mapWidth > 0 && mapHeight > 0) {
@@ -1265,7 +1265,7 @@ window.defineComponent('issue-state-map-editor', {
             let entry = this.currentEntries.find(item => item.fields.state == statePk);
 
             if (!entry) {
-                const newPk = Vue.prototype.$TCT.getNewPk();
+                const newPk = this.$TCT.getNewPk();
                 entry = {
                     model: 'campaign_trail.state_issue_score',
                     pk: newPk,
@@ -1276,9 +1276,9 @@ window.defineComponent('issue-state-map-editor', {
                         weight: 1
                     }
                 };
-                Vue.prototype.$TCT.state_issue_scores[newPk] = entry;
-                Vue.prototype.$TCT._invalidateCache('state_issue_scores_by_issue');
-                Vue.prototype.$TCT._invalidateCache('state_issue_scores_by_state');
+                this.$TCT.state_issue_scores[newPk] = entry;
+                this.$TCT._invalidateCache('state_issue_scores_by_issue');
+                this.$TCT._invalidateCache('state_issue_scores_by_state');
             }
             return entry;
         },
@@ -1296,7 +1296,7 @@ window.defineComponent('issue-state-map-editor', {
                 entry.fields.weight = isNaN(weight) ? 0 : weight;
             });
 
-            Vue.prototype.$globalData.dataVersion++;
+            this.$globalData.dataVersion++;
             this.loadStateScores();
         },
 
