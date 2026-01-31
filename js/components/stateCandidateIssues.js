@@ -921,21 +921,17 @@ window.defineComponent('candidate', {
         onInputNickname: function (evt) {
             if (Vue.prototype.$TCT.jet_data.nicknames == null) Vue.prototype.$TCT.jet_data.nicknames = {};
             Vue.prototype.$TCT.jet_data.nicknames[Number(this.pk)] = evt.target.value;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
         deleteCandidate: function () {
             Vue.prototype.$TCT.deleteCandidate(Number(this.pk));
             Vue.prototype.$globalData.candidate = Vue.prototype.$TCT.getAllCandidatePKs()[0];
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         }
     },
     computed: {
         nickname: function () {
-            Vue.prototype.$globalData.filename;
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getNicknameForCandidate(Number(this.pk));
         },
         stateMultipliersForCandidate: function () {
@@ -1287,10 +1283,6 @@ window.defineComponent('issue-state-map-editor', {
 
             Vue.prototype.$globalData.dataVersion++;
             this.loadStateScores();
-
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
         },
 
         getStateColor(statePk) {

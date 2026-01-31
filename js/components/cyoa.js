@@ -2,9 +2,12 @@ window.defineComponent('cyoa', {
 
     data() {
         return {
-            temp_events: [],
-            tick: 0
+            temp_events: []
         };
+    },
+
+    created() {
+        this.initStores();
     },
 
     template: `
@@ -119,18 +122,18 @@ window.defineComponent('cyoa', {
         initStores() {
             const TCT = Vue.prototype.$TCT;
             const jet = TCT.jet_data || (TCT.jet_data = {});
+            let changed = false;
 
-            if (jet.cyoa_enabled == null) jet.cyoa_enabled = false;
-            if (jet.cyoa_data == null) jet.cyoa_data = {};
-            if (jet.cyoa_variables == null) jet.cyoa_variables = {};
-            if (jet.cyoa_variable_effects == null) jet.cyoa_variable_effects = {};
-            if (jet.cyoa_question_swaps == null) jet.cyoa_question_swaps = {};
-            if (jet.cyoa_answer_swaps == null) jet.cyoa_answer_swaps = {};
+            if (jet.cyoa_enabled == null) { jet.cyoa_enabled = false; changed = true; }
+            if (jet.cyoa_data == null) { jet.cyoa_data = {}; changed = true; }
+            if (jet.cyoa_variables == null) { jet.cyoa_variables = {}; changed = true; }
+            if (jet.cyoa_variable_effects == null) { jet.cyoa_variable_effects = {}; changed = true; }
+            if (jet.cyoa_question_swaps == null) { jet.cyoa_question_swaps = {}; changed = true; }
+            if (jet.cyoa_answer_swaps == null) { jet.cyoa_answer_swaps = {}; changed = true; }
 
-            // poke filename to refresh bindings
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            if (changed) {
+                Vue.prototype.$globalData.dataVersion++;
+            }
         },
 
         // simple collision-safe ID generator for all CYOA stores
@@ -141,16 +144,13 @@ window.defineComponent('cyoa', {
             return id;
         },
 
-        toggleEnabled: function(evt) {
+        toggleEnabled: function (evt) {
             Vue.prototype.$TCT.jet_data.cyoa_enabled = !Vue.prototype.$TCT.jet_data.cyoa_enabled;
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
-        addCyoaEvent: function(evt) {
+        addCyoaEvent: function (evt) {
             // guard: require at least one Q and one A
             const answers = Object.values(Vue.prototype.$TCT.answers);
             const questions = Array.from(Vue.prototype.$TCT.questions.values());
@@ -166,18 +166,18 @@ window.defineComponent('cyoa', {
                 'id': id
             };
             this.temp_events = [];
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
-        deleteEvent: function(id) {
+        deleteEvent: function (id) {
             delete Vue.prototype.$TCT.jet_data.cyoa_data[id];
             this.temp_events = [];
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
-        addVariable: function() {
+        addVariable: function () {
             if (!Vue.prototype.$TCT.jet_data.cyoa_variables) {
                 Vue.prototype.$TCT.jet_data.cyoa_variables = {};
             }
@@ -188,11 +188,11 @@ window.defineComponent('cyoa', {
                 'name': `variable${Object.keys(jet.cyoa_variables || {}).length + 1}`,
                 'defaultValue': 0
             };
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
-        deleteVariable: function(id) {
+        deleteVariable: function (id) {
             // capture name before deleting the variable
             const variableObj = Vue.prototype.$TCT.jet_data.cyoa_variables?.[id];
             const variableName = variableObj?.name;
@@ -208,7 +208,7 @@ window.defineComponent('cyoa', {
 
             delete Vue.prototype.$TCT.jet_data.cyoa_variables[id];
 
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -226,14 +226,14 @@ window.defineComponent('cyoa', {
                 conditionOperator: 'AND',
                 swaps: [{ pk1: null, pk2: null }]
             };
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         deleteQuestionSwapRule(id) {
             if (!Vue.prototype.$TCT.jet_data.cyoa_question_swaps) return;
             delete Vue.prototype.$TCT.jet_data.cyoa_question_swaps[id];
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -250,38 +250,37 @@ window.defineComponent('cyoa', {
                 conditionOperator: 'AND',
                 swaps: [{ pk1: null, pk2: null, takeEffects: true }]
             };
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         deleteAnswerSwapRule(id) {
             if (!Vue.prototype.$TCT.jet_data.cyoa_answer_swaps) return;
             delete Vue.prototype.$TCT.jet_data.cyoa_answer_swaps[id];
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
     },
 
     computed: {
 
-        cyoaEvents: function() {
-            this.tick;
+        cyoaEvents: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getAllCyoaEvents();
         },
 
-        cyoaVariables: function() {
-            this.tick;
+        cyoaVariables: function () {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getAllCyoaVariables();
         },
 
-        enabled: function() {
-            // centralize initialization
-            this.initStores();
-            return Vue.prototype.$TCT.jet_data.cyoa_enabled;
+        enabled: function () {
+            Vue.prototype.$globalData.dataVersion;
+            return Vue.prototype.$TCT.jet_data?.cyoa_enabled;
         },
 
         // disable Add button if we have no data to populate selects
-        canAdd: function() {
+        canAdd: function () {
             const hasAnswers = Object.values(Vue.prototype.$TCT.answers).length > 0;
             const hasQuestions = Array.from(Vue.prototype.$TCT.questions.values()).length > 0;
             return hasAnswers && hasQuestions;
@@ -289,15 +288,15 @@ window.defineComponent('cyoa', {
 
         // expose swaps as a sorted list
         cyoaQuestionSwaps() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const src = Vue.prototype.$TCT.jet_data.cyoa_question_swaps || {};
-            return Object.values(src).sort((a,b) => a.id - b.id);
+            return Object.values(src).sort((a, b) => a.id - b.id);
         },
 
         cyoaAnswerSwaps() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const src = Vue.prototype.$TCT.jet_data.cyoa_answer_swaps || {};
-            return Object.values(src).sort((a,b) => a.id - b.id);
+            return Object.values(src).sort((a, b) => a.id - b.id);
         },
 
         buildQuestionSwapperFunction() {
@@ -593,11 +592,11 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const questionSwapFunc = this.buildQuestionSwapperFunction();
         const answerSwapFunc = this.buildAnswerSwapperFunction();
         const combinedFuncs = questionSwapFunc + '\n\n' + answerSwapFunc;
-        
+
         // try to find getQuestionNumberFromPk function
         const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
         const match = helperRe.exec(out);
-        
+
         if (match) {
             // insert after the helper function
             const insertPos = match.index + match[0].length;
@@ -671,31 +670,30 @@ window.defineComponent('cyoa-event', {
     `,
 
     methods: {
-        deleteEvent: function() {
+        deleteEvent: function () {
             if (confirm('Delete this CYOA event?')) {
                 this.$emit('deleteEvent', this.id);
             }
         },
 
-        onChange: function(evt) {
-            const val = Number(evt.target.value);
-            Vue.prototype.$TCT.jet_data.cyoa_data[this.id][evt.target.name] = val;
-        },
-
-        description:function(qa) {
-            if(!qa || !qa.fields || qa.fields.description == null || qa.fields.description === '') {
+        description: function (qa) {
+            if (!qa || !qa.fields || qa.fields.description == null || qa.fields.description === '') {
                 return '...';
             }
             const s = qa.fields.description;
             return s.length > 50 ? (s.slice(0, 50) + "...") : s;
         },
 
-        updateGlobal: function(field, val) {
+        updateGlobal: function (field, val) {
             if (!Vue.prototype.$TCT.jet_data.cyoa_data[this.id]) return;
+            const current = Vue.prototype.$TCT.jet_data.cyoa_data[this.id][field];
+            if (current === Number(val)) return;
             Vue.prototype.$TCT.jet_data.cyoa_data[this.id][field] = Number(val);
+            Vue.prototype.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
         },
 
-        syncFromGlobal: function() {
+        syncFromGlobal: function () {
             const row = Vue.prototype.$TCT.jet_data.cyoa_data[this.id] || {};
             // fallbacks in case of missing data
             const answers = Object.values(Vue.prototype.$TCT.answers);
@@ -722,21 +720,21 @@ window.defineComponent('cyoa-event', {
     },
 
     computed: {
-        currentQuestion: function() {
+        currentQuestion: function () {
             const row = Vue.prototype.$TCT.jet_data.cyoa_data[this.id] || {};
             return row.question;
         },
 
-        currentAnswer: function() {
+        currentAnswer: function () {
             const row = Vue.prototype.$TCT.jet_data.cyoa_data[this.id] || {};
             return row.answer;
         },
 
-        questions: function() {
+        questions: function () {
             return Array.from(Vue.prototype.$TCT.questions.values());
         },
 
-        answers: function() {
+        answers: function () {
             return Object.values(Vue.prototype.$TCT.answers);
         },
     }
@@ -769,7 +767,6 @@ window.defineComponent('cyoa-variable', {
                 <label class="block text-xs font-medium text-gray-600 mb-1">Variable name:</label>
                 <input 
                     v-model="nameVal" 
-                    @input="onChange" 
                     name="name" 
                     type="text" 
                     class="w-full border rounded-sm p-2 text-sm"
@@ -779,7 +776,6 @@ window.defineComponent('cyoa-variable', {
                 <label class="block text-xs font-medium text-gray-600 mb-1">Default value:</label>
                 <input 
                     v-model.number="defaultValueVal" 
-                    @input="onChange" 
                     name="defaultValue" 
                     type="number" 
                     class="w-full border rounded-sm p-2 text-sm">
@@ -789,18 +785,22 @@ window.defineComponent('cyoa-variable', {
     `,
 
     methods: {
-        deleteVariable: function() {
+        deleteVariable: function () {
             if (confirm('Delete this variable? This will also remove all effects that use this variable.')) {
                 this.$emit('deleteVariable', this.id);
             }
         },
 
-        onChange: function(evt) {
-            const val = evt.target.name === 'defaultValue' ? Number(evt.target.value) : evt.target.value;
-            Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][evt.target.name] = val;
+        updateGlobal: function (field, val) {
+            if (!Vue.prototype.$TCT.jet_data.cyoa_variables[this.id]) return;
+            const current = Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][field];
+            if (current === val) return;
+            Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][field] = val;
+            Vue.prototype.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
         },
 
-        syncFromGlobal: function() {
+        syncFromGlobal: function () {
             const variable = Vue.prototype.$TCT.jet_data.cyoa_variables[this.id] || {};
             this.nameVal = variable.name || '';
             this.defaultValueVal = variable.defaultValue || 0;
@@ -824,17 +824,11 @@ window.defineComponent('cyoa-variable', {
     },
 
     computed: {
-        updateGlobal: function() {
-            return function(field, val) {
-                if (!Vue.prototype.$TCT.jet_data.cyoa_variables[this.id]) return;
-                Vue.prototype.$TCT.jet_data.cyoa_variables[this.id][field] = val;
-            };
-        }
     }
 })
 
 // small global helper to trigger autosave only when enabled
-window.requestAutosaveIfEnabled = function() {
+window.requestAutosaveIfEnabled = function () {
     if (localStorage.getItem("autosaveEnabled") === "true") {
         window.requestAutosaveDebounced?.();
     }
@@ -851,8 +845,7 @@ window.defineComponent('cyoa-question-swap', {
                 variable: '',
                 comparator: '>=',
                 value: 0
-            },
-            tick: 0
+            }
         };
     },
 
@@ -886,7 +879,7 @@ window.defineComponent('cyoa-question-swap', {
             if (!rule.triggers.includes(val)) {
                 rule.triggers.push(val);
                 this.triggerToAdd = null;
-                this.tick++;
+                Vue.prototype.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
         },
@@ -894,7 +887,7 @@ window.defineComponent('cyoa-question-swap', {
         removeTrigger(pk) {
             const rule = this.getRule();
             rule.triggers = rule.triggers.filter(x => x !== pk);
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -904,15 +897,15 @@ window.defineComponent('cyoa-question-swap', {
                 alert('Please select a variable.');
                 return;
             }
-            
+
             rule.conditions.push({
                 variable: this.conditionToAdd.variable,
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
-            
+
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -920,7 +913,7 @@ window.defineComponent('cyoa-question-swap', {
             const rule = this.getRule();
             if (rule.conditions) {
                 rule.conditions.splice(index, 1);
-                this.tick++;
+                Vue.prototype.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
         },
@@ -928,41 +921,45 @@ window.defineComponent('cyoa-question-swap', {
         updateConditionOperator(value) {
             const rule = this.getRule();
             rule.conditionOperator = value;
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         addSwap() {
             const rule = this.getRule();
             rule.swaps.push({ pk1: null, pk2: null });
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         removeSwap(index) {
             const rule = this.getRule();
             rule.swaps.splice(index, 1);
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         updateSwap(index, field, value) {
             const rule = this.getRule();
             if (!rule.swaps[index]) return;
-            
+
             const newSwap = { ...rule.swaps[index] };
             newSwap[field] = Number(value) || null;
-            
+
             rule.swaps[index] = newSwap;
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         }
     },
 
     computed: {
         rule() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             return this.getRule();
+        },
+
+        tick() {
+            return Vue.prototype.$globalData.dataVersion;
         },
 
         variables() {
@@ -978,13 +975,13 @@ window.defineComponent('cyoa-question-swap', {
         },
 
         hasConditions() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions && rule.conditions.length > 0;
         },
-        
+
         conditionsList() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions || [];
         }
@@ -1106,8 +1103,7 @@ window.defineComponent('cyoa-answer-swap', {
                 variable: '',
                 comparator: '>=',
                 value: 0
-            },
-            tick: 0
+            }
         };
     },
 
@@ -1141,7 +1137,7 @@ window.defineComponent('cyoa-answer-swap', {
             if (!rule.triggers.includes(val)) {
                 rule.triggers.push(val);
                 this.triggerToAdd = null;
-                this.tick++;
+                Vue.prototype.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
         },
@@ -1149,7 +1145,7 @@ window.defineComponent('cyoa-answer-swap', {
         removeTrigger(pk) {
             const rule = this.getRule();
             rule.triggers = rule.triggers.filter(x => x !== pk);
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -1159,15 +1155,15 @@ window.defineComponent('cyoa-answer-swap', {
                 alert('Please select a variable.');
                 return;
             }
-            
+
             rule.conditions.push({
                 variable: this.conditionToAdd.variable,
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
-            
+
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
@@ -1175,7 +1171,7 @@ window.defineComponent('cyoa-answer-swap', {
             const rule = this.getRule();
             if (rule.conditions) {
                 rule.conditions.splice(index, 1);
-                this.tick++;
+                Vue.prototype.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
         },
@@ -1183,46 +1179,50 @@ window.defineComponent('cyoa-answer-swap', {
         updateConditionOperator(value) {
             const rule = this.getRule();
             rule.conditionOperator = value;
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         addSwap() {
             const rule = this.getRule();
             rule.swaps.push({ pk1: null, pk2: null, takeEffects: true });
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         removeSwap(index) {
             const rule = this.getRule();
             rule.swaps.splice(index, 1);
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         updateSwap(index, field, value) {
             const rule = this.getRule();
             if (!rule.swaps[index]) return;
-            
+
             const newSwap = { ...rule.swaps[index] };
-            
+
             if (field === 'takeEffects') {
                 newSwap.takeEffects = !!value;
             } else {
                 newSwap[field] = Number(value) || null;
             }
-            
+
             rule.swaps[index] = newSwap;
-            this.tick++;
+            Vue.prototype.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         }
     },
 
     computed: {
         rule() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             return this.getRule();
+        },
+
+        tick() {
+            return Vue.prototype.$globalData.dataVersion;
         },
 
         variables() {
@@ -1234,13 +1234,13 @@ window.defineComponent('cyoa-answer-swap', {
         },
 
         hasConditions() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions && rule.conditions.length > 0;
         },
-        
+
         conditionsList() {
-            this.tick;
+            Vue.prototype.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions || [];
         }

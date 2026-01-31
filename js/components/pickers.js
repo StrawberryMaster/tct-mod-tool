@@ -271,24 +271,29 @@ window.defineComponent('question-picker', {
             for (let i = 0; i < referencedFeedbacks.length; i++) {
                 delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
 
             let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
 
             x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
 
             x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
 
-            this.temp_answers = [Date.now()];
             delete Vue.prototype.$TCT.answers[pk];
+            Vue.prototype.$TCT._invalidateCache('answers_by_question');
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         cloneQuestion: function() {
@@ -512,9 +517,7 @@ window.defineComponent('candidate-picker', {
             Vue.prototype.$globalData.mode = CANDIDATE;
             Vue.prototype.$globalData.candidate = newCandidatePk;
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         onChange:function(evt) {
@@ -534,7 +537,7 @@ window.defineComponent('candidate-picker', {
             return Vue.prototype.$globalData.candidate;
         },
         candidates: function () {
-          let a = [Vue.prototype.$globalData.filename];
+          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
           return getListOfCandidates();
         }
     }

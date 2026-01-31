@@ -115,9 +115,7 @@ window.defineComponent('endings', {
         toggleEnabled: function(evt) {
             Vue.prototype.$TCT.jet_data.endings_enabled = !Vue.prototype.$TCT.jet_data.endings_enabled;
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         addEnding: function(evt) {
@@ -131,11 +129,13 @@ window.defineComponent('endings', {
                 'endingText':"Put ending text here, you can and should use <p>HTML tags</p>!"
             }
             this.temp_endings = [];
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         deleteEnding: function(id) {
             delete Vue.prototype.$TCT.jet_data.ending_data[id];
             this.temp_endings = [];
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         openManageModal(tab = 'list') {
@@ -240,6 +240,7 @@ window.defineComponent('endings', {
     computed: {
 
         endings: function() {
+            let a = [Vue.prototype.$globalData.dataVersion];
             return this.temp_endings.concat(Vue.prototype.$TCT.getAllEndings());
         },
 
@@ -252,9 +253,7 @@ window.defineComponent('endings', {
                 Vue.prototype.$TCT.jet_data.ending_data = {};
             }
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            let a = [Vue.prototype.$globalData.dataVersion];
 
             return Vue.prototype.$TCT.jet_data.endings_enabled;
         }

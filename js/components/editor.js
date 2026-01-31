@@ -309,6 +309,7 @@ window.defineComponent('toolbar', {
                         Vue.prototype.$globalData.issue = Object.values(Vue.prototype.$TCT.issues)[0].pk;
                         Vue.prototype.$globalData.candidate = getListOfCandidates()[0][0];
                         Vue.prototype.$globalData.filename = file.name;
+                        Vue.prototype.$globalData.dataVersion++;
                     } catch (e) {
                         alert("Error parsing uploaded file: " + e)
                     }
@@ -533,6 +534,7 @@ window.defineComponent('toolbar', {
                 Vue.prototype.$globalData.candidate = getListOfCandidates()[0]?.[0] || null;
                 Vue.prototype.$globalData.filename = `${preset.name}.txt`;
                 Vue.prototype.$globalData.mode = QUESTION;
+                Vue.prototype.$globalData.dataVersion++;
 
                 this.closeModPresets();
                 alert(`Mod preset "${preset.name}" loaded successfully!`);

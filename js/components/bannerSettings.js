@@ -195,9 +195,7 @@ window.defineComponent('banner-settings', {
             this.pingGlobal();
         },
         pingGlobal() {
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
         },
         // ensure reactive keys exist on the banner_data object
         ensureReactiveBannerData() {

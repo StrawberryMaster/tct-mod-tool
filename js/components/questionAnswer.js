@@ -403,6 +403,7 @@ window.defineComponent('question', {
             this.temp_answers = [Date.now()];
             Vue.prototype.$TCT.answers[newPk] = answer;
             Vue.prototype.$TCT._invalidateCache('answers_by_question');
+            Vue.prototype.$globalData.dataVersion++;
             this.selectAnswer(newPk);
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -422,6 +423,7 @@ window.defineComponent('question', {
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
             Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -441,6 +443,7 @@ window.defineComponent('question', {
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
             Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -460,6 +463,7 @@ window.defineComponent('question', {
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
             Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -480,6 +484,7 @@ window.defineComponent('question', {
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
             Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -501,25 +506,30 @@ window.defineComponent('question', {
             for (let i = 0; i < referencedFeedbacks.length; i++) {
                 delete Vue.prototype.$TCT.answer_feedback[referencedFeedbacks[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
 
             let x = Vue.prototype.$TCT.getStateScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_state[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
 
             x = Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_issue[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
 
             x = Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
             for (let i = 0; i < x.length; i++) {
                 delete Vue.prototype.$TCT.answer_score_global[x[i].pk];
             }
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
 
             this.temp_answers = [Date.now()];
             delete Vue.prototype.$TCT.answers[pk];
             Vue.prototype.$TCT._invalidateCache('answers_by_question');
+            Vue.prototype.$globalData.dataVersion++;
 
             if (this.activeAnswer === pk) {
                 this.activeAnswer = null;
@@ -534,6 +544,7 @@ window.defineComponent('question', {
             // try to get the new PK and select it; still refresh the list even if undefined
             const clonedPk = Vue.prototype.$TCT.cloneAnswer?.(thisAnswer, thisAnswer.fields.question);
             this.temp_answers = [Date.now()]; // trigger reactivity
+            Vue.prototype.$globalData.dataVersion++;
             if (clonedPk) {
                 this.selectAnswer(clonedPk);
             }
@@ -545,6 +556,7 @@ window.defineComponent('question', {
             delete Vue.prototype.$TCT.answer_feedback[pk];
             Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -582,15 +594,14 @@ window.defineComponent('question', {
                 value = Number(value);
             }
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = value;
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
 
         onInputUpdatePicker: function (evt) {
             Vue.prototype.$TCT.questions.get(this.pk).fields[evt.target.name] = evt.target.value;
-            // const temp = Vue.prototype.$globalData.filename;
-            // Vue.prototype.$globalData.filename = "";
-            // Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -606,9 +617,7 @@ window.defineComponent('question', {
             Vue.prototype.$TCT.questions.delete(this.pk);
             Vue.prototype.$globalData.question = Array.from(Vue.prototype.$TCT.questions.values())[0]?.pk || null;
 
-            const temp = Vue.prototype.$globalData.filename;
-            Vue.prototype.$globalData.filename = "";
-            Vue.prototype.$globalData.filename = temp;
+            Vue.prototype.$globalData.dataVersion++;
 
             this.markDirty();
             this.quickAutosaveIfEnabled();
@@ -624,18 +633,22 @@ window.defineComponent('question', {
         },
 
         getFeedbackForAnswer(pk) {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getAdvisorFeedbackForAnswer(pk);
         },
 
         getGlobalScoresForAnswer(pk) {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getGlobalScoreForAnswer(pk);
         },
 
         getIssueScoresForAnswer(pk) {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getIssueScoreForAnswer(pk);
         },
 
         getStateScoresForAnswer(pk) {
+            Vue.prototype.$globalData.dataVersion;
             return Vue.prototype.$TCT.getStateScoreForAnswer(pk);
         },
 
@@ -656,6 +669,7 @@ window.defineComponent('question', {
         },
 
         getVariableEffectsForAnswer(pk) {
+            Vue.prototype.$globalData.dataVersion;
             if (!Vue.prototype.$TCT.jet_data.cyoa_variable_effects) return [];
             return Object.values(Vue.prototype.$TCT.jet_data.cyoa_variable_effects).filter(effect => effect.answer === pk);
         },
@@ -681,6 +695,7 @@ window.defineComponent('question', {
                 amount: 1
             };
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         },
@@ -688,6 +703,7 @@ window.defineComponent('question', {
         deleteVariableEffect(pk) {
             delete Vue.prototype.$TCT.jet_data.cyoa_variable_effects[pk];
             this.temp_answers = [Date.now()];
+            Vue.prototype.$globalData.dataVersion++;
             this.markDirty();
             this.quickAutosaveIfEnabled();
         }
@@ -795,6 +811,8 @@ window.defineComponent('answer', {
             }
             this.feedbacks.push(feedback)
             Vue.prototype.$TCT.answer_feedback[newPk] = feedback;
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -812,6 +830,8 @@ window.defineComponent('answer', {
             }
             this.globalScores.push(x)
             Vue.prototype.$TCT.answer_score_global[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('global_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -829,6 +849,8 @@ window.defineComponent('answer', {
             }
             this.issueScores.push(x)
             Vue.prototype.$TCT.answer_score_issue[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('issue_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -847,6 +869,8 @@ window.defineComponent('answer', {
             }
             this.stateScores.push(x)
             Vue.prototype.$TCT.answer_score_state[newPk] = x;
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -857,6 +881,8 @@ window.defineComponent('answer', {
         deleteFeedback: function (pk) {
             this.feedbacks = this.feedbacks.filter(a => a.pk != pk);
             delete Vue.prototype.$TCT.answer_feedback[pk];
+            Vue.prototype.$TCT._invalidateCache('feedback_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
         },
 
@@ -1424,6 +1450,11 @@ window.defineComponent('integrated-state-effect-visualizer', {
             handler(newAnswerId) {
                 this.loadStateEffects();
             }
+        },
+        '$globalData.dataVersion': {
+            handler() {
+                this.loadStateEffects();
+            }
         }
     },
 
@@ -1505,6 +1536,7 @@ window.defineComponent('integrated-state-effect-visualizer', {
 
         allStateEffectsForAnswer() {
             this.effectListVersion;
+            Vue.prototype.$globalData.dataVersion;
             const stateScores = (typeof Vue.prototype.$TCT.getStateScoreForAnswer === 'function')
                 ? Vue.prototype.$TCT.getStateScoreForAnswer(this.answerId) || []
                 : [];
@@ -1877,12 +1909,16 @@ window.defineComponent('integrated-state-effect-visualizer', {
                 };
                 Vue.prototype.$TCT.answer_score_state[newPk] = newEffect;
             }
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         deleteStateEffect(effectPk) {
             delete Vue.prototype.$TCT.answer_score_state[effectPk];
+            Vue.prototype.$TCT._invalidateCache('state_score_by_answer');
             this.loadStateEffects();
             this.effectListVersion++;
+            Vue.prototype.$globalData.dataVersion++;
         },
 
         selectPresetStates(statePks) {
@@ -2155,6 +2191,7 @@ window.defineComponent('variable-effect-card', {
             effectsRoot[this.pk][evt.target.name] = val;
 
             if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            Vue.prototype.$globalData.dataVersion++;
         }
     },
 
