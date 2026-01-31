@@ -383,7 +383,7 @@ window.defineComponent('state', {
             <div v-if="activeTab === 'details'" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">State Name</label>
+                        <label class="block text-sm font-medium text-gray-700">State name</label>
                         <input @input="onInput($event)" :value="stateName" name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
@@ -391,19 +391,19 @@ window.defineComponent('state', {
                         <input @input="onInput($event)" :value="abbr" name="abbr" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Electoral Votes</label>
+                        <label class="block text-sm font-medium text-gray-700">Electoral votes</label>
                         <input @input="onInput($event)" :value="electoralVotes" name="electoral_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Popular Votes</label>
+                        <label class="block text-sm font-medium text-gray-700">Popular votes</label>
                         <input @input="onInput($event)" :value="popularVotes" name="popular_votes" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Poll Closing Time</label>
+                        <label class="block text-sm font-medium text-gray-700">Poll closing time</label>
                         <input @input="onInput($event)" :value="pollClosingTime" name="poll_closing_time" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Winner Take All (0/1)</label>
+                        <label class="block text-sm font-medium text-gray-700">Winner take all? (0 = Disabled/Proportional, 1 = Enabled)</label>
                         <input @input="onInput($event)" :value="winnerTakeAll" name="winner_take_all_flg" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div class="md:col-span-2">
