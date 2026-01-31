@@ -186,6 +186,113 @@ class TCTData {
         }
     }
 
+    changePk(type, oldPk, newPk) {
+        oldPk = Number(oldPk);
+        newPk = Number(newPk);
+
+        if (oldPk === newPk) return;
+        if (isNaN(newPk)) {
+            alert("Invalid PK value.");
+            return;
+        }
+
+        // collections that use these IDs as PKs
+        const collections = {
+            'question': this.questions,
+            'answer': this.answers,
+            'issue': this.issues,
+            'state': this.states,
+            'feedback': this.answer_feedback,
+            'state_issue_score': this.state_issue_scores,
+            'candidate_issue_score': this.candidate_issue_score,
+            'running_mate_issue_score': this.running_mate_issue_score,
+            'candidate_state_multiplier': this.candidate_state_multiplier,
+            'answer_score_global': this.answer_score_global,
+            'answer_score_issue': this.answer_score_issue,
+            'answer_score_state': this.answer_score_state
+        };
+
+        const container = collections[type];
+
+        // Check if newPk is already taken in the target collection (if it's a primary PK change)
+        if (container) {
+            const isTaken = container instanceof Map ? container.has(newPk) : (container[newPk] !== undefined);
+            if (isTaken) {
+                alert(`PK ${newPk} is already taken in ${type}.`);
+                return;
+            }
+        }
+
+        // 1. Update the PK in the main collection if applicable
+        if (container) {
+            let obj = container instanceof Map ? container.get(oldPk) : container[oldPk];
+            if (!obj) {
+                console.error(`Could not find ${type} with PK ${oldPk}`);
+                return;
+            }
+            obj.pk = newPk;
+            if (container instanceof Map) {
+                container.delete(oldPk);
+                container.set(newPk, obj);
+            } else {
+                delete container[oldPk];
+                container[newPk] = obj;
+            }
+        }
+
+        // 2. Update Foreign Key references throughout all data
+        const allContainers = [
+            this.questions, this.answers, this.states, this.issues, this.answer_feedback,
+            this.state_issue_scores, this.candidate_issue_score, this.running_mate_issue_score,
+            this.candidate_state_multiplier, this.answer_score_global, this.answer_score_issue,
+            this.answer_score_state
+        ];
+
+        // Map type to common field names that act as FKs
+        const fkFields = {
+            'question': ['question'],
+            'answer': ['answer'],
+            'issue': ['issue'],
+            'state': ['state'],
+            'candidate': ['candidate', 'affected_candidate', 'running_mate']
+        };
+
+        const targetFields = fkFields[type] || [];
+
+        allContainers.forEach(cont => {
+            const values = cont instanceof Map ? Array.from(cont.values()) : Object.values(cont);
+            values.forEach(item => {
+                if (!item || !item.fields) return;
+                targetFields.forEach(field => {
+                    const val = item.fields[field];
+                    if (val === oldPk) {
+                        item.fields[field] = newPk;
+                    }
+                });
+            });
+        });
+
+        // 3. Special case for Candidate nicknames
+        if (type === 'candidate') {
+            if (this.jet_data && this.jet_data.nicknames) {
+                if (this.jet_data.nicknames[oldPk] !== undefined) {
+                    this.jet_data.nicknames[newPk] = this.jet_data.nicknames[oldPk];
+                    delete this.jet_data.nicknames[oldPk];
+                }
+            }
+        }
+
+        // 4. Invalidate all indexes
+        this._indices = {};
+
+        // 5. Update highest_pk if the new PK exceeds it
+        if (newPk > this.highest_pk && newPk < Number.MAX_SAFE_INTEGER) {
+            this.highest_pk = Math.ceil(newPk);
+        }
+
+        console.log(`Successfully changed ${type} PK ${oldPk} to ${newPk}`);
+    }
+
     cloneIssue(sourcePk) {
         const baseIssue = this.issues[sourcePk];
         if (!baseIssue) {

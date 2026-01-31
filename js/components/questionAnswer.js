@@ -90,7 +90,7 @@ window.defineComponent('question', {
     <div class="mx-auto p-4">
         <!-- Header with actions -->
         <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
-            <h1 class="font-bold text-xl">Question #{{this.pk}}</h1>
+            <h1 class="font-bold text-xl">Question #<pk-editor type="question" :pk="pk"></pk-editor></h1>
             <div class="flex space-x-2 items-center">
                 <button class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center"
                         @click="saveQuestion">
@@ -150,7 +150,7 @@ window.defineComponent('question', {
                             @keydown.enter="selectAnswer(answer.pk)"
                             @keydown.space.prevent="selectAnswer(answer.pk)">
                             <div class="flex justify-between items-start">
-                                <div class="font-medium text-sm">#{{answer.pk}}</div>
+                                <div class="font-medium text-sm">#<pk-editor type="answer" :pk="answer.pk"></pk-editor></div>
                                 <div class="flex space-x-1">
                                     <button
                                         @click.stop="cloneAnswer(answer.pk)"
@@ -189,7 +189,7 @@ window.defineComponent('question', {
                 <!-- Right side: Selected answer details -->
                 <div class="md:w-1/2" v-if="activeAnswer">
                     <div class="p-4">
-                        <h3 class="font-bold text-md mb-3" :id="'answer-heading-' + activeAnswer">Edit answer #{{activeAnswer}}</h3>
+                        <h3 class="font-bold text-md mb-3" :id="'answer-heading-' + activeAnswer">Edit answer #<pk-editor type="answer" :pk="activeAnswer"></pk-editor></h3>
                         <textarea
                             v-model="localAnswerDescription"
                             :id="'answer-desc-' + activeAnswer"
@@ -939,7 +939,7 @@ window.defineComponent('answer-feedback-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Feedback #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Feedback #<pk-editor type="feedback" :pk="pk"></pk-editor></h4>
             <button @click="$emit('deleteFeedback', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete feedback #' + pk" :title="'Delete feedback #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1003,7 +1003,7 @@ window.defineComponent('global-score-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Global score #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Global score #<pk-editor type="answer_score_global" :pk="pk"></pk-editor></h4>
             <button @click="$emit('deleteGlobalScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete global score #' + pk" :title="'Delete global score #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1099,7 +1099,7 @@ window.defineComponent('issue-score-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">Issue score #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">Issue score #<pk-editor type="answer_score_issue" :pk="pk"></pk-editor></h4>
             <button @click="$emit('deleteIssueScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete issue score #' + pk" :title="'Delete issue score #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1200,7 +1200,7 @@ window.defineComponent('state-score-card', {
     template: `
     <div class="bg-gray-50 rounded p-3 mb-3 shadow-xs hover:shadow transition-shadow">
         <div class="flex justify-between">
-            <h4 class="text-sm font-medium text-gray-700">State Score #{{pk}}</h4>
+            <h4 class="text-sm font-medium text-gray-700">State Score #<pk-editor type="answer_score_state" :pk="pk"></pk-editor></h4>
             <button @click="$emit('deleteStateScore', pk)" class="text-red-500 hover:text-red-700" :aria-label="'Delete state score #' + pk" :title="'Delete state score #' + pk">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

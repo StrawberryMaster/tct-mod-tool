@@ -1,3 +1,69 @@
+window.defineComponent('pk-editor', {
+    props: ['type', 'pk', 'cssClass'],
+    data() {
+        return {
+            isEditing: false,
+            localValue: this.pk
+        };
+    },
+    template: `
+        <span class="inline-block">
+            <span v-if="!isEditing" @dblclick="start" :class="cssClass || 'cursor-help hover:text-blue-600'" title="Double click to change PK">{{pk}}</span>
+            <input v-else
+                   ref="input"
+                   type="number"
+                   v-model.number="localValue"
+                   @blur="save"
+                   @keyup.enter="$event.target.blur()"
+                   @keyup.esc="cancel"
+                   class="border border-blue-500 rounded px-1 py-0 text-black w-24 font-normal h-7 align-middle"
+            >
+        </span>
+    `,
+    methods: {
+        start() {
+            this.localValue = this.pk;
+            this.isEditing = true;
+            this.$nextTick(() => {
+                if (this.$refs.input) {
+                    this.$refs.input.focus();
+                    this.$refs.input.select();
+                }
+            });
+        },
+        save() {
+            if (!this.isEditing) return;
+            const newVal = Number(this.localValue);
+            if (isNaN(newVal) || newVal === Number(this.pk)) {
+                this.isEditing = false;
+                return;
+            }
+
+            if (confirm(`Are you sure you want to change ${this.type} PK ${this.pk} to ${newVal}? This will update every reference in the mod.`)) {
+                Vue.prototype.$TCT.changePk(this.type, this.pk, newVal);
+                Vue.prototype.$globalData.dataVersion++;
+
+                // update selection if the active item was changed
+                const activeItemMap = {
+                    'question': 'question',
+                    'state': 'state',
+                    'issue': 'issue',
+                    'candidate': 'candidate'
+                };
+
+                const field = activeItemMap[this.type];
+                if (field && Vue.prototype.$globalData[field] == this.pk) {
+                    Vue.prototype.$globalData[field] = newVal;
+                }
+            }
+            this.isEditing = false;
+        },
+        cancel() {
+            this.isEditing = false;
+        }
+    }
+});
+
 window.defineComponent('question-picker', {
 
     data() {
@@ -14,7 +80,7 @@ window.defineComponent('question-picker', {
     template: `
     <div class="mx-auto p-2">
 
-    <label for="questionPicker">Questions <span class="text-gray-700 italic">({{numberOfQuestions}})</span>:</label><br>
+    <label for="questionPicker">Questions <span class="text-gray-700 italic">({{numberOfQuestions}})</span>: <pk-editor type="question" :pk="currentQuestion"></pk-editor></label><br>
 
     <div class="my-1 flex items-center gap-2">
         <div class="flex-1 min-w-0">
@@ -76,7 +142,7 @@ window.defineComponent('question-picker', {
                                 class="py-2 px-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
                                 @click="gotoSelect(q.pk)">
                                 <span>
-                                    <span class="font-mono text-gray-700">#{{ q.pk }}</span>
+                                    <span class="font-mono text-gray-700">#<pk-editor type="question" :pk="q.pk"></pk-editor></span>
                                     <span class="text-gray-700"> - {{ questionDescription(q) }}</span>
                                 </span>
                                 <button class="text-xs bg-blue-500 text-white px-2 py-1 rounded-sm hover:bg-blue-600" @click.stop="gotoSelect(q.pk)">Open</button>
@@ -110,7 +176,7 @@ window.defineComponent('question-picker', {
                                     Drag
                                 </span>
                                 <span class="text-sm">
-                                    <span class="font-mono text-gray-700">#{{ item.pk }}</span>
+                                    <span class="font-mono text-gray-700">#<pk-editor type="question" :pk="item.pk"></pk-editor></span>
                                     <span class="text-gray-700">- {{ item.text }}</span>
                                 </span>
                                 <button class="text-red-500 hover:text=red-700 ml-auto"
@@ -227,8 +293,8 @@ window.defineComponent('question-picker', {
             this.showManageModal = false;
         },
 
-        addQuestion: function() {
-            const newPk =  Vue.prototype.$TCT.getNewPk();
+        addQuestion: function () {
+            const newPk = Vue.prototype.$TCT.getNewPk();
 
             let question = {
                 "model": "campaign_trail.question",
@@ -239,7 +305,7 @@ window.defineComponent('question-picker', {
             }
 
             Vue.prototype.$TCT.questions.set(newPk, question);
-            
+
             Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = QUESTION;
@@ -259,7 +325,7 @@ window.defineComponent('question-picker', {
 
             Vue.prototype.$globalData.dataVersion++;
 
-            this.resetOrderFromMap(); 
+            this.resetOrderFromMap();
         },
 
         deleteAnswer: function (pk, suppressConfirm = false) {
@@ -296,29 +362,29 @@ window.defineComponent('question-picker', {
             Vue.prototype.$globalData.dataVersion++;
         },
 
-        cloneQuestion: function() {
+        cloneQuestion: function () {
             const newQuestion = Vue.prototype.$TCT.cloneQuestion(Vue.prototype.$globalData.question);
-            
+
             Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.question = newQuestion.pk;
         },
 
-        questionDescription:function(question) {
-            if(!question.fields.description) {
+        questionDescription: function (question) {
+            if (!question.fields.description) {
                 return "ERR BAD DESCRIPTION";
             }
-            return String(question.fields.description).slice(0,33) + "...";
+            return String(question.fields.description).slice(0, 33) + "...";
         },
 
-        onChange:function(evt) {
+        onChange: function (evt) {
             Vue.prototype.$globalData.mode = QUESTION;
             Vue.prototype.$globalData.question = evt.target.value;
         },
 
-        onClick:function(evt) {
-            if(Vue.prototype.$globalData.mode != QUESTION) {
+        onClick: function (evt) {
+            if (Vue.prototype.$globalData.mode != QUESTION) {
                 Vue.prototype.$globalData.mode = QUESTION;
             }
         }
@@ -326,11 +392,11 @@ window.defineComponent('question-picker', {
 
     computed: {
         questions: function () {
-          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-          return Array.from(Vue.prototype.$TCT.questions.values());
+            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
+            return Array.from(Vue.prototype.$TCT.questions.values());
         },
 
-        currentQuestion: function() {
+        currentQuestion: function () {
             return Vue.prototype.$globalData.question;
         },
 
@@ -356,7 +422,7 @@ window.defineComponent('state-picker', {
     template: `
     <div class="mx-auto p-3">
 
-    <label for="statePicker">States:</label><br>
+    <label for="statePicker" class="cursor-help hover:text-blue-600" @dblclick="$promptChangePk('state', currentState)" title="Double click to change PK of currently selected state">States:</label><br>
 
     <select @click="onClick" @change="onChange($event)" name="statePicker" id="statePicker">
         <option v-for="state in states" :value="state.pk" :selected="currentState == state.pk"  :key="state.pk">{{state.pk}} - {{state.fields.abbr}}</option>
@@ -371,21 +437,21 @@ window.defineComponent('state-picker', {
     `,
 
     methods: {
-        onChange:function(evt) {
+        onChange: function (evt) {
             Vue.prototype.$globalData.mode = STATE;
             Vue.prototype.$globalData.state = evt.target.value;
         },
 
-        onClick:function(evt) {
-            if(Vue.prototype.$globalData.mode != STATE) {
+        onClick: function (evt) {
+            if (Vue.prototype.$globalData.mode != STATE) {
                 Vue.prototype.$globalData.mode = STATE;
             }
         },
 
-        addState:function(evt) {
+        addState: function (evt) {
 
             let newPk = Vue.prototype.$TCT.createNewState();
-           
+
             Vue.prototype.$globalData.dataVersion++;
 
             Vue.prototype.$globalData.mode = STATE;
@@ -397,11 +463,11 @@ window.defineComponent('state-picker', {
 
     computed: {
         states: function () {
-          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-          return Object.values(Vue.prototype.$TCT.states);
+            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
+            return Object.values(Vue.prototype.$TCT.states);
         },
 
-        currentState: function() {
+        currentState: function () {
             return Vue.prototype.$globalData.state;
         }
     }
@@ -412,7 +478,7 @@ window.defineComponent('issue-picker', {
     template: `
     <div class="mx-auto p-3">
 
-    <label for="issuePicker">Issues:</label><br>
+    <label for="issuePicker" class="cursor-help hover:text-blue-600" @dblclick="$promptChangePk('issue', currentIssue)" title="Double click to change PK of currently selected issue">Issues:</label><br>
 
     <select @click="onClick" @change="onChange($event)" name="issuePicker" id="issuePicker">
         <option v-for="issue in issues" :value="issue.pk" :key="issue.pk">{{issue.pk}} - {{issue.fields.name}}</option>
@@ -428,13 +494,13 @@ window.defineComponent('issue-picker', {
 
     methods: {
 
-        onChange:function(evt) {
+        onChange: function (evt) {
             Vue.prototype.$globalData.mode = ISSUE;
             Vue.prototype.$globalData.issue = evt.target.value;
         },
 
-        onClick:function(evt) {
-            if(Vue.prototype.$globalData.mode != ISSUE) {
+        onClick: function (evt) {
+            if (Vue.prototype.$globalData.mode != ISSUE) {
                 Vue.prototype.$globalData.mode = ISSUE;
             }
         },
@@ -483,8 +549,12 @@ window.defineComponent('issue-picker', {
 
     computed: {
         issues: function () {
-          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-          return Object.values(Vue.prototype.$TCT.issues);
+            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
+            return Object.values(Vue.prototype.$TCT.issues);
+        },
+
+        currentIssue: function () {
+            return Vue.prototype.$globalData.issue;
         }
     }
 })
@@ -494,7 +564,7 @@ window.defineComponent('candidate-picker', {
     template: `
     <div class="mx-auto p-3">
 
-    <label for="candidatePicker">Candidates:</label><br>
+    <label for="candidatePicker" class="cursor-help hover:text-blue-600" @dblclick="$promptChangePk('candidate', currentCandidate)" title="Double click to change ID of currently selected candidate">Candidates:</label><br>
 
     <select @click="onClick" @change="onChange($event)" name="candidatePicker" id="candidatePicker">
         <option v-for="c in candidates" :selected="currentCandidate == c[0]" :value="c[0]" :key="c[0]">{{c[1]}}</option>
@@ -507,7 +577,7 @@ window.defineComponent('candidate-picker', {
 
     methods: {
 
-        addCandidate: function() {
+        addCandidate: function () {
             const newCandidatePk = Vue.prototype.$TCT.addCandidate();
             Vue.prototype.$globalData.mode = CANDIDATE;
             Vue.prototype.$globalData.candidate = newCandidatePk;
@@ -515,13 +585,13 @@ window.defineComponent('candidate-picker', {
             Vue.prototype.$globalData.dataVersion++;
         },
 
-        onChange:function(evt) {
+        onChange: function (evt) {
             Vue.prototype.$globalData.mode = CANDIDATE;
             Vue.prototype.$globalData.candidate = evt.target.value;
         },
 
-        onClick:function(evt) {
-            if(Vue.prototype.$globalData.mode != CANDIDATE) {
+        onClick: function (evt) {
+            if (Vue.prototype.$globalData.mode != CANDIDATE) {
                 Vue.prototype.$globalData.mode = CANDIDATE;
             }
         }
@@ -532,8 +602,8 @@ window.defineComponent('candidate-picker', {
             return Vue.prototype.$globalData.candidate;
         },
         candidates: function () {
-          let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
-          return getListOfCandidates();
+            let a = [Vue.prototype.$globalData.filename, Vue.prototype.$globalData.dataVersion];
+            return getListOfCandidates();
         }
     }
 })
@@ -549,7 +619,7 @@ window.defineComponent('cyoa-picker', {
     `,
 
     methods: {
-        gotoCyoa:function(evt) {
+        gotoCyoa: function (evt) {
             Vue.prototype.$globalData.mode = CYOA;
         },
     }
@@ -566,7 +636,7 @@ window.defineComponent('banner-picker', {
     `,
 
     methods: {
-        gotoBanner:function(evt) {
+        gotoBanner: function (evt) {
             Vue.prototype.$globalData.mode = BANNER;
         },
     }
@@ -589,7 +659,7 @@ window.defineComponent('template-picker', {
     `,
 
     methods: {
-        onChange:function(evt) {
+        onChange: function (evt) {
             loadData(evt.target.value);
         },
 
@@ -600,7 +670,7 @@ window.defineComponent('template-picker', {
 
     computed: {
         templates: function () {
-          return TEMPLATE_NAMES;
+            return TEMPLATE_NAMES;
         }
     }
 })
@@ -616,7 +686,7 @@ window.defineComponent('ending-picker', {
     `,
 
     methods: {
-        gotoEndings:function(evt) {
+        gotoEndings: function (evt) {
             Vue.prototype.$globalData.mode = ENDINGS;
         },
     }
@@ -633,7 +703,7 @@ window.defineComponent('mapping-picker', {
     `,
 
     methods: {
-        gotoMapping:function(evt) {
+        gotoMapping: function (evt) {
             Vue.prototype.$globalData.mode = MAPPING;
         },
     }
@@ -650,7 +720,7 @@ window.defineComponent('bulk-picker', {
     `,
 
     methods: {
-        gotoBulk:function(evt) {
+        gotoBulk: function (evt) {
             Vue.prototype.$globalData.mode = BULK;
         },
     }

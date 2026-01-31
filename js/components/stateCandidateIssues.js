@@ -1,5 +1,5 @@
 window.defineComponent('data-table', {
-    props: ['items', 'columns', 'title', 'keyField', 'deletable', 'deleteLabel'],
+    props: ['items', 'columns', 'title', 'keyField', 'deletable', 'deleteLabel', 'pkChangeType'],
 
     data() {
         return {
@@ -96,6 +96,12 @@ window.defineComponent('data-table', {
                         @click.stop
                         @keydown.stop
                     >
+                    <span 
+                        v-else-if="col.field === keyField && pkChangeType"
+                        class="font-mono"
+                    >
+                        <pk-editor :type="pkChangeType" :pk="item[col.field]"></pk-editor>
+                    </span>
                     <span v-else>{{ formatValue(item[col.field], col) }}</span>
                 </div>
             </template>
@@ -104,6 +110,10 @@ window.defineComponent('data-table', {
     `,
 
     methods: {
+        promptChangePk(oldPk) {
+            this.$promptChangePk(this.pkChangeType, oldPk);
+        },
+
         sortBy(key) {
             if (this.sortKey === key) {
                 this.sortDir *= -1;
@@ -336,7 +346,7 @@ window.defineComponent('state', {
         <div class="border-b p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <h1 class="font-bold text-xl">{{stateName}} ({{abbr}})</h1>
-                <span class="text-gray-500">PK: {{this.pk}}</span>
+                <span class="text-gray-500">PK: <pk-editor type="state" :pk="pk"></pk-editor></span>
             </div>
             <div class="flex space-x-2">
                 <button @click="refreshMargins" class="bg-blue-500 text-white px-3 py-1 rounded-sm hover:bg-blue-600">
@@ -420,6 +430,7 @@ window.defineComponent('state', {
                     :columns="multiplierColumns" 
                     title="Candidate State Multipliers" 
                     keyField="pk"
+                    pkChangeType="candidate_state_multiplier"
                     @update-item="updateMultiplier"
                 ></data-table>
             </div>
@@ -431,6 +442,7 @@ window.defineComponent('state', {
                     :columns="issueScoreColumns" 
                     title="State Issue Scores" 
                     keyField="pk"
+                    pkChangeType="state_issue_score"
                     @update-item="updateIssueScore"
                 ></data-table>
             </div>
@@ -561,6 +573,7 @@ window.defineComponent('candidate-state-multiplier', {
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center">
             <div>
+                <span class="text-xs text-gray-400 mr-2">#<pk-editor type="candidate_state_multiplier" :pk="pk"></pk-editor></span>
                 <span class="font-medium">{{stateName}}</span>
                 <span v-if="nickname" class="text-gray-500 ml-2">({{nickname}})</span>
             </div>
@@ -605,6 +618,7 @@ window.defineComponent('state-issue-score', {
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
         <div class="flex justify-between items-center mb-3">
             <div>
+                <span class="text-xs text-gray-400 mr-2">#<pk-editor type="state_issue_score" :pk="pk"></pk-editor></span>
                 <span class="font-medium">{{ stateName }}</span>
                 <span v-if="stateAbbr" class="text-gray-500 ml-2">({{ stateAbbr }})</span>
             </div>
@@ -680,7 +694,7 @@ window.defineComponent('issue', {
         <div class="border-b p-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
-                <span class="text-gray-500">PK: {{ pk }}</span>
+                <span class="text-gray-500">PK: <pk-editor type="issue" :pk="pk"></pk-editor></span>
             </div>
             <button :class="['px-3 py-1 rounded-sm', canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed']" :disabled="!canDelete" v-on:click="deleteIssue()">Delete Issue</button>
         </div>
@@ -816,6 +830,7 @@ window.defineComponent('candidate-issue-score', {
     props: ['pk', 'isRunning'],
     template: `
     <li class="bg-white rounded-sm shadow-sm p-3 mb-2">
+        <div class="mb-2 text-xs text-gray-400 w-fit">#<pk-editor :type="isRunning == 'true' ? 'running_mate_issue_score' : 'candidate_issue_score'" :pk="pk"></pk-editor></div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block font-medium">Candidate PK <span v-if="nickname" class="text-gray-500 ml-1">({{this.nickname}})</span></label>
@@ -871,7 +886,7 @@ window.defineComponent('candidate', {
     <div class="bg-white rounded-lg shadow-sm mx-auto">
         <div class="border-b p-4 flex justify-between items-center">
             <div>
-                <h1 class="font-bold text-xl">Candidate PK {{ this.pk }} <span v-if="nickname" class="italic text-gray-400">({{ nickname }})</span></h1>
+                <h1 class="font-bold text-xl">Candidate PK <pk-editor type="candidate" :pk="pk"></pk-editor> <span v-if="nickname" class="italic text-gray-400">({{ nickname }})</span></h1>
             </div>
             <button @click="deleteCandidate" class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm">
                 Delete candidate

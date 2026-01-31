@@ -71,6 +71,34 @@ function firstNonNull(arr) {
     return arr.find(x => x !== null);
 }
 
+function promptChangePk(type, oldPk) {
+    const newPk = prompt(`Enter new PK for this ${type}:`, oldPk);
+    if (newPk === null || newPk === "" || Number(newPk) === Number(oldPk)) return;
+
+    if (confirm(`Are you sure you want to change ${type} PK ${oldPk} to ${newPk}? This will update all references.`)) {
+        const tct = Vue.prototype.$TCT;
+        const gd = Vue.prototype.$globalData;
+
+        tct.changePk(type, oldPk, newPk);
+        gd.dataVersion++;
+
+        // update selection if the active item was changed
+        const activeItemMap = {
+            'question': 'question',
+            'state': 'state',
+            'issue': 'issue',
+            'candidate': 'candidate'
+        };
+
+        const field = activeItemMap[type];
+        if (field && gd[field] == oldPk) {
+            gd[field] = Number(newPk);
+        }
+    }
+}
+
+Vue.prototype.$promptChangePk = promptChangePk;
+
 async function loadData(dataName, isFirstLoad) {
     let raw;
 
@@ -111,6 +139,7 @@ async function loadData(dataName, isFirstLoad) {
         if (!app) {
             app = createApp({});
             app.config.globalProperties.$TCT = parsedTCT;
+            app.config.globalProperties.$promptChangePk = promptChangePk;
 
             const globalData = reactive({
                 mode: MODES.QUESTION,
