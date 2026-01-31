@@ -16,27 +16,27 @@ window.defineComponent('question-picker', {
 
     <label for="questionPicker">Questions <span class="text-gray-700 italic">({{numberOfQuestions}})</span>:</label><br>
 
-    <!-- For small sets use the classic dropdown, for large sets show a button that opens the modal -->
-    <div v-if="!useModalSelect" class="w-full">
-        <select
-            class="truncate w-full px-2 py-1 text-sm border rounded bg-white"
-            style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-            @click="onClick"
-            @change="onChange($event)"
-            name="questionPicker"
-            id="questionPicker"
-        >
-            <option v-for="question in questions"
-                    :value="question.pk"
-                    :key="question.pk"
-                    :selected="currentQuestion == question.pk">
-                {{question.pk}} - {{questionDescription(question)}}
-            </option>
-        </select>
-    </div>
-    <div v-else class="my-1 flex items-center gap-2">
-        <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="openManageModal('select')">Select question...</button>
-        <span class="text-xs text-gray-600">Using modal due to many questions ({{numberOfQuestions}})</span>
+    <div class="my-1 flex items-center gap-2">
+        <div class="flex-1 min-w-0">
+            <select
+                class="truncate w-full px-2 py-1 text-sm border rounded bg-white"
+                style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                @click="onClick"
+                @change="onChange($event)"
+                name="questionPicker"
+                id="questionPicker"
+            >
+                <option v-for="question in questions"
+                        :value="question.pk"
+                        :key="question.pk"
+                        :selected="currentQuestion == question.pk">
+                    {{question.pk}} - {{questionDescription(question)}}
+                </option>
+            </select>
+        </div>
+        <button class="bg-blue-500 text-white px-2 py-1 rounded-sm hover:bg-blue-600 text-sm shrink-0" @click="openManageModal('select')" title="Search for questions">
+            Search...
+        </button>
     </div>
     <br>
 
@@ -336,11 +336,6 @@ window.defineComponent('question-picker', {
 
         numberOfQuestions() {
             return this.questions.length;
-        },
-
-        // use modal selector when too many questions
-        useModalSelect() {
-            return this.numberOfQuestions > 30;
         },
 
         // filter list for the Select tab in the modal
