@@ -91,13 +91,6 @@ async function loadData(dataName, isFirstLoad) {
 
         const parsedTCT = loadDataFromFile(raw);
 
-        // ensure required collections exist (avoid undefined crashes)
-        parsedTCT.issues = parsedTCT.issues || {};
-        parsedTCT.state_issue_scores = parsedTCT.state_issue_scores || {};
-        parsedTCT.candidate_state_multiplier = parsedTCT.candidate_state_multiplier || {};
-        parsedTCT.jet_data = parsedTCT.jet_data || {};
-        parsedTCT.jet_data.nicknames = parsedTCT.jet_data.nicknames || {};
-
         // attach to Vue prototype for global access
         Vue.prototype.$TCT = parsedTCT;
 

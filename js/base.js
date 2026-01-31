@@ -1044,9 +1044,11 @@ class TCTData {
 
     exportCode2() {
         const parts = [];
+        let oldMapSvg = null;
 
         if (this.jet_data.mapping_enabled) {
             parts.push("\n// Generated mapping code\n", this.getMapCode());
+            oldMapSvg = this.jet_data.mapping_data.mapSvg;
             this.jet_data.mapping_data.mapSvg = '';
             parts.push("\n\n");
         }
@@ -1125,6 +1127,10 @@ class TCTData {
         this.jet_data.code_to_add = code;
 
         parts.push(x, "\n]", "\n\n");
+
+        if (oldMapSvg !== null) {
+            this.jet_data.mapping_data.mapSvg = oldMapSvg;
+        }
 
         return parts.join("");
     }
@@ -1295,7 +1301,8 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
     // try smart extraction for JSON.parse(...) wrappers
     if (start.includes("JSON.parse")) {
-        let startString = f.split(start)[1] || "";
+        let parts = f.split(start);
+        let startString = parts[parts.length - 1] || "";
         let s = startString.trimStart();
         const firstChar = s[0];
 
@@ -1345,7 +1352,8 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     }
 
     // legacy/array literal probing
-    let startString = f.split(start)[1];
+    let parts = f.split(start);
+    let startString = parts[parts.length - 1];
     // safety check if split failed (e.g. pattern at very end of file)
     if (!startString) return fallback;
 
@@ -1463,7 +1471,7 @@ function loadDataFromFile(raw_json) {
     }
 
     // prepare JSON
-    raw_json = raw_json.replaceAll("\r", "").replace(/campaignTrail_temp\.([a-zA-Z0-9_]+)\s*=\s*/g, "campaignTrail_temp.$1 = ").replaceAll(/ +/g, " ");
+    raw_json = raw_json.replaceAll("\r", "").replace(/campaignTrail_temp\.([a-zA-Z0-9_]+)\s*=\s*/g, "campaignTrail_temp.$1 = ");
     const preferJSONParsePrimary = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
 
     function getSection(name, required = true, fallback = []) {
@@ -1608,7 +1616,7 @@ function loadDataFromFile(raw_json) {
             let startMarker = "campaignTrail_temp.jet_data = [";
             let parts = raw_json.split(startMarker);
             if (parts.length > 1) {
-                let segment = parts[1];
+                let segment = parts[parts.length - 1];
                 let lastBracket = segment.lastIndexOf("]");
                 if (lastBracket !== -1) {
                     let rawObj = segment.substring(0, lastBracket);
@@ -1622,6 +1630,11 @@ function loadDataFromFile(raw_json) {
     }
 
     jet_data.code_to_add = code;
+
+    // ensure required metadata structures exist
+    jet_data.nicknames = jet_data.nicknames || {};
+    jet_data.banner_data = jet_data.banner_data || {};
+    jet_data.mapping_data = jet_data.mapping_data || {};
 
     let data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
 
