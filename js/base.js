@@ -1408,7 +1408,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     if (!f.includes(start)) {
         if (backup != null) {
             console.log(`Start [${start}] not in file provided, trying backup ${backup}`);
-            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required);
+            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback);
         }
         console.log(`ERROR: Start [${start}] not in file provided, returning none`);
         if (required) {
@@ -1760,6 +1760,7 @@ function loadDataFromFile(raw_json) {
         } catch (e) { }
     }
 
+    jet_data = jet_data || {};
     jet_data.code_to_add = code;
 
     // ensure required metadata structures exist
