@@ -1478,8 +1478,8 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     const possibleEndings = getAllIndexes(startString, end);
     let foundValidJSON = false;
 
-    // regex to match strings (group 1), block comments (group 2), or line comments (group 3)
-    const commentCleanerRegex = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
+    // regex to match strings (group 1: double, single, or backtick), block comments (group 2), or line comments (group 3)
+    const commentCleanerRegex = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:\\[\s\S]|[^`\\])*`)|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
 
     // regex to capture comments before an object and inject them as a "_note" field
     // matches: // comment [newline] {
@@ -1487,9 +1487,22 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
     for (let i = 0; i < possibleEndings.length; i++) {
         let raw = startString.slice(0, possibleEndings[i]);
+        let trimmedRaw = raw.trim();
 
-        if (raw[0] == '"' || raw[0] == "'") raw = raw.substring(1);
-        if (raw.slice(-1) == '"' || raw.slice(-1) == "'") raw = raw.substring(0, raw.length - 1);
+        // if the content is wrapped in quotes, unwrap it
+        if (trimmedRaw[0] === '"' || trimmedRaw[0] === "'") {
+            const quote = trimmedRaw[0];
+            let lastQuote = -1;
+            let escaped = false;
+            for (let j = 1; j < trimmedRaw.length; j++) {
+                if (escaped) { escaped = false; continue; }
+                if (trimmedRaw[j] === '\\') { escaped = true; continue; }
+                if (trimmedRaw[j] === quote) { lastQuote = j; break; }
+            }
+            if (lastQuote !== -1) {
+                raw = trimmedRaw.slice(1, lastQuote);
+            }
+        }
 
         // preserve  comments by injecting them into the JSON structure
         // converts: //example \n {  ->  { "_note": "example",
@@ -1726,7 +1739,7 @@ function loadDataFromFile(raw_json) {
         });
     }
 
-    jet_data = extractJSON(raw_json, "campaignTrail_temp.jet_data = [", "]", null, null, false, [{}])[0];
+    jet_data = getSection("jet_data", false, [{}])[0];
 
     // fallback extraction for jet_data
     if (!jet_data || Object.keys(jet_data).length === 0) {
