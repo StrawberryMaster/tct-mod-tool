@@ -642,10 +642,10 @@ registerComponent('cyoa-event', {
     <div class="bg-white rounded-sm shadow-sm p-4">
         <div class="flex justify-between items-start mb-3">
             <div class="text-sm text-gray-700">
-                <div class="font-medium">Branch Summary</div>
+                <div class="font-medium">Branch summary</div>
                 <div class="mt-1">
-                    If Answer <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>
-                    then jump to Question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
+                    If player selects answer <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>,
+                    then immediately jump to question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
                 </div>
             </div>
             <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteEvent()">Delete</button>
@@ -653,8 +653,8 @@ registerComponent('cyoa-event', {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <p class="text-sm text-gray-700 italic mb-1">Answer that triggers the jump:</p>
-                <label class="block text-sm font-medium mb-1" for="answer">Answer</label>
+                <label class="block text-sm font-medium mb-1" for="answer">Answer
+                <span class="ml-1 text-xs text-gray-500 italic">(triggers the jump)</span></label>
                 <select v-model.number="answerVal" name="answer" class="w-full border rounded-sm p-2">
                     <option v-for="answer in answers" :value="answer.pk" :key="answer.pk">
                         {{answer.pk}} - {{description(answer)}}
@@ -663,8 +663,8 @@ registerComponent('cyoa-event', {
             </div>
 
             <div>
-                <p class="text-sm text-gray-700 italic mb-1">Question to jump to:</p>
-                <label class="block text-sm font-medium mb-1" for="question">Question</label>
+                <label class="block text-sm font-medium mb-1" for="answer">Question
+                <span class="ml-1 text-xs text-gray-500 italic">(to jump to)</span></label>
                 <select v-model.number="questionVal" name="question" class="w-full border rounded-sm p-2">
                     <option v-for="question in questions" :value="question.pk" :key="question.pk">
                         {{question.pk}} - {{description(question)}}
