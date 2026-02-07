@@ -52,7 +52,7 @@ registerComponent('toolbar', {
                     Mod presets
                 </button>
                 <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
-                <a href="https://jetsimon.com/jets-code-one-tool/" class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
+                <a href="./code1.html" class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
             </div>
         </div>
         

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A tool for modding The Campaign Trail mods">
+    <script src="./js/tailwind.js"></script>
+    <script src="./js/vue3.js"></script>
+    <title>Jet's Code 1 Mod Tool</title>
+
+    <link rel="stylesheet" href="js/code1/preview.css">
+    <style>
+        :root {
+            --brand-start: #2a1d0f;
+            --brand-end: #eb8b25;
+            --header-contrast: #ffffff;
+            --footer-bg: rgba(235, 148, 37, 0.95);
+        }
+
+        .app-header,
+        .app-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--header-contrast);
+            background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            text-align: center;
+            padding: 1rem 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .app-header {
+            font-size: 1.6rem;
+            line-height: 1.1;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .app-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            color: #000;
+            background: linear-gradient(180deg, rgba(235, 199, 37, 0.95), rgba(235, 222, 37, 0.88));
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            text-align: center;
+            padding: 0.6rem 1rem;
+            font-weight: 600;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .app-footer a {
+            color: rgba(0, 0, 0, 0.95);
+            text-decoration: none;
+        }
+
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .game_window_preview p {
+            margin-bottom: 1em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <div class="app-header" role="banner">
+        <div>
+            Jet's TCT Mod Tool (Code 1)
+        </div>
+    </div>
+
+    <div id="app" class="flex-grow">
+        <code1-editor></code1-editor>
+    </div>
+
+    <div class="app-footer" role="contentinfo">
+        <div class="footer-left">Made by <a href="https://jetsimon.com/">Jet Simon</a></div>
+        <div class="footer-center">
+            <a href="./index.html">Back to Code 2 Maker</a>
+            <span class="mx-2">|</span>
+            <a href="./changelog.html">Changelog</a>
+        </div>
+        <div class="footer-right">
+            <span>Code 1 Vue 3 Edition</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/code1/base.js"></script>
+    <script src="js/code1/components/editor.js"></script>
+    <script src="js/code1/components/pickers.js"></script>
+    <script src="js/code1/vueInit.js"></script>
+</body>
+
+</html>

@@ -9,6 +9,8 @@ For context, this is a fork of [Jet's The Campaign Trail Mod Tool](https://jetsi
 * A couple of revamped sections, such as the CYOA and State tabs, for consistency (and following madbailey's lead)
 * Other accessibility improvements
 
+This also includes a Vue 3 port of the Code 1 tool (also from Jet, which you can find <a href="https://jetsimon.com/jets-code-one-tool/" target="_blank" rel="noopener noreferrer">here</a>). To access it, open the toolbar and click "Code 1 Editor here" to access it.
+
 ----
 
 This is a graphical mod creation tool for [The Campaign Trail](https://www.americanhistoryusa.com/campaign-trail/).
