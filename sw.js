@@ -1,7 +1,9 @@
 const CACHE_NAME = 'tct-mod-tool-v1';
 const ASSETS_TO_CACHE = [
+  './',
   './index.html',
   './code1.html',
+  './tct.webmanifest',
   './js/tailwind.js',
   './js/vue3.js',
   './js/db.js',
