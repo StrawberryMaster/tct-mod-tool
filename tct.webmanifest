@@ -1,0 +1,16 @@
+{
+  "name": "Jet's TCT Mod Tool",
+  "short_name": "TCT Mod Tool",
+  "description": "A tool for modding The Campaign Trail mods",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://opapeldetrouxa.neocities.org/files/wizardry.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}

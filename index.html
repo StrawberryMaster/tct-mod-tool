@@ -6,6 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A tool for modding The Campaign Trail mods">
+    <link rel="manifest" href="tct.webmanifest">
+    <meta name="theme-color" content="#2563eb">
     <script src="./js/tailwind.js"></script>
     <script src="./js/vue3.js"></script>
     <title>Jet's TCT Mod Tool</title>
@@ -204,6 +206,15 @@
     <script src="js/components/mapping.js"></script>
     <script src="js/components/bulk.js"></script>
     <script src="js/vueInit.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered!'))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
 </body>
 
 </html>

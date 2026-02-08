@@ -130,9 +130,15 @@ async function loadData(dataName, isFirstLoad) {
     try {
         if (!isFirstLoad || !autosaveEnabled || !autosaveData) {
             const url = `./public/${dataName}`;
-            const resp = await fetch(url, { cache: 'no-cache' });
-            if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
-            raw = await resp.text();
+            try {
+                const resp = await fetch(url, { cache: 'default' });
+                if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status} ${resp.statusText}`);
+                raw = await resp.text();
+            } catch (e) {
+                console.error("Fetch failed:", e);
+                alert(`Failed to load data for ${dataName}. If you are offline, ensure you have loaded this template before.`);
+                return;
+            }
         } else {
             raw = autosaveData;
         }
