@@ -1765,17 +1765,20 @@ function loadDataFromFile(raw_json) {
     // some maps (such as those made by Oldbox) lack the map SVG in jet_data, but still have the
     // custom map injection code in there. this is a way to add the old-school maps back in
     if (!jet_data.mapping_enabled && (!jet_data.mapping_data || !jet_data.mapping_data.mapSvg)) {
-        const mapInjectorMatch = raw_json.match(/_initCreateStates:function\(\)\{[^}]*?var\s+\w+=(\{.+?\});/);
+        // use [\s\S] to match across newlines, and \s* around = to handle minification
+        const mapInjectorMatch = raw_json.match(/_initCreateStates:function\(\)\{[^}]*?var\s+\w+\s*=\s*(\{[\s\S]+?\});/);
         if (mapInjectorMatch) {
             try {
                 const mapObjStr = mapInjectorMatch[1];
-                const pathRegex = /([a-zA-Z0-9_]+):"([^"]+)"/g;
+                // match keys that are optionally quoted, allowing spaces/dots/dashes
+                // Group 1 is quoted, Group 2 is unquoted
+                const pathRegex = /(?:["']([\w\s\.-]+)["']|([\w\s\.-]+))\s*:\s*"([^"]+)"/g;
                 let pathMatch;
                 let svgPaths = [];
                 
                 while ((pathMatch = pathRegex.exec(mapObjStr)) !== null) {
-                    const stateName = pathMatch[1];
-                    const pathData = pathMatch[2];
+                    const stateName = pathMatch[1] || pathMatch[2];
+                    const pathData = pathMatch[3];
                     svgPaths.push(`<path id="${stateName}" d="${pathData}" />`);
                 }
 
