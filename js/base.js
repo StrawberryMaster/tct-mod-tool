@@ -1761,6 +1761,52 @@ function loadDataFromFile(raw_json) {
     }
 
     jet_data = jet_data || {};
+
+    // some maps (such as those made by Oldbox) lack the map SVG in jet_data, but still have the
+    // custom map injection code in there. this is a way to add the old-school maps back in
+    if (!jet_data.mapping_enabled && (!jet_data.mapping_data || !jet_data.mapping_data.mapSvg)) {
+        const mapInjectorMatch = raw_json.match(/_initCreateStates:function\(\)\{[^}]*?var\s+\w+=(\{.+?\});/);
+        if (mapInjectorMatch) {
+            try {
+                const mapObjStr = mapInjectorMatch[1];
+                const pathRegex = /([a-zA-Z0-9_]+):"([^"]+)"/g;
+                let pathMatch;
+                let svgPaths = [];
+                
+                while ((pathMatch = pathRegex.exec(mapObjStr)) !== null) {
+                    const stateName = pathMatch[1];
+                    const pathData = pathMatch[2];
+                    svgPaths.push(`<path id="${stateName}" d="${pathData}" />`);
+                }
+
+                if (svgPaths.length > 0) {
+                     let viewBox = "0 0 960 600"; // default
+                     // try to extract viewBox offsets
+                     const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
+                     if (vbOffsets) {
+                          const startX = vbOffsets[1];
+                          const startY = vbOffsets[2];
+                          // estimate width/height
+                           const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
+                           if (dimsMatch) {
+                               // let's give it generous space
+                               viewBox = `${startX} ${startY} 1100 ${dimsMatch[2]}`;
+                           } else {
+                               viewBox = `${startX} ${startY} 1000 600`;
+                           }
+                     }
+
+                    jet_data.mapping_data = jet_data.mapping_data || {};
+                    jet_data.mapping_enabled = true;
+                    jet_data.mapping_data.mapSvg = `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>`;
+                    console.log("Injected custom map from code 2 injector pattern.");
+                }
+            } catch (e) {
+                console.error("Failed to parse map injector", e);
+            }
+        }
+    }
+
     jet_data.code_to_add = code;
 
     // ensure required metadata structures exist
