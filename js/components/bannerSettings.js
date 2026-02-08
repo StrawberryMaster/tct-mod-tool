@@ -192,10 +192,23 @@ registerComponent('banner-settings', {
     methods: {
         toggleEnabled() {
             this.$TCT.jet_data.banner_enabled = !this.$TCT.jet_data.banner_enabled;
+            if (this.$TCT.jet_data.banner_enabled) {
+                this.syncFromGlobal();
+            }
             this.pingGlobal();
         },
         pingGlobal() {
             this.$globalData.dataVersion++;
+        },
+        syncFromGlobal() {
+            this.ensureReactiveBannerData();
+            const d = this.$TCT.jet_data.banner_data;
+            this.formCanName = d.canName || '';
+            this.formCanImage = d.canImage || '';
+            this.formRunName = d.runName || '';
+            this.formRunImage = d.runImage || '';
+            this.resetImageState('can');
+            this.resetImageState('run');
         },
         // ensure reactive keys exist on the banner_data object
         ensureReactiveBannerData() {
@@ -236,25 +249,8 @@ registerComponent('banner-settings', {
 
     computed: {
         enabled() {
-            if (this.$TCT.jet_data.banner_enabled == null) {
-                this.$TCT.jet_data.banner_enabled = false;
-            }
-            if (this.$TCT.jet_data.banner_data == null) {
-                this.$TCT.jet_data.banner_data = {};
-            }
-            this.ensureReactiveBannerData();
-            // sync local fields when enabling
-            if (this.$TCT.jet_data.banner_enabled) {
-                const d = this.$TCT.jet_data.banner_data;
-                this.formCanName = d.canName || '';
-                this.formCanImage = d.canImage || '';
-                this.formRunName = d.runName || '';
-                this.formRunImage = d.runImage || '';
-                this.resetImageState('can');
-                this.resetImageState('run');
-            }
-            this.pingGlobal();
-            return this.$TCT.jet_data.banner_enabled;
+            this.$globalData.dataVersion;
+            return !!(this.$TCT.jet_data.banner_enabled);
         },
 
         // cache-busted preview src + keys to force re-render (use local fields)
@@ -308,18 +304,13 @@ registerComponent('banner-settings', {
     },
 
     mounted() {
-        // initialize from global into local, then set image states
-        this.ensureReactiveBannerData();
-        const d = this.$TCT.jet_data.banner_data;
-        this.formCanName = d.canName || '';
-        this.formCanImage = d.canImage || '';
-        this.formRunName = d.runName || '';
-        this.formRunImage = d.runImage || '';
-        this.resetImageState('can');
-        this.resetImageState('run');
+        this.syncFromGlobal();
     },
 
     created() {
+        if (this.$TCT.jet_data.banner_enabled == null) {
+            this.$TCT.jet_data.banner_enabled = false;
+        }
         this.ensureReactiveBannerData();
     }
 })
