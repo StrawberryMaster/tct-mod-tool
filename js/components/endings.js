@@ -190,7 +190,7 @@ registerComponent('endings', {
                 this.temp_endings = [];
 
                 // autosave if enabled
-                if (localStorage.getItem("autosaveEnabled") === "true") {
+                if (window.autosaveEnabled) {
                     window.requestAutosaveDebounced?.(0);
                 }
             } catch (e) {
@@ -351,3 +351,4 @@ registerComponent('ending', {
         }
     }
 })
+

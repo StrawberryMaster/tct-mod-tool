@@ -1465,3 +1465,4 @@ registerComponent('issue-state-map-editor', {
     </div>
     `
 });
+

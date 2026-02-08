@@ -280,7 +280,7 @@ registerComponent('question-picker', {
                 this.$globalData.dataVersion++;
 
                 // autosave if enabled
-                if (localStorage.getItem("autosaveEnabled") === "true") {
+                if (window.autosaveEnabled) {
                     window.requestAutosaveDebounced?.(0);
                 }
             } catch (e) {
@@ -859,3 +859,4 @@ registerComponent('unified-data-picker', {
     </div>
     `
 })
+

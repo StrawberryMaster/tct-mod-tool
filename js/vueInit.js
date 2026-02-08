@@ -2,8 +2,8 @@ const { createApp, reactive, ref, computed, watch } = Vue;
 
 let app = null;
 let autosaveInterval = null;
-let autosaveEnabled = localStorage.getItem("autosaveEnabled") === "true";
-const autosaveData = localStorage.getItem("autosave");
+let autosaveEnabled = false;
+let autosaveData = null;
 
 // global exports
 window.autosaveEnabled = autosaveEnabled;
@@ -13,7 +13,7 @@ window.saveAutosave = saveAutosave;
 const requestAutosaveDebounced = (() => {
     let timer = null;
     return (delay = 600) => {
-        if (!autosaveEnabled) return;
+        if (!window.autosaveEnabled) return;
 
         clearTimeout(timer);
         timer = setTimeout(() => {
@@ -26,8 +26,22 @@ const requestAutosaveDebounced = (() => {
 })();
 window.requestAutosaveDebounced = requestAutosaveDebounced;
 
-if (autosaveEnabled) {
-    startAutosave();
+async function initAndLoad() {
+    if (window.TCTDB) {
+        await TCTDB.migrate();
+        autosaveEnabled = (await TCTDB.get('settings', 'autosaveEnabled')) === "true";
+        autosaveData = await TCTDB.get('autosaves', 'autosave');
+    } else {
+        autosaveEnabled = window.autosaveEnabled;
+        autosaveData = localStorage.getItem("autosave");
+    }
+
+    window.autosaveEnabled = autosaveEnabled;
+    if (autosaveEnabled) {
+        startAutosave();
+    }
+
+    loadData(TEMPLATE_NAMES[0], true);
 }
 
 const MODES = {
@@ -63,7 +77,15 @@ function saveAutosave() {
 
     try {
         const code2 = tct.exportCode2();
-        localStorage.setItem("autosave", code2);
+        if (window.TCTDB) {
+            TCTDB.set('autosaves', 'autosave', code2)
+                .catch(err => {
+                    console.warn("IndexedDB autosave failed, falling back to localStorage:", err);
+                    localStorage.setItem("autosave", code2);
+                });
+        } else {
+            localStorage.setItem("autosave", code2);
+        }
         window.dispatchEvent(new CustomEvent('tct:autosaved'));
     } catch (e) {
         console.error("Error during export/save:", e);
@@ -215,4 +237,4 @@ function getListOfCandidates() {
 }
 
 // load default template on startup
-loadData(TEMPLATE_NAMES[0], true);
+initAndLoad();

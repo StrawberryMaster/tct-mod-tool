@@ -835,7 +835,7 @@ registerComponent('cyoa-variable', {
 
 // small global helper to trigger autosave only when enabled
 window.requestAutosaveIfEnabled = function () {
-    if (localStorage.getItem("autosaveEnabled") === "true") {
+    if (window.autosaveEnabled) {
         window.requestAutosaveDebounced?.();
     }
 };
@@ -1361,3 +1361,4 @@ registerComponent('cyoa-answer-swap', {
     </div>
     `
 })
+

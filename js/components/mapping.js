@@ -322,3 +322,4 @@ registerComponent('map-preview', {
     }
 
 });
+

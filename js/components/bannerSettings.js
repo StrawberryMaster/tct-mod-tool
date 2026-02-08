@@ -323,3 +323,4 @@ registerComponent('banner-settings', {
         this.ensureReactiveBannerData();
     }
 })
+

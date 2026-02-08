@@ -359,3 +359,4 @@ window.registerCode1Component = function(name, definition) {
         window.TCT1ComponentQueue.push({ name, definition });
     }
 };
+

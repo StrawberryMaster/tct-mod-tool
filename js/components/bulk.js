@@ -399,3 +399,4 @@ registerComponent('bulk-state-multiplier', {
         }
     }
 });
+

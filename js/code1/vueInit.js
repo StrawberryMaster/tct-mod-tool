@@ -2,10 +2,7 @@ const { createApp, reactive, ref, computed, watch, onMounted } = Vue;
 
 let app = null;
 let autosaveInterval = null;
-let autosaveEnabled = localStorage.getItem("code1_autosaveEnabled") === "true";
-if (localStorage.getItem("code1_autosaveEnabled") === null) {
-    autosaveEnabled = true;
-}
+let autosaveEnabled = false;
 
 // global exports
 window.code1_autosaveEnabled = autosaveEnabled;
@@ -14,7 +11,7 @@ window.code1_autosaveEnabled = autosaveEnabled;
 const requestAutosaveDebounced = (() => {
     let timer = null;
     return (delay = 600) => {
-        if (!autosaveEnabled) return;
+        if (!window.code1_autosaveEnabled) return;
 
         clearTimeout(timer);
         timer = setTimeout(() => {
@@ -27,9 +24,28 @@ const requestAutosaveDebounced = (() => {
 })();
 window.requestCode1AutosaveDebounced = requestAutosaveDebounced;
 
-if (autosaveEnabled) {
-    startAutosave();
+async function initCode1Storage() {
+    if (window.TCTDB) {
+        await TCTDB.migrate();
+        const enabled = await TCTDB.get('settings', 'code1_autosaveEnabled');
+        if (enabled === null) {
+            autosaveEnabled = true; // default
+        } else {
+            autosaveEnabled = enabled === "true";
+        }
+    } else {
+        autosaveEnabled = localStorage.getItem("code1_autosaveEnabled") === "true";
+        if (localStorage.getItem("code1_autosaveEnabled") === null) {
+            autosaveEnabled = true;
+        }
+    }
+    
+    window.code1_autosaveEnabled = autosaveEnabled;
+    if (autosaveEnabled) {
+        startAutosave();
+    }
 }
+
 
 function startAutosave() {
     if (autosaveInterval) clearInterval(autosaveInterval);
@@ -42,7 +58,15 @@ function saveAutosave() {
 
     try {
         const code1 = tct.exportCode1();
-        localStorage.setItem("code1_autosave", code1);
+        if (window.TCTDB) {
+            TCTDB.set('autosaves', 'code1_autosave', code1)
+                .catch(err => {
+                    console.warn("Code 1 IndexedDB autosave failed, falling back to localStorage:", err);
+                    localStorage.setItem("code1_autosave", code1);
+                });
+        } else {
+            localStorage.setItem("code1_autosave", code1);
+        }
         window.dispatchEvent(new CustomEvent('tct:code1_autosaved'));
     } catch (e) {
         console.error("Error during Code 1 export/save:", e);
@@ -60,14 +84,21 @@ const globalData = reactive({
 
 window.$globalData1 = globalData;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOM Content Loaded - Initializing Code 1");
+    await initCode1Storage();
     const rawTct = new TCTCode1Data();
     const tct1 = reactive(rawTct);
     window.$TCT1 = tct1;
     
     // load from autosave if it exists
-    const autosaveData = localStorage.getItem("code1_autosave");
+    let autosaveData = null;
+    if (window.TCTDB) {
+        autosaveData = await TCTDB.get('autosaves', 'code1_autosave');
+    } else {
+        autosaveData = localStorage.getItem("code1_autosave");
+    }
+
     if (autosaveData) {
         console.log("Loading Code 1 from autosave...");
         tct1.loadCode1(autosaveData);
@@ -99,3 +130,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     app.mount('#app');
 });
+

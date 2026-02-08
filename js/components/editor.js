@@ -2,7 +2,7 @@ registerComponent('toolbar', {
 
     data() {
         return {
-            localAutosaveEnabled: autosaveEnabled,
+            localAutosaveEnabled: window.autosaveEnabled,
             showModPresets: false,
             modPresets: [],
             newPresetName: '',
@@ -186,13 +186,24 @@ registerComponent('toolbar', {
     methods: {
 
         toggleAutosave: function (evt) {
-            if (!autosaveEnabled) {
-                localStorage.setItem("autosaveEnabled", "true");
+            const newState = !window.autosaveEnabled;
+            const newStateStr = newState ? "true" : "false";
+
+            if (window.TCTDB) {
+                TCTDB.set('settings', 'autosaveEnabled', newStateStr)
+                    .catch(err => {
+                        console.warn("Failed to save autosaveEnabled to IndexedDB, falling back to localStorage:", err);
+                        localStorage.setItem("autosaveEnabled", newStateStr);
+                    });
+            } else {
+                localStorage.setItem("autosaveEnabled", newStateStr);
+            }
+
+            if (newState) {
                 if (typeof startAutosave === 'function') startAutosave();
                 // request an immediate save
                 if (typeof requestAutosaveDebounced === 'function') requestAutosaveDebounced(0);
             } else {
-                localStorage.setItem("autosaveEnabled", "false");
                 // stop the interval if it exists
                 try {
                     if (typeof autosaveInterval !== 'undefined' && autosaveInterval) {
@@ -204,11 +215,8 @@ registerComponent('toolbar', {
                 }
             }
 
-            autosaveEnabled = localStorage.getItem("autosaveEnabled") == "true";
-            // keep global mirror in sync
-            window.autosaveEnabled = autosaveEnabled;
-
-            this.localAutosaveEnabled = autosaveEnabled;
+            window.autosaveEnabled = newState;
+            this.localAutosaveEnabled = newState;
         },
 
         fileUploaded: function (evt) {
@@ -366,6 +374,7 @@ registerComponent('toolbar', {
 
         // IndexedDB helpers
         openPresetDB() {
+            if (window.TCTDB && TCTDB.openTCTDB) return TCTDB.openTCTDB();
             return new Promise((resolve, reject) => {
                 try {
                     const req = indexedDB.open('tct_mod_presets_db', 1);
@@ -384,6 +393,7 @@ registerComponent('toolbar', {
         },
 
         getAllPresetsFromDB() {
+            if (window.TCTDB) return TCTDB.getAll('presets');
             return new Promise(async (resolve, reject) => {
                 try {
                     const db = await this.openPresetDB();
@@ -399,6 +409,7 @@ registerComponent('toolbar', {
         },
 
         clearPresetStore() {
+            if (window.TCTDB) return TCTDB.clear('presets');
             return new Promise(async (resolve, reject) => {
                 try {
                     const db = await this.openPresetDB();
@@ -434,22 +445,24 @@ registerComponent('toolbar', {
         },
 
         putPresetToDB(preset) {
+            const safePreset = {
+                id: preset.id,
+                name: preset.name,
+                description: preset.description,
+                created: preset.created,
+                modData: null
+            };
+
+            if (typeof preset.modData === 'string') {
+                safePreset.modData = preset.modData;
+            } else {
+                safePreset.modData = this.safeStringify(preset.modData);
+            }
+
+            if (window.TCTDB) return TCTDB.set('presets', undefined, safePreset);
+
             return new Promise(async (resolve, reject) => {
                 try {
-                    const safePreset = {
-                        id: preset.id,
-                        name: preset.name,
-                        description: preset.description,
-                        created: preset.created,
-                        modData: null
-                    };
-
-                    if (typeof preset.modData === 'string') {
-                        safePreset.modData = preset.modData;
-                    } else {
-                        safePreset.modData = this.safeStringify(preset.modData);
-                    }
-
                     const db = await this.openPresetDB();
                     const tx = db.transaction('presets', 'readwrite');
                     const store = tx.objectStore('presets');
@@ -621,6 +634,7 @@ registerComponent('toolbar', {
         },
 
         deletePresetFromDB(presetId) {
+            if (window.TCTDB) return TCTDB.delete('presets', presetId);
             return new Promise(async (resolve, reject) => {
                 try {
                     const db = await this.openPresetDB();
@@ -636,6 +650,10 @@ registerComponent('toolbar', {
         },
 
         async migrateFromLocalStorage() {
+            if (window.TCTDB) {
+                await TCTDB.migrate();
+                return;
+            }
             try {
                 const saved = localStorage.getItem('tct-mod-presets');
                 if (saved) {
@@ -656,7 +674,6 @@ registerComponent('toolbar', {
                             });
                         }
                     }
-                    localStorage.removeItem('tct-mod-presets');
                 }
             } catch (err) {
                 console.warn('Failed to migrate presets from localStorage:', err);
@@ -725,3 +742,4 @@ registerComponent('editor', {
         },
     }
 })
+

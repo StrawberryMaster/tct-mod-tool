@@ -50,7 +50,7 @@ registerComponent('question', {
                 q.fields.description = newVal;
                 this.markDirty();
                 // debounce autosave more aggressively while typing to avoid UI stalls
-                if (localStorage.getItem("autosaveEnabled") === "true") {
+                if (window.autosaveEnabled) {
                     window.requestAutosaveDebounced?.(1200);
                     this.savedMessage = 'Saving...';
                 }
@@ -78,7 +78,7 @@ registerComponent('question', {
             if (a) {
                 a.fields.description = newVal;
                 this.markDirty();
-                if (localStorage.getItem("autosaveEnabled") === "true") {
+                if (window.autosaveEnabled) {
                     window.requestAutosaveDebounced?.(1200);
                     this.savedMessage = 'Saving...';
                 }
@@ -368,7 +368,7 @@ registerComponent('question', {
             this.savedMessage = 'Saved just now';
         },
         quickAutosaveIfEnabled() {
-            if (localStorage.getItem("autosaveEnabled") === "true") {
+            if (window.autosaveEnabled) {
                 window.requestAutosaveDebounced?.();
                 this.savedMessage = 'Saving...';
             }
@@ -813,7 +813,7 @@ registerComponent('answer', {
             this.$TCT.answer_feedback[newPk] = feedback;
             this.$TCT._invalidateCache('feedback_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         addGlobalScore: function () {
@@ -832,7 +832,7 @@ registerComponent('answer', {
             this.$TCT.answer_score_global[newPk] = x;
             this.$TCT._invalidateCache('global_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         addIssueScore: function () {
@@ -851,7 +851,7 @@ registerComponent('answer', {
             this.$TCT.answer_score_issue[newPk] = x;
             this.$TCT._invalidateCache('issue_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         addStateScore: function () {
@@ -871,7 +871,7 @@ registerComponent('answer', {
             this.$TCT.answer_score_state[newPk] = x;
             this.$TCT._invalidateCache('state_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         deleteAnswer: function () {
@@ -883,7 +883,7 @@ registerComponent('answer', {
             delete this.$TCT.answer_feedback[pk];
             this.$TCT._invalidateCache('feedback_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         deleteGlobalScore: function (pk) {
@@ -891,7 +891,7 @@ registerComponent('answer', {
             delete this.$TCT.answer_score_global[pk];
             this.$TCT._invalidateCache('global_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         deleteIssueScore: function (pk) {
@@ -899,7 +899,7 @@ registerComponent('answer', {
             delete this.$TCT.answer_score_issue[pk];
             this.$TCT._invalidateCache('issue_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         deleteStateScore: function (pk) {
@@ -907,7 +907,7 @@ registerComponent('answer', {
             delete this.$TCT.answer_score_state[pk];
             this.$TCT._invalidateCache('state_score_by_answer');
             this.$globalData.dataVersion++;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         onInput: function (evt) {
@@ -917,7 +917,7 @@ registerComponent('answer', {
             }
 
             this.$TCT.answers[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         }
     },
 
@@ -973,7 +973,7 @@ registerComponent('answer-feedback-card', {
             }
 
             this.$TCT.answer_feedback[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         }
     },
 
@@ -1057,7 +1057,7 @@ registerComponent('global-score-card', {
             }
 
             this.$TCT.answer_score_global[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
             this.$globalData.dataVersion++;
         }
     },
@@ -1158,7 +1158,7 @@ registerComponent('issue-score-card', {
             }
 
             this.$TCT.answer_score_issue[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
             this.$globalData.dataVersion++;
         }
     },
@@ -1267,7 +1267,7 @@ registerComponent('state-score-card', {
             }
 
             this.$TCT.answer_score_state[this.pk].fields[evt.target.name] = value;
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
             this.$globalData.dataVersion++;
         }
     },
@@ -1876,7 +1876,7 @@ registerComponent('integrated-state-effect-visualizer', {
 
             this.effectListVersion++;
             // autosave after applying changes
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
         },
 
         updateOrCreateStateEffect(statePk, value) {
@@ -2190,7 +2190,7 @@ registerComponent('variable-effect-card', {
             const val = evt.target.name === 'amount' ? Number(evt.target.value) : evt.target.value;
             effectsRoot[this.pk][evt.target.name] = val;
 
-            if (localStorage.getItem("autosaveEnabled") === "true") window.requestAutosaveDebounced?.();
+            if (window.autosaveEnabled) window.requestAutosaveDebounced?.();
             this.$globalData.dataVersion++;
         }
     },
@@ -2213,3 +2213,4 @@ registerComponent('variable-effect-card', {
         }
     }
 });
+
