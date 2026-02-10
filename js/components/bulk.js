@@ -8,6 +8,7 @@ registerComponent('bulk', {
             issuePk: Object.keys(this.$TCT.issues)[0],
             stateIssueScore: "",
             issueWeight: "",
+            issueFilter: "",
             bulkCandidatePk: this.$TCT.getAllCandidatePKs()[0],
             stateMultiplier: "",
             multiplier: 1,
@@ -75,30 +76,70 @@ registerComponent('bulk', {
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">State Issue Score</label>
-                        <input v-model.number="stateIssueScore" name="name" type="number"
-                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
-                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Bulk issue score</label>
+                            <input v-model="stateIssueScore" name="name" type="number" step="0.01"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500 transition-colors duration-300"
+                                :class="getScoreColorClass(stateIssueScore)"
+                                placeholder="Value to apply to checked">
+                            <p v-if="stateIssueScore !== ''" class="text-[10px] mt-1 transition-colors duration-500" :class="getScoreColorClass(stateIssueScore)">
+                                Target Stance: {{ getStanceLabel(stateIssueScore, issuePk) }}
+                            </p>
+                        </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Issue Weight</label>
-                        <input v-model.number="issueWeight" name="name" type="number"
-                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Bulk issue weight</label>
+                            <input v-model="issueWeight" name="name" type="number" step="0.1"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500"
+                                placeholder="Value to apply to checked">
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex gap-2 mb-3">
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAllIssues()">Check All</button>
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="uncheckAllIssues()">Uncheck All</button>
-                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setIssueScores()">Set Issue Scores</button>
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" v-on:click="checkAllIssues()">Check all</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" v-on:click="uncheckAllIssues()">Uncheck all</button>
+                    <div class="flex-grow"></div>
+                    <input v-model="issueFilter" placeholder="Filter states..." class="p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-500 w-48">
+                    <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setIssueScores()">Apply bulk updates</button>
                 </div>
 
-                <ul class="divide-y border rounded overflow-hidden">
-                    <li v-for="item in issueItems" :key="item.pk" class="flex items-center justify-between p-2">
-                        <div class="flex items-center space-x-3">
-                            <input type="checkbox" v-model="item.include" class="h-4 w-4">
-                            <span class="text-sm text-gray-700">{{ item.name }}</span>
+                <ul class="divide-y border rounded overflow-hidden max-h-96 overflow-y-auto">
+                    <li v-for="item in filteredIssueItems" :key="item.pk" class="p-2 hover:bg-gray-50 flex flex-col gap-1 transition-all duration-300">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3 overflow-hidden">
+                                <input type="checkbox" v-model="item.include" class="h-4 w-4 shrink-0">
+                                <div class="flex flex-col truncate">
+                                    <span class="text-sm font-medium text-gray-700 truncate">{{ item.name }}</span>
+                                    <span class="text-[10px] truncate transition-colors duration-500" :class="getScoreColorClass(item.score)">
+                                        {{ getStanceLabel(item.score, issuePk) }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] text-gray-400 uppercase leading-none">Score</label>
+                                    <input v-model.number="item.score" @change="syncIssueItem(item)" type="number" step="0.001" 
+                                        class="w-20 p-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-400 transition-colors duration-300"
+                                        :class="getScoreColorClass(item.score)">
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] text-gray-400 uppercase leading-none">Weight</label>
+                                    <input v-model.number="item.weight" @change="syncIssueItem(item)" type="number" step="0.1" 
+                                        class="w-16 p-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-400">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center pl-7 gap-2">
+                            <input type="range" v-model.number="item.score" @input="syncIssueItem(item)" min="-1" max="1" step="0.001" 
+                                class="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer transition-all duration-300"
+                                :class="getSliderAccentClass(item.score)">
+                            <span class="text-[10px] font-mono w-10 text-right transition-colors duration-300" :class="getScoreColorClass(item.score)">
+                                {{ Number(item.score).toFixed(3) }}
+                            </span>
                         </div>
                     </li>
                 </ul>
@@ -180,6 +221,34 @@ registerComponent('bulk', {
             this.issuePk = Number(evt.target.value);
         },
 
+        getStanceLabel(score, issuePk) {
+            const issue = this.$TCT.issues[issuePk];
+            if (!issue) return "Unknown issue";
+            
+            let stanceIndex = 4;
+            if (score <= -0.71) stanceIndex = 1;
+            else if (score <= -0.3) stanceIndex = 2;
+            else if (score <= -0.125) stanceIndex = 3;
+            else if (score <= 0.125) stanceIndex = 4;
+            else if (score <= 0.3) stanceIndex = 5;
+            else if (score <= 0.71) stanceIndex = 6;
+            else stanceIndex = 7;
+            
+            return issue.fields["stance_" + stanceIndex] || `Stance ${stanceIndex}`;
+        },
+
+        getScoreColorClass(score) {
+            if (score <= -0.125) return "text-red-600 font-bold";
+            if (score >= 0.125) return "text-green-600 font-bold";
+            return "text-gray-500";
+        },
+
+        getSliderAccentClass(score) {
+            if (score <= -0.125) return "accent-red-500";
+            if (score >= 0.125) return "accent-green-500";
+            return "accent-blue-500";
+        },
+
         refreshStateItems() {
             this.stateItems = Object.values(this.$TCT.states).map(s => ({
                 pk: s.pk,
@@ -194,7 +263,9 @@ registerComponent('bulk', {
             this.issueItems = scores.map(s => ({
                 pk: s.pk,
                 name: this.$TCT.states[s.fields.state]?.fields?.name || `State ${s.fields.state}`,
-                include: false
+                include: false,
+                score: s.fields.state_issue_score,
+                weight: s.fields.weight
             }));
         },
 
@@ -205,6 +276,12 @@ registerComponent('bulk', {
                 name: this.$TCT.states[m.fields.state]?.fields?.name || `State ${m.fields.state}`,
                 include: false
             }));
+        },
+
+        syncIssueItem(item) {
+            this.$TCT.state_issue_scores[item.pk].fields.state_issue_score = Number(item.score);
+            this.$TCT.state_issue_scores[item.pk].fields.weight = Number(item.weight);
+            this.$globalData.dataVersion++;
         },
 
         generate: function () {
@@ -237,8 +314,14 @@ registerComponent('bulk', {
         setIssueScores: function () {
             for (const item of this.issueItems) {
                 if (item.include) {
-                    this.$TCT.state_issue_scores[item.pk].fields.state_issue_score = Number(this.stateIssueScore);
-                    this.$TCT.state_issue_scores[item.pk].fields.weight = Number(this.issueWeight);
+                    if (this.stateIssueScore !== "" && this.stateIssueScore !== null) {
+                        this.$TCT.state_issue_scores[item.pk].fields.state_issue_score = Number(this.stateIssueScore);
+                        item.score = Number(this.stateIssueScore);
+                    }
+                    if (this.issueWeight !== "" && this.issueWeight !== null) {
+                        this.$TCT.state_issue_scores[item.pk].fields.weight = Number(this.issueWeight);
+                        item.weight = Number(this.issueWeight);
+                    }
                 }
             }
             this.$globalData.dataVersion++;
@@ -305,6 +388,12 @@ registerComponent('bulk', {
 
         issues: function () {
             return Object.values(this.$TCT.issues);
+        },
+
+        filteredIssueItems: function () {
+            if (!this.issueFilter) return this.issueItems;
+            const f = this.issueFilter.toLowerCase();
+            return this.issueItems.filter(i => i.name.toLowerCase().includes(f));
         },
 
         states: function () {
