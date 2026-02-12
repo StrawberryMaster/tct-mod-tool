@@ -77,7 +77,12 @@ class TCTData {
             const values = Object.values(sourceData);
             for (let i = 0; i < values.length; i++) {
                 const item = values[i];
-                const key = item.fields[fieldKey];
+                let key = item.fields[fieldKey];
+
+                if (typeof key === 'string' && key.trim() !== '' && !isNaN(key)) {
+                    key = Number(key);
+                }
+
                 if (!index.has(key)) {
                     index.set(key, []);
                 }
@@ -85,7 +90,13 @@ class TCTData {
             }
             this._indices[indexName] = index;
         }
-        return this._indices[indexName].get(lookupValue) || [];
+
+        let searchKey = lookupValue;
+        if (typeof searchKey === 'string' && searchKey.trim() !== '' && !isNaN(searchKey)) {
+            searchKey = Number(searchKey);
+        }
+
+        return this._indices[indexName].get(searchKey) || [];
     }
 
     cleanAllData() {
@@ -382,6 +393,7 @@ class TCTData {
         const candidateScores = this.getCandidateIssueScoreForIssue(pk);
         const runningMateScores = this.getRunningMateIssueScoreForIssue(pk);
         const stateScores = this.getStateIssueScoresForIssue(pk);
+        const answerScoreIssues = this._getFromIndex('answer_score_issue_by_issue', this.answer_score_issue, 'issue', pk);
 
         delete this.issues[pk];
 
@@ -402,6 +414,12 @@ class TCTData {
         });
         this._invalidateCache('state_issue_scores_by_issue');
         this._invalidateCache('state_issue_scores_by_state');
+
+        answerScoreIssues.forEach(score => {
+            delete this.answer_score_issue[score.pk];
+        });
+        this._invalidateCache('answer_score_issue_by_issue');
+        this._invalidateCache('issue_score_by_answer');
     }
 
     cloneAnswer(toClone, newQuestionPk) {
@@ -485,6 +503,7 @@ class TCTData {
         }
         this.answer_score_issue[newPk] = issueScore;
         this._invalidateCache('issue_score_by_answer');
+        this._invalidateCache('answer_score_issue_by_issue');
     }
 
     cloneStateScore(toClone, newAnswerPk) {
@@ -556,6 +575,10 @@ class TCTData {
 
     getRunningMateIssueScoreForCandidate(pk) {
         return this._getFromIndex('running_mate_issue_score_by_candidate', this.running_mate_issue_score, 'candidate', pk);
+    }
+
+    getAnswerScoreIssuesForIssue(pk) {
+        return this._getFromIndex('answer_score_issue_by_issue', this.answer_score_issue, 'issue', pk);
     }
 
     getCandidateStateMultipliersForState(pk) {
