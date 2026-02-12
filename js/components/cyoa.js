@@ -411,31 +411,40 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const blocks = rules.map(rule => {
             const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
             const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
-            if (!triggers.length || !swaps.length) return '';
+            
+            const hasConditions = rule.conditions && Array.isArray(rule.conditions) && rule.conditions.some(c => c && c.variable);
+            if (!swaps.length || (!triggers.length && !hasConditions)) return '';
 
-            const triggerCond = triggers.map(pk => `ans == ${pk}`).join(' || ');
             const swapLines = swaps.map(s => {
                 return `questionSwapper(${s.pk1}, ${s.pk2});`;
-            }).join('\n        ');
+            }).join('\n    ');
 
             let conditionStr = '';
-            if (rule.conditions && Array.isArray(rule.conditions) && rule.conditions.length > 0) {
-                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+            if (hasConditions) {
+                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && (c.value != null));
                 if (validConditions.length > 0) {
                     const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
                     const operator = rule.conditionOperator || 'AND';
                     const joinStr = operator === 'OR' ? ' || ' : ' && ';
-                    conditionStr = `if (${conditionParts.join(joinStr)}) {\n        `;
+                    conditionStr = conditionParts.join(joinStr);
+                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
                 }
             }
 
-            let output = `if (${triggerCond}) {`;
-            if (conditionStr) {
-                output += `\n    ${conditionStr}${swapLines}\n    }\n}`;
-            } else {
-                output += `\n    ${swapLines}\n}`;
+            let triggerStr = '';
+            if (triggers.length > 0) {
+                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
+                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
             }
-            return output;
+
+            let combinedCond = '';
+            if (triggerStr && conditionStr) {
+                combinedCond = `${triggerStr} && ${conditionStr}`;
+            } else {
+                combinedCond = triggerStr || conditionStr;
+            }
+
+            return `if (${combinedCond}) {\n    ${swapLines}\n}`;
         }).filter(Boolean);
 
         if (!blocks.length) return '';
@@ -451,34 +460,41 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const blocks = rules.map(rule => {
             const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
             const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
-            if (!triggers.length || !swaps.length) return '';
 
-            const triggerCond = triggers.map(pk => `ans == ${pk}`).join(' || ');
+            const hasConditions = rule.conditions && Array.isArray(rule.conditions) && rule.conditions.some(c => c && c.variable);
+            if (!swaps.length || (!triggers.length && !hasConditions)) return '';
+
             const swapLines = swaps.map(s => {
                 const take = (s.takeEffects === false) ? 'false' : 'true';
                 return `answerSwapper(${s.pk1}, ${s.pk2}, ${take});`;
-            }).join('\n        ');
+            }).join('\n    ');
 
             let conditionStr = '';
-            if (rule.conditions && Array.isArray(rule.conditions) && rule.conditions.length > 0) {
+            if (hasConditions) {
                 const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
                     const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
                     const operator = rule.conditionOperator || 'AND';
                     const joinStr = operator === 'OR' ? ' || ' : ' && ';
-                    conditionStr = `if (${conditionParts.join(joinStr)}) {\n        `;
+                    conditionStr = conditionParts.join(joinStr);
+                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
                 }
-            } else if (rule.condition && rule.condition.variable) {
-                conditionStr = `if (${rule.condition.variable} ${rule.condition.comparator} ${rule.condition.value}) {\n        `;
             }
 
-            let output = `if (${triggerCond}) {`;
-            if (conditionStr) {
-                output += `\n    ${conditionStr}${swapLines}\n    }\n}`;
-            } else {
-                output += `\n    ${swapLines}\n}`;
+            let triggerStr = '';
+            if (triggers.length > 0) {
+                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
+                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
             }
-            return output;
+
+            let combinedCond = '';
+            if (triggerStr && conditionStr) {
+                combinedCond = `${triggerStr} && ${conditionStr}`;
+            } else {
+                combinedCond = triggerStr || conditionStr;
+            }
+
+            return `if (${combinedCond}) {\n    ${swapLines}\n}`;
         }).filter(Boolean);
 
         if (!blocks.length) return '';
@@ -779,7 +795,7 @@ registerComponent('cyoa-variable', {
                     placeholder="e.g. wins, trust">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Default value:</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Starting value:</label>
                 <input 
                     v-model.number="defaultValueVal" 
                     name="defaultValue" 
@@ -990,6 +1006,11 @@ registerComponent('cyoa-question-swap', {
             this.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions || [];
+        },
+
+        validSwaps() {
+            this.$globalData.dataVersion;
+            return (this.rule.swaps || []).filter(s => s.pk1 != null && s.pk2 != null);
         }
     },
 
@@ -1005,9 +1026,29 @@ registerComponent('cyoa-question-swap', {
             <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
         </div>
 
+        <div class="mb-3 p-2 bg-indigo-50 rounded-sm text-sm text-indigo-900 border border-indigo-100">
+            <span class="font-bold mr-1">Swap summary:</span>
+            <span v-if="rule.triggers.length > 0">
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-indigo-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+            </span>
+            <span v-if="hasConditions">
+                if <span v-for="(c, idx) in conditionsList" :key="idx">
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">{{c.variable}} {{c.comparator}} {{c.value}}</span>
+                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                </span>, 
+            </span>
+            <span v-if="validSwaps.length > 0">
+                swap <span v-for="(s, idx) in validSwaps" :key="idx">
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">Q#{{s.pk1}} ↔ Q#{{s.pk2}}</span>
+                    <span v-if="idx < validSwaps.length - 1"> and </span>
+                </span>
+            </span>
+            <span v-else class="italic text-gray-500">No swaps defined yet.</span>
+        </div>
+
         <!-- Triggers -->
         <div class="mb-3">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers (optional):</label>
             <div class="flex items-center gap-2">
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
@@ -1055,12 +1096,12 @@ registerComponent('cyoa-question-swap', {
                     <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
                 </select>
                 <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value=">=">&gt;=</option>
-                    <option value="<=">&lt;=</option>
-                    <option value=">">&gt;</option>
-                    <option value="<">&lt;</option>
-                    <option value="==">==</option>
-                    <option value="!=">!=</option>
+                    <option value=">=">&gt;= (greater than or equal)</option>
+                    <option value="<=">&lt;= (less than or equal)</option>
+                    <option value=">">&gt; (greater than)</option>
+                    <option value="<">&lt; (less than)</option>
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
                 </select>
                 <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
@@ -1249,6 +1290,11 @@ registerComponent('cyoa-answer-swap', {
             this.$globalData.dataVersion;
             const rule = this.getRule();
             return rule.conditions || [];
+        },
+
+        validSwaps() {
+            this.$globalData.dataVersion;
+            return (this.rule.swaps || []).filter(s => s.pk1 != null && s.pk2 != null);
         }
     },
 
@@ -1264,9 +1310,29 @@ registerComponent('cyoa-answer-swap', {
             <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
         </div>
 
+        <div class="mb-3 p-2 bg-purple-50 rounded-sm text-sm text-purple-900 border border-purple-100">
+            <span class="font-bold mr-1">Swap summary:</span>
+            <span v-if="rule.triggers.length > 0">
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-purple-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+            </span>
+            <span v-if="hasConditions">
+                if <span v-for="(c, idx) in conditionsList" :key="idx">
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">{{c.variable}} {{c.comparator}} {{c.value}}</span>
+                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                </span>, 
+            </span>
+            <span v-if="validSwaps.length > 0">
+                swap <span v-for="(s, idx) in validSwaps" :key="idx">
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">A#{{s.pk1}} ↔ A#{{s.pk2}}</span>
+                    <span v-if="idx < validSwaps.length - 1"> and </span>
+                </span>
+            </span>
+            <span v-else class="italic text-gray-500">No swaps defined yet.</span>
+        </div>
+
         <!-- Triggers -->
         <div class="mb-3">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers (optional):</label>
             <div class="flex items-center gap-2">
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
@@ -1314,12 +1380,12 @@ registerComponent('cyoa-answer-swap', {
                     <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
                 </select>
                 <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value=">=">&gt;=</option>
-                    <option value="<=">&lt;=</option>
-                    <option value=">">&gt;</option>
-                    <option value="<">&lt;</option>
-                    <option value="==">==</option>
-                    <option value="!=">!=</option>
+                    <option value=">=">&gt;= (greater than or equal)</option>
+                    <option value="<=">&lt;= (less than or equal)</option>
+                    <option value=">">&gt; (greater than)</option>
+                    <option value="<">&lt; (less than)</option>
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
                 </select>
                 <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
