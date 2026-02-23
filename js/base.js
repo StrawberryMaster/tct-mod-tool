@@ -1259,7 +1259,7 @@ class TCTData {
         parts.push(this.getEndingCode());
 
         if (code) {
-            parts.push("//#startcode", code, "//#endcode");
+            parts.push("\n\n//#startcode\n", code, "\n//#endcode\n");
         }
 
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
@@ -1424,14 +1424,15 @@ function getQuestionNumberFromPk(pk) {
     }
 }
 
-function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = []) {
+function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = [], outRange = null) {
     let f = raw_file;
     let res;
 
-    if (!f.includes(start)) {
+    let startIndex = f.indexOf(start);
+    if (startIndex === -1) {
         if (backup != null) {
             console.log(`Start [${start}] not in file provided, trying backup ${backup}`);
-            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback);
+            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback, outRange);
         }
         console.log(`ERROR: Start [${start}] not in file provided, returning none`);
         if (required) {
@@ -1442,8 +1443,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
     // try smart extraction for JSON.parse(...) wrappers
     if (start.includes("JSON.parse")) {
-        let parts = f.split(start);
-        let startString = parts[parts.length - 1] || "";
+        let startString = f.substring(startIndex + start.length);
         let s = startString.trimStart();
         const firstChar = s[0];
 
@@ -1483,6 +1483,15 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     candidate = candidate.replace(/,\s*([}\]])/g, "$1");
                     if (end == "]") candidate = "[" + candidate + "]";
                     res = JSON.parse(candidate);
+
+                    if (outRange) {
+                        outRange.start = startIndex;
+                        outRange.end = startIndex + start.length + startString.indexOf(s) + i + 1;
+                        let rest = f.substring(outRange.end).trimStart();
+                        if (rest.startsWith(");")) outRange.end = f.indexOf(");", outRange.end) + 2;
+                        else if (rest.startsWith(")")) outRange.end = f.indexOf(")", outRange.end) + 1;
+                    }
+
                     console.log("Found valid JSON via JSON.parse-string extraction for " + start + "!");
                     return res;
                 } catch (parseErr) {
@@ -1493,9 +1502,8 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     }
 
     // legacy/array literal probing
-    let parts = f.split(start);
-    let startString = parts[parts.length - 1];
-    // safety check if split failed (e.g. pattern at very end of file)
+    let startString = f.substring(startIndex + start.length);
+    // safety check if string empty
     if (!startString) return fallback;
 
     const possibleEndings = getAllIndexes(startString, end);
@@ -1549,6 +1557,10 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             if (end == "]") jsonAttempt = "[" + raw + "]";
             res = JSON.parse(jsonAttempt);
             foundValidJSON = true;
+            if (outRange) {
+                outRange.start = startIndex;
+                outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+            }
             console.log("Found valid ending for " + start + "!");
             break;
         } catch (e) {
@@ -1560,6 +1572,10 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                 if (evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
                     res = new Function("return " + evalAttempt)();
                     foundValidJSON = true;
+                    if (outRange) {
+                        outRange.start = startIndex;
+                        outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+                    }
                     console.log("Found valid ending for " + start + " via loose evaluation!");
                     break;
                 }
@@ -1573,6 +1589,10 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     if (end == "]") attempt = "[" + cleanRaw + "]";
                     res = JSON.parse(attempt);
                     foundValidJSON = true;
+                    if (outRange) {
+                        outRange.start = startIndex;
+                        outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+                    }
                     console.log("Found valid ending for " + start + " after sanitizing escaped quotes!");
                     break;
                 } catch (e2) { }
@@ -1589,10 +1609,6 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     return res;
 }
 
-function extractCode(raw_json) {
-    let code = raw_json.split("//#startcode")[1]?.split("//#endcode")[0];
-    return code;
-}
 
 function loadDataFromFile(raw_json) {
     let highest_pk = -1;
@@ -1614,7 +1630,37 @@ function loadDataFromFile(raw_json) {
     // map to track remapped IDs ( Old_Bad_ID => New_Safe_ID )
     let pkReplacements = new Map();
 
-    const code = extractCode(raw_json);
+    const rangesToExclude = [];
+    function getSection(name, required = true, fallback = []) {
+        const range = { start: -1, end: -1 };
+        
+        // try to find the assignment with a flexible regex to handle spacing and case
+        // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
+        const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
+        const match = raw_json.match(pattern);
+        
+        if (match) {
+             const foundStart = match[0];
+             const innerFound = match[1].trim();
+             let endMarker = ");";
+             if (innerFound.startsWith("[")) endMarker = "]";
+             else if (innerFound.startsWith("{")) endMarker = "}";
+             else if (innerFound.startsWith("'") || innerFound.startsWith("\"")) {
+                 endMarker = innerFound[0]; // matched quotes
+             }
+
+             const res = extractJSON(raw_json, foundStart, endMarker, null, null, required, fallback, range);
+             if (range.start !== -1) {
+                 rangesToExclude.push(range);
+             }
+             return res;
+        }
+
+        if (required) {
+             console.warn(`WARNING: Your uploaded code 2 is missing the section 'campaignTrail_temp.${name}'. Skipping it.`);
+        }
+        return fallback;
+    }
 
     // Logging helpers for duplicates
     const duplicateCounters = new Map();
@@ -1622,18 +1668,6 @@ function loadDataFromFile(raw_json) {
         let c = duplicateCounters.get(label) || { total: 0 };
         c.total += 1;
         duplicateCounters.set(label, c);
-    }
-
-    // prepare JSON
-    raw_json = raw_json.replaceAll("\r", "").replace(/campaignTrail_temp\.([a-zA-Z0-9_]+)\s*=\s*/g, "campaignTrail_temp.$1 = ");
-    const preferJSONParsePrimary = /campaignTrail_temp\.[a-zA-Z_]+_json\s*=\s*JSON\.parse\(/.test(raw_json);
-
-    function getSection(name, required = true, fallback = []) {
-        const startPrimary = `campaignTrail_temp.${name} = ${preferJSONParsePrimary ? "JSON.parse(" : "["}`;
-        const endPrimary = preferJSONParsePrimary ? ");" : "]";
-        const startBackup = `campaignTrail_temp.${name} = ${preferJSONParsePrimary ? "[" : "JSON.parse("}`;
-        const endBackup = preferJSONParsePrimary ? "]" : ");";
-        return extractJSON(raw_json, startPrimary, endPrimary, startBackup, endBackup, required, fallback);
     }
 
     // sanitize/normalize PKs to avoid insane values (e.g. scientific-notation randoms)
@@ -1768,11 +1802,12 @@ function loadDataFromFile(raw_json) {
     if (!jet_data || Object.keys(jet_data).length === 0) {
         try {
             let startMarker = "campaignTrail_temp.jet_data = [";
-            let parts = raw_json.split(startMarker);
-            if (parts.length > 1) {
-                let segment = parts[parts.length - 1];
+            let jIdx = raw_json.indexOf(startMarker);
+            if (jIdx !== -1) {
+                let segment = raw_json.substring(jIdx + startMarker.length);
                 let lastBracket = segment.lastIndexOf("]");
                 if (lastBracket !== -1) {
+                    rangesToExclude.push({ start: jIdx, end: jIdx + startMarker.length + lastBracket + 1 });
                     let rawObj = segment.substring(0, lastBracket);
                     const commentCleanerRegex = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
                     rawObj = rawObj.replace(commentCleanerRegex, (match, str, block, line) => str ? str : "");
@@ -1833,7 +1868,61 @@ function loadDataFromFile(raw_json) {
         }
     }
 
-    jet_data.code_to_add = code;
+    // exclude markers and standard banners/endings to avoid duplication
+
+    // markers
+    const markers = ["//#startcode", "//#endcode", "//# startcode", "//# endcode"];
+    markers.forEach(m => {
+        let idx = raw_json.indexOf(m);
+        while (idx !== -1) {
+            rangesToExclude.push({ start: idx, end: idx + m.length });
+            idx = raw_json.indexOf(m, idx + 1);
+        }
+    });
+
+    // clear anything else that the tool manages explicitly in exportCode2
+    // also exclude the hardcoded versions
+    const bannerRegex = /campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name)\s*=\s*".*?"\s*;/g;
+    const multiEndingsRegex = /campaignTrail_temp\.multiple_endings\s*=\s*true\s*;/g;
+    const standardGeneratedRegexes = [bannerRegex, multiEndingsRegex];
+    standardGeneratedRegexes.forEach(re => {
+        let match;
+        while ((match = re.exec(raw_json)) !== null) {
+            rangesToExclude.push({ start: match.index, end: match.index + match[0].length });
+        }
+    });
+
+    // merge overlapping ranges and ensure logical order
+    rangesToExclude.sort((a, b) => a.start - b.start);
+    const mergedRanges = [];
+    if (rangesToExclude.length > 0) {
+        let current = { ...rangesToExclude[0] };
+        for (let i = 1; i < rangesToExclude.length; i++) {
+            let next = rangesToExclude[i];
+            if (next.start <= current.end) {
+                current.end = Math.max(current.end, next.end);
+            } else {
+                mergedRanges.push(current);
+                current = { ...next };
+            }
+        }
+        mergedRanges.push(current);
+    }
+
+    let extraCodeParts = [];
+    let lastEnd = 0;
+    for (const range of mergedRanges) {
+        if (range.start > lastEnd) {
+            extraCodeParts.push(raw_json.substring(lastEnd, range.start));
+        }
+        lastEnd = Math.max(lastEnd, range.end);
+    }
+    if (lastEnd < raw_json.length) {
+        extraCodeParts.push(raw_json.substring(lastEnd));
+    }
+
+    // preserve whitespace and comments
+    jet_data.code_to_add = extraCodeParts.join("");
 
     // ensure required metadata structures exist
     jet_data.nicknames = jet_data.nicknames || {};
@@ -1848,6 +1937,7 @@ function loadDataFromFile(raw_json) {
 
     return data;
 }
+
 
 // https://stackoverflow.com/questions/20798477/how-to-find-the-indexes-of-all-occurrences-of-an-element-in-array#:~:text=The%20.,val%2C%20i%2B1))%20!%3D
 function getAllIndexes(arr, val) {
