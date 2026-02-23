@@ -40,20 +40,21 @@ registerComponent('pk-editor', {
             }
 
             if (confirm(`Are you sure you want to change ${this.type} PK ${this.pk} to ${newVal}? This will update every reference in the mod.`)) {
-                this.$TCT.changePk(this.type, this.pk, newVal);
-                this.$globalData.dataVersion++;
+                if (this.$TCT.changePk(this.type, this.pk, newVal)) {
+                    this.$globalData.dataVersion++;
 
-                // update selection if the active item was changed
-                const activeItemMap = {
-                    'question': 'question',
-                    'state': 'state',
-                    'issue': 'issue',
-                    'candidate': 'candidate'
-                };
+                    // update selection if the active item was changed
+                    const activeItemMap = {
+                        'question': 'question',
+                        'state': 'state',
+                        'issue': 'issue',
+                        'candidate': 'candidate'
+                    };
 
-                const field = activeItemMap[this.type];
-                if (field && this.$globalData[field] == this.pk) {
-                    this.$globalData[field] = newVal;
+                    const field = activeItemMap[this.type];
+                    if (field && this.$globalData[field] == this.pk) {
+                        this.$globalData[field] = newVal;
+                    }
                 }
             }
             this.isEditing = false;

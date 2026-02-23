@@ -2,7 +2,7 @@
 
 // global component registration queue
 window.TCTComponentQueue = [];
-window.registerComponent = function(name, definition) {
+window.registerComponent = function (name, definition) {
     if (window.TCTApp) {
         window.TCTApp.component(name, definition);
     } else {
@@ -212,10 +212,10 @@ class TCTData {
         oldPk = Number(oldPk);
         newPk = Number(newPk);
 
-        if (oldPk === newPk) return;
+        if (oldPk === newPk) return false;
         if (isNaN(newPk)) {
             alert("Invalid PK value.");
-            return;
+            return false;
         }
 
         // collections that use these IDs as PKs
@@ -241,7 +241,7 @@ class TCTData {
             const isTaken = container instanceof Map ? container.has(newPk) : (container[newPk] !== undefined);
             if (isTaken) {
                 alert(`PK ${newPk} is already taken in ${type}.`);
-                return;
+                return false;
             }
         }
 
@@ -250,7 +250,7 @@ class TCTData {
             let obj = container instanceof Map ? container.get(oldPk) : container[oldPk];
             if (!obj) {
                 console.error(`Could not find ${type} with PK ${oldPk}`);
-                return;
+                return false;
             }
             obj.pk = newPk;
             if (container instanceof Map) {
@@ -313,6 +313,7 @@ class TCTData {
         }
 
         console.log(`Successfully changed ${type} PK ${oldPk} to ${newPk}`);
+        return true;
     }
 
     cloneIssue(sourcePk) {
@@ -745,41 +746,23 @@ class TCTData {
             return;
         }
 
-        var answerScoresToRemove = [];
-
-        for (const xPk in this.answer_score_state) {
-            const x = this.answer_score_state[xPk];
-            if (x.fields.state == pk) {
-                answerScoresToRemove.push(xPk);
-            }
+        const answerScores = this._getFromIndex('state_score_by_state', this.answer_score_state, 'state', pk);
+        for (let i = 0; i < answerScores.length; i++) {
+            delete this.answer_score_state[answerScores[i].pk];
         }
-        for (let i = 0; i < answerScoresToRemove.length; i++) {
-            delete this.answer_score_state[answerScoresToRemove[i]];
-        }
+        this._invalidateCache('state_score_by_state');
         this._invalidateCache('state_score_by_answer');
 
-        var stateScoresToRemove = [];
-        for (const xPk in this.state_issue_scores) {
-            const x = this.state_issue_scores[xPk];
-            if (x.fields.state == pk) {
-                stateScoresToRemove.push(xPk);
-            }
-        }
-        for (let i = 0; i < stateScoresToRemove.length; i++) {
-            delete this.state_issue_scores[stateScoresToRemove[i]];
+        const stateScores = this._getFromIndex('state_issue_scores_by_state', this.state_issue_scores, 'state', pk);
+        for (let i = 0; i < stateScores.length; i++) {
+            delete this.state_issue_scores[stateScores[i].pk];
         }
         this._invalidateCache('state_issue_scores_by_state');
         this._invalidateCache('state_issue_scores_by_issue');
 
-        var csm = [];
-        for (const xPk in this.candidate_state_multiplier) {
-            const x = this.candidate_state_multiplier[xPk];
-            if (x.fields.state == pk) {
-                csm.push(xPk);
-            }
-        }
+        const csm = this._getFromIndex('candidate_state_multiplier_by_state', this.candidate_state_multiplier, 'state', pk);
         for (let i = 0; i < csm.length; i++) {
-            delete this.candidate_state_multiplier[csm[i]];
+            delete this.candidate_state_multiplier[csm[i].pk];
         }
         this._invalidateCache('candidate_state_multiplier_by_state');
         this._invalidateCache('candidate_state_multiplier_by_candidate');
@@ -1633,31 +1616,31 @@ function loadDataFromFile(raw_json) {
     const rangesToExclude = [];
     function getSection(name, required = true, fallback = []) {
         const range = { start: -1, end: -1 };
-        
+
         // try to find the assignment with a flexible regex to handle spacing and case
         // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
         const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
         const match = raw_json.match(pattern);
-        
-        if (match) {
-             const foundStart = match[0];
-             const innerFound = match[1].trim();
-             let endMarker = ");";
-             if (innerFound.startsWith("[")) endMarker = "]";
-             else if (innerFound.startsWith("{")) endMarker = "}";
-             else if (innerFound.startsWith("'") || innerFound.startsWith("\"")) {
-                 endMarker = innerFound[0]; // matched quotes
-             }
 
-             const res = extractJSON(raw_json, foundStart, endMarker, null, null, required, fallback, range);
-             if (range.start !== -1) {
-                 rangesToExclude.push(range);
-             }
-             return res;
+        if (match) {
+            const foundStart = match[0];
+            const innerFound = match[1].trim();
+            let endMarker = ");";
+            if (innerFound.startsWith("[")) endMarker = "]";
+            else if (innerFound.startsWith("{")) endMarker = "}";
+            else if (innerFound.startsWith("'") || innerFound.startsWith("\"")) {
+                endMarker = innerFound[0]; // matched quotes
+            }
+
+            const res = extractJSON(raw_json, foundStart, endMarker, null, null, required, fallback, range);
+            if (range.start !== -1) {
+                rangesToExclude.push(range);
+            }
+            return res;
         }
 
         if (required) {
-             console.warn(`WARNING: Your uploaded code 2 is missing the section 'campaignTrail_temp.${name}'. Skipping it.`);
+            console.warn(`WARNING: Your uploaded code 2 is missing the section 'campaignTrail_temp.${name}'. Skipping it.`);
         }
         return fallback;
     }
@@ -1833,7 +1816,7 @@ function loadDataFromFile(raw_json) {
                 const pathRegex = /(?:["']([\w\s\.-]+)["']|([\w\s\.-]+))\s*:\s*"([^"]+)"/g;
                 let pathMatch;
                 let svgPaths = [];
-                
+
                 while ((pathMatch = pathRegex.exec(mapObjStr)) !== null) {
                     const stateName = pathMatch[1] || pathMatch[2];
                     const pathData = pathMatch[3];
@@ -1841,21 +1824,21 @@ function loadDataFromFile(raw_json) {
                 }
 
                 if (svgPaths.length > 0) {
-                     let viewBox = "0 0 960 600"; // default
-                     // try to extract viewBox offsets
-                     const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
-                     if (vbOffsets) {
-                          const startX = vbOffsets[1];
-                          const startY = vbOffsets[2];
-                          // estimate width/height
-                           const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
-                           if (dimsMatch) {
-                               // let's give it generous space
-                               viewBox = `${startX} ${startY} 1100 ${dimsMatch[2]}`;
-                           } else {
-                               viewBox = `${startX} ${startY} 1000 600`;
-                           }
-                     }
+                    let viewBox = "0 0 960 600"; // default
+                    // try to extract viewBox offsets
+                    const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
+                    if (vbOffsets) {
+                        const startX = vbOffsets[1];
+                        const startY = vbOffsets[2];
+                        // estimate width/height
+                        const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
+                        if (dimsMatch) {
+                            // let's give it generous space
+                            viewBox = `${startX} ${startY} 1100 ${dimsMatch[2]}`;
+                        } else {
+                            viewBox = `${startX} ${startY} 1000 600`;
+                        }
+                    }
 
                     jet_data.mapping_data = jet_data.mapping_data || {};
                     jet_data.mapping_enabled = true;

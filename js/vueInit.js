@@ -104,20 +104,21 @@ function promptChangePk(type, oldPk) {
         const tct = window.$TCT;
         const gd = window.$globalData;
 
-        tct.changePk(type, oldPk, newPk);
-        gd.dataVersion++;
+        if (tct.changePk(type, oldPk, newPk)) {
+            gd.dataVersion++;
 
-        // update selection if the active item was changed
-        const activeItemMap = {
-            'question': 'question',
-            'state': 'state',
-            'issue': 'issue',
-            'candidate': 'candidate'
-        };
+            // update selection if the active item was changed
+            const activeItemMap = {
+                'question': 'question',
+                'state': 'state',
+                'issue': 'issue',
+                'candidate': 'candidate'
+            };
 
-        const field = activeItemMap[type];
-        if (field && gd[field] == oldPk) {
-            gd[field] = Number(newPk);
+            const field = activeItemMap[type];
+            if (field && gd[field] == oldPk) {
+                gd[field] = Number(newPk);
+            }
         }
     }
 }
@@ -169,7 +170,7 @@ async function loadData(dataName, isFirstLoad) {
         // initialize or update app
         if (!app) {
             app = createApp({});
-            
+
             // set up reactive-ish pointers to global state
             Object.defineProperty(app.config.globalProperties, '$TCT', {
                 get() { return window.$TCT; },
