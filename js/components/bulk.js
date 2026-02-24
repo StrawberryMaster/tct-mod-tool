@@ -351,8 +351,8 @@ registerComponent('bulk', {
                         "fields": {
                             "answer": Number(this.answerPk),
                             "state": item.pk,
-                            "candidate": Number(this.candidate) || this.$TCT.getFirstCandidatePK(),
-                            "affected_candidate": Number(this.affectedCandidate) || this.$TCT.getFirstCandidatePK(),
+                            "candidate": Number(this.candidate) || this.$TCT.getDefaultCandidatePK(),
+                            "affected_candidate": Number(this.affectedCandidate) || this.$TCT.getDefaultCandidatePK(),
                             "state_multiplier": item.amount
                         }
                     }

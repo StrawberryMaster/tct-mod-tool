@@ -416,7 +416,7 @@ registerComponent('question', {
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
                     "answer_feedback": "Enter feedback text here"
                 }
             };
@@ -435,8 +435,8 @@ registerComponent('question', {
                 "pk": newPk,
                 "fields": {
                     "answer": answerPk,
-                    "candidate": this.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
+                    "affected_candidate": this.$TCT.getDefaultCandidatePK(),
                     "global_multiplier": 0
                 }
             };
@@ -476,8 +476,8 @@ registerComponent('question', {
                 "fields": {
                     "answer": answerPk,
                     "state": this.$TCT.getFirstStatePK(),
-                    "candidate": this.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
+                    "affected_candidate": this.$TCT.getDefaultCandidatePK(),
                     "state_multiplier": 0
                 }
             };
@@ -805,7 +805,7 @@ registerComponent('answer', {
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
                     "answer_feedback": "put feedback here, don't forget to change candidate"
                 }
             }
@@ -823,8 +823,8 @@ registerComponent('answer', {
                 "pk": newPk,
                 "fields": {
                     "answer": this.pk,
-                    "candidate": this.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
+                    "affected_candidate": this.$TCT.getDefaultCandidatePK(),
                     "global_multiplier": 0
                 }
             }
@@ -862,8 +862,8 @@ registerComponent('answer', {
                 "fields": {
                     "answer": this.pk,
                     "state": this.$TCT.getFirstStatePK(),
-                    "candidate": this.$TCT.getFirstCandidatePK(),
-                    "affected_candidate": this.$TCT.getFirstCandidatePK(),
+                    "candidate": this.$TCT.getDefaultCandidatePK(),
+                    "affected_candidate": this.$TCT.getDefaultCandidatePK(),
                     "state_multiplier": 0
                 }
             }
@@ -1460,8 +1460,8 @@ registerComponent('integrated-state-effect-visualizer', {
 
     data() {
         return {
-            candidateId: this.$TCT.getFirstCandidatePK(),
-            affectedCandidateId: this.$TCT.getFirstCandidatePK(),
+            candidateId: this.$TCT.getDefaultCandidatePK(),
+            affectedCandidateId: this.$TCT.getDefaultCandidatePK(),
             selectedStates: {},
             stateEffects: {},
             highlightedState: null,

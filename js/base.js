@@ -737,6 +737,29 @@ class TCTData {
         return this.getAllCandidatePKs()[0];
     }
 
+    getPlayerCandidate() {
+        if(this.jet_data.player_candidate != null) {
+            return this.jet_data.player_candidate;
+        }
+        return null;
+    }
+
+    setPlayerCandidate(pk) {
+        this.jet_data.player_candidate = pk;
+    }
+
+    getDefaultCandidatePK() {
+        const player = this.getPlayerCandidate();
+        if(player != null) {
+            // validate that the player candidate still exists
+            const all = this.getAllCandidatePKs();
+            if(all.includes(player)) {
+               return player;
+            }
+        }
+        return this.getFirstCandidatePK();
+    }
+
     getFirstIssuePK() {
         return Object.keys(this.issues)[0];
     }

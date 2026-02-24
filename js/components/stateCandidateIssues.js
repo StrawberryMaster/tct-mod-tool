@@ -900,6 +900,12 @@ registerComponent('candidate', {
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500"
                     placeholder="e.g. J. Smith">
                 <p class="text-xs text-gray-500 mt-1">A nickname will display next to a candidate's PK, so you know who they are more easily!</p>
+
+                <div class="mt-4 flex items-center">
+                    <input type="checkbox" :checked="isPlayerCandidate" @change="togglePlayerCandidate" id="is_player_candidate" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="is_player_candidate" class="ml-2 block text-sm text-gray-900 font-medium">Is player candidate?</label>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">If checked, this candidate will be the default selected candidate when adding new scores or feedback. Recommended to avoid issues involving broken feedback & global/state scores.</p>
             </div>
 
             <details open class="border rounded-md">
@@ -942,9 +948,23 @@ registerComponent('candidate', {
             this.$TCT.deleteCandidate(Number(this.pk));
             this.$globalData.candidate = this.$TCT.getAllCandidatePKs()[0];
             this.$globalData.dataVersion++;
+        },
+        togglePlayerCandidate: function(e) {
+            if(e.target.checked) {
+                this.$TCT.setPlayerCandidate(Number(this.pk));
+            } else {
+                if(this.$TCT.getPlayerCandidate() == Number(this.pk)) {
+                    this.$TCT.setPlayerCandidate(null);
+                }
+            }
+            this.$globalData.dataVersion++;
         }
     },
     computed: {
+        isPlayerCandidate: function() {
+            this.$globalData.dataVersion;
+            return this.$TCT.getPlayerCandidate() === Number(this.pk);
+        },
         nickname: function () {
             this.$globalData.dataVersion;
             return this.$TCT.getNicknameForCandidate(Number(this.pk));
