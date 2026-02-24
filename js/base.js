@@ -1904,8 +1904,16 @@ function loadDataFromFile(raw_json) {
         extraCodeParts.push(raw_json.substring(lastEnd));
     }
 
-    // preserve whitespace and comments
-    jet_data.code_to_add = extraCodeParts.join("");
+    // process the extracted code
+    let combined = extraCodeParts.join("");
+
+    // trim the start/end to avoid massive gaps at boundaries
+    combined = combined.trim();
+
+    // collapse excessive internal newlines (3+ -> 2)
+    combined = combined.replace(/(\r\n|\r|\n){3,}/g, "\n\n");
+
+    jet_data.code_to_add = combined;
 
     // ensure required metadata structures exist
     jet_data.nicknames = jet_data.nicknames || {};
