@@ -738,7 +738,7 @@ class TCTData {
     }
 
     getPlayerCandidate() {
-        if(this.jet_data.player_candidate != null) {
+        if (this.jet_data.player_candidate != null) {
             return this.jet_data.player_candidate;
         }
         return null;
@@ -750,11 +750,11 @@ class TCTData {
 
     getDefaultCandidatePK() {
         const player = this.getPlayerCandidate();
-        if(player != null) {
+        if (player != null) {
             // validate that the player candidate still exists
             const all = this.getAllCandidatePKs();
-            if(all.includes(player)) {
-               return player;
+            if (all.includes(player)) {
+                return player;
             }
         }
         return this.getFirstCandidatePK();
@@ -1191,142 +1191,241 @@ class TCTData {
 
     exportCode2() {
         const parts = [];
-        let oldMapSvg = null;
 
+        // generated mapping code
         if (this.jet_data.mapping_enabled) {
-            parts.push("\n// Generated mapping code\n", this.getMapCode());
-            oldMapSvg = this.jet_data.mapping_data.mapSvg;
-            this.jet_data.mapping_data.mapSvg = '';
-            parts.push("\n\n");
+            parts.push("\n// Generated mapping code\n", this.getMapCode(), "\n\n");
         }
 
-        parts.push(this.getCYOACode());
+        const generatedCyoaCode = this.getCYOACode();
+        parts.push(generatedCyoaCode);
 
-        parts.push("campaignTrail_temp.questions_json = ");
-        let x = JSON.stringify(Array.from(this.questions.values()), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
+        // helper to stringify data collections
+        const stringifyCollection = (name, collection, isMap = false) => {
+            const data = isMap ? Array.from(collection.values()) : Object.values(collection);
+            const json = JSON.stringify(data, null, 4).replaceAll("â€™", "'");
+            return `campaignTrail_temp.${name} = ${json};\n\n`;
+        };
 
-        parts.push("campaignTrail_temp.answers_json = ");
-        x = JSON.stringify(Object.values(this.answers), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
+        const collections = [
+            ["questions_json", this.questions, true],
+            ["answers_json", this.answers],
+            ["states_json", this.states],
+            ["issues_json", this.issues],
+            ["state_issue_score_json", this.state_issue_scores],
+            ["candidate_issue_score_json", this.candidate_issue_score],
+            ["running_mate_issue_score_json", this.running_mate_issue_score],
+            ["candidate_state_multiplier_json", this.candidate_state_multiplier],
+            ["answer_score_global_json", this.answer_score_global],
+            ["answer_score_issue_json", this.answer_score_issue],
+            ["answer_score_state_json", this.answer_score_state],
+            ["answer_feedback_json", this.answer_feedback],
+        ];
 
-        parts.push("campaignTrail_temp.states_json = ");
-        x = JSON.stringify(Object.values(this.states), null, 4);
-        parts.push(x, "\n\n");
+        collections.forEach(([name, data, isMap]) => {
+            parts.push(stringifyCollection(name, data, isMap));
+        });
 
-        parts.push("campaignTrail_temp.issues_json = ");
-        x = JSON.stringify(Object.values(this.issues), null, 4).replaceAll("â€™", "\'");
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.state_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.state_issue_scores), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.candidate_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.candidate_issue_score), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.running_mate_issue_score_json = ");
-        x = JSON.stringify(Object.values(this.running_mate_issue_score), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.candidate_state_multiplier_json = ");
-        x = JSON.stringify(Object.values(this.candidate_state_multiplier), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.answer_score_global_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_global), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.answer_score_issue_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_issue), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.answer_score_state_json = ");
-        x = JSON.stringify(Object.values(this.answer_score_state), null, 4);
-        parts.push(x, "\n\n");
-
-        parts.push("campaignTrail_temp.answer_feedback_json = ");
-        x = JSON.stringify(Object.values(this.answer_feedback), null, 4);
-        parts.push(x, "\n\n");
-
-        const code = this.jet_data.code_to_add;
-        delete this.jet_data.code_to_add;
-
-        if (this.jet_data.banner_enabled) {
+        // banner data if enabled
+        if (this.jet_data.banner_enabled && this.jet_data.banner_data) {
+            const b = this.jet_data.banner_data;
             parts.push(
-                `campaignTrail_temp.candidate_image_url = "${this.jet_data.banner_data.canImage}";\n`,
-                `campaignTrail_temp.running_mate_image_url = "${this.jet_data.banner_data.runImage}";\n`,
-                `campaignTrail_temp.candidate_last_name = "${this.jet_data.banner_data.canName}";\n`,
-                `campaignTrail_temp.running_mate_last_name = "${this.jet_data.banner_data.runName}";\n\n`
+                `campaignTrail_temp.candidate_image_url = "${b.canImage || ''}";\n`,
+                `campaignTrail_temp.running_mate_image_url = "${b.runImage || ''}";\n`,
+                `campaignTrail_temp.candidate_last_name = "${b.canName || ''}";\n`,
+                `campaignTrail_temp.running_mate_last_name = "${b.runName || ''}";\n\n`
             );
         }
 
         parts.push(this.getEndingCode());
 
-        if (code) {
-            parts.push("\n\n//#startcode\n", code, "\n//#endcode\n");
+        let codeToAdd = this.jet_data.code_to_add || "";
+
+        // if generated CYOA code was also imported into custom code, strip it from #startcode
+        // this is to avoid duplicate code from CYOA, helpers, and other functions
+        if (generatedCyoaCode && codeToAdd) {
+            let normalizedCustom = codeToAdd.replace(/\r\n/g, "\n");
+
+            const findFunctionEnd = (src, startIndex) => {
+                const open = src.indexOf("{", startIndex);
+                if (open === -1) return -1;
+
+                let depth = 0;
+                let inSingle = false, inDouble = false, inTemplate = false;
+                let inLineComment = false, inBlockComment = false;
+                let escaped = false;
+
+                for (let i = open; i < src.length; i++) {
+                    const ch = src[i];
+                    const next = i + 1 < src.length ? src[i + 1] : "";
+
+                    if (inLineComment) {
+                        if (ch === "\n") inLineComment = false;
+                        continue;
+                    }
+                    if (inBlockComment) {
+                        if (ch === "*" && next === "/") {
+                            inBlockComment = false;
+                            i++;
+                        }
+                        continue;
+                    }
+
+                    if (inSingle) {
+                        if (!escaped && ch === "'") inSingle = false;
+                        escaped = !escaped && ch === "\\";
+                        continue;
+                    }
+                    if (inDouble) {
+                        if (!escaped && ch === '"') inDouble = false;
+                        escaped = !escaped && ch === "\\";
+                        continue;
+                    }
+                    if (inTemplate) {
+                        if (!escaped && ch === "`") inTemplate = false;
+                        escaped = !escaped && ch === "\\";
+                        continue;
+                    }
+
+                    if (ch === "/" && next === "/") {
+                        inLineComment = true;
+                        i++;
+                        continue;
+                    }
+                    if (ch === "/" && next === "*") {
+                        inBlockComment = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (ch === "'") {
+                        inSingle = true;
+                        escaped = false;
+                        continue;
+                    }
+                    if (ch === '"') {
+                        inDouble = true;
+                        escaped = false;
+                        continue;
+                    }
+                    if (ch === "`") {
+                        inTemplate = true;
+                        escaped = false;
+                        continue;
+                    }
+
+                    if (ch === "{") depth++;
+                    else if (ch === "}") {
+                        depth--;
+                        if (depth === 0) return i + 1;
+                    }
+                }
+
+                return -1;
+            };
+
+            const stripLegacyCyoaBlock = (src) => {
+                const markers = [
+                    "campaignTrail_temp.cyoa = true;",
+                    "let _questionIdxByPk = null;",
+                    "function _rebuildQuestionIdxMap(",
+                    "function getQuestionIndexFromPk(",
+                    "function getJumpIndexFromPk(",
+                    "function getQuestionNumberFromPk(",
+                    "cyoAdventure = function"
+                ];
+
+                let blockStart = -1;
+                for (const marker of markers) {
+                    const idx = src.indexOf(marker);
+                    if (idx !== -1 && (blockStart === -1 || idx < blockStart)) {
+                        blockStart = idx;
+                    }
+                }
+
+                if (blockStart === -1) return src;
+
+                const adventureIdx = src.indexOf("cyoAdventure = function", blockStart);
+                if (adventureIdx === -1) return src;
+
+                let blockEnd = findFunctionEnd(src, adventureIdx);
+                if (blockEnd === -1) return src;
+
+                // consume optional semicolon and trailing whitespace/newlines
+                while (blockEnd < src.length && /[;\s]/.test(src[blockEnd])) {
+                    blockEnd++;
+                }
+
+                return src.slice(0, blockStart) + src.slice(blockEnd);
+            };
+
+            normalizedCustom = stripLegacyCyoaBlock(normalizedCustom);
+
+            if (generatedCyoaCode.includes("let _questionIdxByPk = null;")) {
+                normalizedCustom = normalizedCustom.replace(/^\s*let\s+_questionIdxByPk\s*=\s*null;\s*$/gm, "");
+            }
+
+            normalizedCustom = normalizedCustom.replace(/(\n\s*){3,}/g, "\n\n").trim();
+            codeToAdd = normalizedCustom;
         }
 
+        if (codeToAdd) {
+            parts.push("\n\n//#startcode\n", codeToAdd, "\n//#endcode\n");
+        }
+
+        // export jet_data while stripping bulky or temporary fields
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
-        x = JSON.stringify(this.jet_data, null, 4);
-
-        this.jet_data.code_to_add = code;
-
-        parts.push(x, "\n]", "\n\n");
-
-        if (oldMapSvg !== null) {
-            this.jet_data.mapping_data.mapSvg = oldMapSvg;
-        }
+        const jetDataStr = JSON.stringify(this.jet_data, (key, value) => {
+            if (key === "code_to_add") return undefined;
+            if (key === "mapSvg") return "";
+            return value;
+        }, 4);
+        parts.push(jetDataStr, "\n]", "\n\n");
 
         return parts.join("");
     }
 
     getEndingCode() {
-        if (this.jet_data.ending_data == null || !this.jet_data.endings_enabled) {
+        if (!this.jet_data.endings_enabled || !this.jet_data.ending_data) {
             return "";
         }
 
-        var f = "campaignTrail_temp.multiple_endings = true;\nendingPicker = (out, totv, aa, quickstats) => {\n";
-
         const endings = this.getAllEndings();
+        if (endings.length === 0) return "";
 
-        f +=
-            `
-    function setImage(url) {
-        if(url == '' || url == null) return;
-        let interval = setInterval(function () {
-            img = document.getElementsByClassName("person_image")[0];
-            if (img != null) {
-                img.src = url;
-                clearInterval(interval);
-            }
-        }, 50);
-    }
-`
+        let f = "campaignTrail_temp.multiple_endings = true;\n\n";
 
-        for (let i = 0; i < endings.length; i++) {
-            const ending = endings[i];
-            // ensure operator is properly formatted (should be one of: >, >=, ==, <=, <, !=)
-            const operator = ending.operator || '>';
+        f += `const setImage = (url) => {
+    if (!url) return;
+    const interval = setInterval(() => {
+        const img = document.querySelector(".person_image");
+        if (img) {
+            img.src = url;
+            clearInterval(interval);
+        }
+    }, 50);
+};\n\n`;
 
-            f +=
-                `
-    if(quickstats[${ending.variable}] ${operator} ${ending.amount}) {
+        f += "endingPicker = (out, totv, aa, quickstats) => {\n";
+
+        for (const ending of endings) {
+            const op = ending.operator || '>';
+            f += `    if (quickstats[${ending.variable}] ${op} ${ending.amount}) {
         setImage("${ending.endingImage}");
         return \`${ending.endingText}\`;
-    }`;
+    }\n`;
         }
 
-        f += "\n}\n";
-
+        f += "}\n";
         return f;
     }
 
     getCYOACode() {
-        var f = "";
-        if (this.jet_data.cyoa_data != null && this.jet_data.cyoa_enabled) {
-            f += `
+        if (!this.jet_data.cyoa_enabled || !this.jet_data.cyoa_data) {
+            return "";
+        }
+
+        let f = `
 campaignTrail_temp.cyoa = true;
 
 // pk -> index lookup for questions
@@ -1363,69 +1462,64 @@ function getJumpIndexFromPk(pk) {
 // for backwards compatibility
 function getQuestionNumberFromPk(pk) {
   return getJumpIndexFromPk(pk);
-}`
+}`;
 
-            // add variable declarations
-            const variables = this.getAllCyoaVariables();
-            if (variables.length > 0) {
-                f += "\n\n// CYOA Variables\n";
-                for (let variable of variables) {
-                    f += `var ${variable.name} = ${variable.defaultValue};\n`;
-                }
+        // add variable declarations
+        const variables = this.getAllCyoaVariables();
+        if (variables.length > 0) {
+            f += "\n\n// CYOA Variables\n";
+            for (const variable of variables) {
+                f += `var ${variable.name} = ${variable.defaultValue};\n`;
             }
-
-            f += `\ncyoAdventure = function (a) {
-    ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length-1];\n`
-
-            // add variable effects grouped by answers
-            const variableEffects = this.getAllCyoaVariableEffects();
-            if (variableEffects.length > 0) {
-                // group effects by answer and operation
-                const effectGroups = {};
-                for (let effect of variableEffects) {
-                    const key = `${effect.variable}_${effect.operation}_${effect.amount}`;
-                    if (!effectGroups[key]) {
-                        effectGroups[key] = {
-                            variable: effect.variable,
-                            operation: effect.operation,
-                            amount: effect.amount,
-                            answers: []
-                        };
-                    }
-                    effectGroups[key].answers.push(effect.answer);
-                }
-
-                // generate effect code
-                for (let groupKey in effectGroups) {
-                    const group = effectGroups[groupKey];
-                    const operator = group.operation === 'add' ? '+=' : '-=';
-                    const answersList = group.answers.join(' || ans == ');
-                    f += `\n    // ${group.operation === 'add' ? '+' : '-'}${group.amount} ${group.variable}\n`;
-                    f += `    if (ans == ${answersList}) {\n`;
-                    f += `        ${group.variable} ${operator} ${group.amount};\n`;
-                    f += `    }\n`;
-                }
-            }
-
-            // sort rules for consistent generation (by answer pk)
-            let events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
-
-            if (events.length > 0) {
-                f += "\n    // Branching logic\n";
-                for (let i = 0; i < events.length; i++) {
-                    f += `    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
-        campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
-    }\n`
-                }
-
-                f +=
-                    `    else {
-        return false;
-    }\n`
-            }
-
-            f += "}\n\n"
         }
+
+        f += `\ncyoAdventure = function (a) {
+    const ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length - 1];\n`;
+
+        // variable effects grouped by logic
+        const variableEffects = this.getAllCyoaVariableEffects();
+        if (variableEffects.length > 0) {
+            const effectGroups = {};
+            for (const effect of variableEffects) {
+                const key = `${effect.variable}_${effect.operation}_${effect.amount}`;
+                if (!effectGroups[key]) {
+                    effectGroups[key] = {
+                        variable: effect.variable,
+                        operation: effect.operation,
+                        amount: effect.amount,
+                        answers: []
+                    };
+                }
+                effectGroups[key].answers.push(effect.answer);
+            }
+
+            for (const key in effectGroups) {
+                const group = effectGroups[key];
+                const operator = group.operation === 'add' ? '+=' : '-=';
+                const cond = group.answers.length > 1
+                    ? `[${group.answers.join(', ')}].includes(ans)`
+                    : `ans == ${group.answers[0]}`;
+
+                f += `\n    // ${group.operation === 'add' ? '+' : '-'}${group.amount} ${group.variable}\n`;
+                f += `    if (${cond}) {\n`;
+                f += `        ${group.variable} ${operator} ${group.amount};\n`;
+                f += `    }\n`;
+            }
+        }
+
+        // sort rules for consistent generation (by answer pk)
+        const events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
+        if (events.length > 0) {
+            f += "\n    // Branching logic\n";
+            for (let i = 0; i < events.length; i++) {
+                f += `    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
+        campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
+    }\n`;
+            }
+            f += "    else {\n        return false;\n    }\n";
+        }
+
+        f += "}\n\n";
         return f;
     }
 }
@@ -1897,6 +1991,19 @@ function loadDataFromFile(raw_json) {
             rangesToExclude.push({ start: match.index, end: match.index + match[0].length });
         }
     });
+
+    // exclude generated CYOA code block if present at top-level,
+    // so it is not duplicated later inside //#startcode
+    const cyoaStart = raw_json.indexOf("campaignTrail_temp.cyoa = true;");
+    if (cyoaStart !== -1) {
+        const questionsAssignMatch = /campaignTrail_temp\.questions_json\s*=/g;
+        questionsAssignMatch.lastIndex = cyoaStart;
+        const assignMatch = questionsAssignMatch.exec(raw_json);
+        const questionsStart = assignMatch ? assignMatch.index : -1;
+        if (questionsStart !== -1 && questionsStart > cyoaStart) {
+            rangesToExclude.push({ start: cyoaStart, end: questionsStart });
+        }
+    }
 
     // merge overlapping ranges and ensure logical order
     rangesToExclude.sort((a, b) => a.start - b.start);
