@@ -1510,13 +1510,38 @@ function getQuestionNumberFromPk(pk) {
         // sort rules for consistent generation (by answer pk)
         const events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
         if (events.length > 0) {
-            f += "\n    // Branching logic\n";
-            for (let i = 0; i < events.length; i++) {
-                f += `    ${i > 0 ? "else " : ""}if (ans == ${events[i].answer}) {
-        campaignTrail_temp.question_number = getQuestionNumberFromPk(${events[i].question});
-    }\n`;
+            const groupedByQuestion = new Map();
+            for (const event of events) {
+                const questionPk = Number(event.question);
+                const answerPk = Number(event.answer);
+                if (!Number.isFinite(questionPk) || !Number.isFinite(answerPk)) continue;
+
+                if (!groupedByQuestion.has(questionPk)) {
+                    groupedByQuestion.set(questionPk, new Set());
+                }
+                groupedByQuestion.get(questionPk).add(answerPk);
             }
-            f += "    else {\n        return false;\n    }\n";
+
+            const groupedEvents = Array.from(groupedByQuestion.entries())
+                .map(([questionPk, answerSet]) => ({
+                    questionPk,
+                    answers: Array.from(answerSet).sort((a, b) => a - b)
+                }))
+                .sort((a, b) => (a.answers[0] ?? 0) - (b.answers[0] ?? 0));
+
+            if (groupedEvents.length > 0) {
+                f += "\n    // Branching logic\n";
+                for (let i = 0; i < groupedEvents.length; i++) {
+                    const group = groupedEvents[i];
+                    const cond = group.answers.length === 1
+                        ? `ans == ${group.answers[0]}`
+                        : `[${group.answers.join(', ')}].includes(ans)`;
+
+                    f += `    ${i > 0 ? "else " : ""}if (${cond}) {\n`;
+                    f += `        campaignTrail_temp.question_number = getQuestionNumberFromPk(${group.questionPk});\n`;
+                    f += "    }\n";
+                }
+            }
         }
 
         f += "}\n\n";
