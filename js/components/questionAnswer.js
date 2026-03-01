@@ -1921,6 +1921,20 @@ registerComponent('integrated-state-effect-visualizer', {
             this.$globalData.dataVersion++;
         },
 
+        deleteAllStateEffects() {
+            if (!confirm('Are you sure you want to delete ALL state effects for this answer? This cannot be undone.')) return;
+
+            const stateScores = this.$TCT.getStateScoreForAnswer(this.answerId);
+            stateScores.forEach(score => {
+                delete this.$TCT.answer_score_state[score.pk];
+            });
+
+            this.$TCT._invalidateCache('state_score_by_answer');
+            this.loadStateEffects();
+            this.effectListVersion++;
+            this.$globalData.dataVersion++;
+        },
+
         selectPresetStates(statePks) {
             this.clearSelection();
             statePks.forEach(pk => {
@@ -2106,6 +2120,14 @@ registerComponent('integrated-state-effect-visualizer', {
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-1">
                         <label class="block text-xs font-medium text-gray-700">All state effects</label>
+                        <button v-if="allStateEffectsForAnswer.length > 0" 
+                                @click="deleteAllStateEffects" 
+                                class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                                title="Delete all state effects for this answer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
                     <div class="max-h-64 overflow-y-auto bg-gray-50 p-2 rounded border text-xs">
                         <ul class="divide-y divide-gray-200">
