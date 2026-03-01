@@ -15,6 +15,14 @@ registerComponent('bulk', {
             selectedQuestionPk: null,
             selectedAnswerPks: [],
             naturalLanguageEffects: "",
+            randomEffectsSeed: "",
+            randomGlobalChance: 0.5,
+            randomGlobalMax: 0.008,
+            randomIssueChance: 0.65,
+            randomIssueMaxDelta: 0.8,
+            randomIssueImportanceMin: 1,
+            randomIssueImportanceMax: 2,
+            randomSmartIssueSelection: true,
             campaignScriptInput: "",
             campaignScriptWarnings: [],
             campaignScriptFileName: "",
@@ -195,6 +203,64 @@ registerComponent('bulk', {
                             v-on:click="applyBulkAnswerEffects()">
                         Apply to selected answers
                     </button>
+                </div>
+
+                <div class="mt-4 border border-gray-200 rounded p-3 bg-gray-50">
+                    <p class="text-xs font-semibold text-gray-700 mb-2">Smart random effects</p>
+                    <p class="text-xs text-gray-600 mb-3">These vaguely smart but definitely random effects will attempt to pick coherent issues based on question and answer text, and assign stances based on the sentiment of the answer text. Use the global chance and cap to control how many effects are applied, and the issue-specific settings to control how strong those effects are.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Seed (optional)</label>
+                            <input v-model="randomEffectsSeed" type="text" placeholder="blank = fresh randomness"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Global chance (0-1)</label>
+                            <input v-model.number="randomGlobalChance" type="number" step="0.01" min="0" max="1"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Global cap</label>
+                            <input v-model.number="randomGlobalMax" type="number" step="0.001" min="0"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Issue chance (0-1)</label>
+                            <input v-model.number="randomIssueChance" type="number" step="0.01" min="0" max="1"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Issue score cap</label>
+                            <input v-model.number="randomIssueMaxDelta" type="number" step="0.01" min="0"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Importance min</label>
+                            <input v-model.number="randomIssueImportanceMin" type="number" step="0.1" min="0.1"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Importance max</label>
+                            <input v-model.number="randomIssueImportanceMax" type="number" step="0.1" min="0.1"
+                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-xs">
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-xs text-gray-700 mb-3">
+                        <input type="checkbox" v-model="randomSmartIssueSelection" class="h-4 w-4">
+                        Pick issues from question/answer text when possible
+                    </label>
+
+                    <div class="flex justify-end">
+                        <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm transition-all active:transform active:scale-95"
+                                v-on:click="applySmartRandomEffects()">
+                            Apply smart random effects
+                        </button>
+                    </div>
                 </div>
             </div>
         </details>
@@ -443,6 +509,284 @@ registerComponent('bulk', {
 
         deselectAllAnswers: function () {
             this.selectedAnswerPks = [];
+        },
+
+        clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        },
+
+        makeSeededRng(seedText) {
+            let seed = 2166136261;
+            const source = String(seedText || "");
+            for (let index = 0; index < source.length; index++) {
+                seed ^= source.charCodeAt(index);
+                seed = Math.imul(seed, 16777619);
+            }
+            seed >>>= 0;
+            return function () {
+                seed += 0x6D2B79F5;
+                let t = seed;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        },
+
+        tokenizeForSimilarity(text) {
+            return String(text || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .filter(token => token.length >= 3);
+        },
+
+        getTextPolarityScore(text) {
+            const original = String(text || "");
+            const normalized = original
+                .toLowerCase()
+                .replace(/[^a-z0-9!?\s-]/g, " ");
+
+            const letters = normalized.replace(/[^a-z]/g, "");
+            const letterCount = letters.length;
+            if (letterCount === 0) return 0;
+
+            const hardConsonants = (letters.match(/[kqtpxcgdf]/g) || []).length;
+            const softConsonants = (letters.match(/[lmnrwvhz]/g) || []).length;
+            const roundedPhonetics = (letters.match(/[bmuowl]/g) || []).length;
+            const sharpPhonetics = (letters.match(/[kptixe]/g) || []).length;
+
+            const exclamations = (normalized.match(/!/g) || []).length;
+            const questions = (normalized.match(/\?/g) || []).length;
+
+            const tokens = normalized
+                .split(/\s+/)
+                .filter(Boolean);
+            const avgTokenLength = tokens.length > 0
+                ? tokens.reduce((sum, token) => sum + token.length, 0) / tokens.length
+                : 0;
+
+            const uppercaseLetters = (original.match(/[A-Z]/g) || []).length;
+            const alphaOriginal = (original.match(/[A-Za-z]/g) || []).length;
+            const uppercaseRatio = alphaOriginal > 0 ? uppercaseLetters / alphaOriginal : 0;
+
+            const hardnessRatio = hardConsonants / letterCount;
+            const softnessRatio = softConsonants / letterCount;
+            const roundedRatio = roundedPhonetics / letterCount;
+            const sharpRatio = sharpPhonetics / letterCount;
+
+            const punctuationBias = this.clamp(exclamations * 0.06 + questions * 0.02, 0, 0.24);
+            const cadenceBias = this.clamp((avgTokenLength - 5.2) * 0.025, -0.12, 0.12);
+            const capsBias = this.clamp(uppercaseRatio * 0.35, 0, 0.2);
+
+            const score =
+                (roundedRatio - sharpRatio) * 1.15 +
+                (softnessRatio - hardnessRatio) * 0.95 +
+                cadenceBias -
+                punctuationBias -
+                capsBias;
+
+            return this.clamp(score, -1, 1);
+        },
+
+        getSentimentDirection(text, rng) {
+            const polarity = this.getTextPolarityScore(text);
+            const noisyPolarity = polarity + (rng() - 0.5) * 0.08;
+
+            if (noisyPolarity > 0.03) return 1;
+            if (noisyPolarity < -0.03) return -1;
+            return rng() < 0.5 ? 1 : -1;
+        },
+
+        pickImportanceBucket(minValue, maxValue, rng) {
+            const allowedValues = [1, 1.5, 2].filter(v => v >= minValue && v <= maxValue);
+            const pool = allowedValues.length > 0 ? allowedValues : [1, 1.5, 2];
+            return pool[Math.floor(rng() * pool.length)];
+        },
+
+        pickCoherentIssuePk(questionText, answerText, rng) {
+            const textTokens = new Set(this.tokenizeForSimilarity(`${questionText || ""} ${answerText || ""}`));
+            const issueEntries = Object.values(this.$TCT.issues);
+
+            if (issueEntries.length === 0) return null;
+            if (!this.randomSmartIssueSelection || textTokens.size === 0) {
+                const randomIssue = issueEntries[Math.floor(rng() * issueEntries.length)];
+                return randomIssue ? Number(randomIssue.pk) : null;
+            }
+
+            const scored = issueEntries.map(issue => {
+                const fields = issue.fields || {};
+                const issueText = [
+                    fields.name,
+                    fields.stance_1,
+                    fields.stance_2,
+                    fields.stance_3,
+                    fields.stance_4,
+                    fields.stance_5,
+                    fields.stance_6,
+                    fields.stance_7
+                ].filter(Boolean).join(" ");
+
+                const issueTokens = this.tokenizeForSimilarity(issueText);
+                let overlap = 0;
+                for (const token of issueTokens) {
+                    if (textTokens.has(token)) overlap++;
+                }
+
+                let nameBoost = 0;
+                const issueName = String(fields.name || "").toLowerCase();
+                if (issueName && String(answerText || "").toLowerCase().includes(issueName)) {
+                    nameBoost = 3;
+                }
+
+                return {
+                    pk: Number(issue.pk),
+                    relevance: overlap + nameBoost
+                };
+            });
+
+            scored.sort((left, right) => right.relevance - left.relevance);
+            const top = scored.slice(0, Math.min(5, scored.length));
+
+            const weightSum = top.reduce((sum, entry) => sum + Math.max(0.25, entry.relevance + 0.25), 0);
+            let roll = rng() * weightSum;
+            for (const entry of top) {
+                roll -= Math.max(0.25, entry.relevance + 0.25);
+                if (roll <= 0) return entry.pk;
+            }
+
+            return top.length > 0 ? top[0].pk : Number(issueEntries[0].pk);
+        },
+
+        upsertGlobalEffect(answerPk, playerCandidatePk, affectedCandidatePk, amount) {
+            const existingGlobalScores = this.$TCT.getGlobalScoreForAnswer(answerPk);
+            const existing = existingGlobalScores.find(s =>
+                s.fields.affected_candidate === affectedCandidatePk &&
+                s.fields.candidate === playerCandidatePk
+            );
+
+            if (existing) {
+                existing.fields.global_multiplier = amount;
+                return false;
+            }
+
+            const newPk = this.$TCT.getNewPk();
+            this.$TCT.answer_score_global[newPk] = {
+                "model": "campaign_trail.answer_score_global",
+                "pk": newPk,
+                "fields": {
+                    "answer": answerPk,
+                    "candidate": playerCandidatePk,
+                    "affected_candidate": affectedCandidatePk,
+                    "global_multiplier": amount
+                }
+            };
+            return true;
+        },
+
+        upsertIssueEffect(answerPk, issuePk, scoreDelta, importanceScale) {
+            const existingIssueScores = this.$TCT.getIssueScoreForAnswer(answerPk);
+            const existing = existingIssueScores.find(s => s.fields.issue === issuePk);
+
+            if (existing) {
+                const currentScore = Number(existing.fields.issue_score) || 0;
+                const currentImportance = Number(existing.fields.issue_importance) || 1;
+                existing.fields.issue_score = this.clamp(currentScore + scoreDelta, -1, 1);
+                existing.fields.issue_importance = this.clamp(currentImportance * importanceScale, 0.1, 4);
+                return false;
+            }
+
+            const newPk = this.$TCT.getNewPk();
+            this.$TCT.answer_score_issue[newPk] = {
+                "model": "campaign_trail.answer_score_issue",
+                "pk": newPk,
+                "fields": {
+                    "answer": answerPk,
+                    "issue": issuePk,
+                    "issue_score": scoreDelta,
+                    "issue_importance": this.clamp(importanceScale, 0.1, 4)
+                }
+            };
+            return true;
+        },
+
+        applySmartRandomEffects: function () {
+            if (this.selectedAnswerPks.length === 0) {
+                alert("Please select at least one answer.");
+                return;
+            }
+
+            const globalChance = this.clamp(Number(this.randomGlobalChance) || 0, 0, 1);
+            const issueChance = this.clamp(Number(this.randomIssueChance) || 0, 0, 1);
+            const globalCap = Math.max(0, Number(this.randomGlobalMax) || 0);
+            const issueCap = Math.max(0, Number(this.randomIssueMaxDelta) || 0);
+            const importanceMinRaw = Math.max(0.1, Number(this.randomIssueImportanceMin) || 0.1);
+            const importanceMaxRaw = Math.max(0.1, Number(this.randomIssueImportanceMax) || 0.1);
+            const importanceMin = Math.min(importanceMinRaw, importanceMaxRaw);
+            const importanceMax = Math.max(importanceMinRaw, importanceMaxRaw);
+
+            const runSeed = this.randomEffectsSeed.trim() || `${Date.now()}-${Math.random()}`;
+            const rng = this.makeSeededRng(runSeed);
+
+            const defaultCandidatePk = Number(this.$TCT.getDefaultCandidatePK());
+            const candidatePks = this.$TCT.getAllCandidatePKs().map(Number);
+
+            let globalApplied = 0;
+            let issueApplied = 0;
+            let createdGlobal = 0;
+            let createdIssue = 0;
+
+            for (const answerPk of this.selectedAnswerPks) {
+                const answerObj = this.$TCT.answers[answerPk];
+                const questionPk = answerObj?.fields?.question;
+                const questionObj = this.$TCT.questions.get(questionPk);
+                const answerText = answerObj?.fields?.description || "";
+                const questionText = questionObj?.fields?.description || "";
+                const combinedText = `${questionText} ${answerText}`.trim();
+                const sentiment = this.getSentimentDirection(combinedText, rng);
+
+                if (globalCap > 0 && rng() <= globalChance) {
+                    let affectedCandidatePk = defaultCandidatePk;
+                    if (candidatePks.length > 1 && rng() > 0.65) {
+                        const alternatives = candidatePks.filter(pk => pk !== defaultCandidatePk);
+                        if (alternatives.length > 0) {
+                            affectedCandidatePk = alternatives[Math.floor(rng() * alternatives.length)];
+                        }
+                    }
+
+                    const magnitude = this.clamp(rng() * globalCap, 0, globalCap);
+                    const sign = affectedCandidatePk === defaultCandidatePk ? sentiment : (rng() < 0.6 ? -sentiment : sentiment);
+                    const amount = Number((magnitude * sign).toFixed(6));
+
+                    const isNew = this.upsertGlobalEffect(answerPk, defaultCandidatePk, affectedCandidatePk, amount);
+                    if (isNew) createdGlobal++;
+                    globalApplied++;
+                }
+
+                if (issueCap > 0 && rng() <= issueChance) {
+                    const issuePk = this.pickCoherentIssuePk(questionText, answerText, rng);
+                    if (issuePk != null) {
+                        const magnitude = this.clamp(rng() * issueCap, 0, issueCap);
+                        const scoreDelta = Number((magnitude * sentiment).toFixed(3));
+                        const importanceScale = this.pickImportanceBucket(importanceMin, importanceMax, rng);
+
+                        const isNew = this.upsertIssueEffect(answerPk, Number(issuePk), scoreDelta, importanceScale);
+                        if (isNew) createdIssue++;
+                        issueApplied++;
+                    }
+                }
+            }
+
+            this.$TCT._invalidateCache('global_score_by_answer');
+            this.$TCT._invalidateCache('issue_score_by_answer');
+            this.$TCT._invalidateCache('answer_score_issue_by_issue');
+            this.$globalData.dataVersion++;
+
+            alert(
+                `Smart random effects applied to ${this.selectedAnswerPks.length} answers. ` +
+                `Global: ${globalApplied} (${createdGlobal} new). ` +
+                `Issue: ${issueApplied} (${createdIssue} new). ` +
+                `Seed: ${runSeed}`
+            );
         },
 
         applyBulkAnswerEffects: function () {
