@@ -1660,27 +1660,31 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             }
         }
 
-        // preserve  comments by injecting them into the JSON structure
-        // converts: //example \n {  ->  { "_note": "example",
-        raw = raw.replace(commentPreserverRegex, (match, comment) => {
-            const safeComment = comment.trim().replace(/"/g, '\\"'); // escape quotes
-            return `{ "_note": "${safeComment}", `;
-        });
+        // prepare raw content for JSON.parse or evaluation
+        let jsonAttempt = raw;
+
+        // preserve comments by injecting them into the JSON structure ONLY if we are parsing an object (curly brace)
+        // this avoids corrupting simple strings or other types
+        if (jsonAttempt.trim().startsWith("{")) {
+            jsonAttempt = jsonAttempt.replace(commentPreserverRegex, (match, comment) => {
+                const safeComment = comment.trim().replace(/"/g, '\\"'); // escape quotes
+                return `{ "_note": "${safeComment}", `;
+            });
+        }
 
         // strip any remaining comments (inline or block) to ensure valid JSON
-        raw = raw.replace(commentCleanerRegex, (match, str, block, line) => {
+        jsonAttempt = jsonAttempt.replace(commentCleanerRegex, (match, str, block, line) => {
             if (str) return str; // keep strings
             return ""; // remove comments
         });
 
         // remove trailing commas
-        // note: strict JSON.parse will still fail if regex misses newlines, so we have a fallback below
-        raw = raw.replace(/,\s*([}\]])/g, "$1");
+        jsonAttempt = jsonAttempt.replace(/,\s*([}\]])/g, "$1");
 
         try {
-            let jsonAttempt = raw;
-            if (end == "]") jsonAttempt = "[" + raw + "]";
-            res = JSON.parse(jsonAttempt);
+            let finalizedJson = jsonAttempt;
+            if (end == "]") finalizedJson = "[" + jsonAttempt + "]";
+            res = JSON.parse(finalizedJson);
             foundValidJSON = true;
             if (outRange) {
                 outRange.start = startIndex;
@@ -1691,8 +1695,8 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
         } catch (e) {
             // handle trailing commas or single quotes by using loose JS evaluation
             try {
-                let evalAttempt = raw;
-                if (end == "]") evalAttempt = "[" + raw + "]";
+                let evalAttempt = jsonAttempt;
+                if (end == "]") evalAttempt = "[" + jsonAttempt + "]";
                 // ensure it starts with an array or object
                 if (evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
                     res = new Function("return " + evalAttempt)();
@@ -1709,7 +1713,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             // handle bad escaped characters (legacy fallback)
             if (e instanceof SyntaxError && e.message.includes("bad escaped character")) {
                 try {
-                    const cleanRaw = raw.replaceAll("\\'", "'");
+                    const cleanRaw = jsonAttempt.replaceAll("\\'", "'");
                     let attempt = cleanRaw;
                     if (end == "]") attempt = "[" + cleanRaw + "]";
                     res = JSON.parse(attempt);
@@ -1759,8 +1763,9 @@ function loadDataFromFile(raw_json) {
     function getSection(name, required = true, fallback = []) {
         const range = { start: -1, end: -1 };
 
-        // try to find the assignment with a flexible regex to handle spacing and case
         // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
+        // we use a lookahead for the assignment to avoid capturing the property name itself if possible,
+        // but here we match the whole assignment to define the exclusion range.
         const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
         const match = raw_json.match(pattern);
 
@@ -2051,19 +2056,23 @@ function loadDataFromFile(raw_json) {
     let lastEnd = 0;
     for (const range of mergedRanges) {
         if (range.start > lastEnd) {
-            extraCodeParts.push(raw_json.substring(lastEnd, range.start));
+            let chunk = raw_json.substring(lastEnd, range.start);
+            extraCodeParts.push(chunk);
         }
         lastEnd = Math.max(lastEnd, range.end);
     }
     if (lastEnd < raw_json.length) {
-        extraCodeParts.push(raw_json.substring(lastEnd));
+        let lastChunk = raw_json.substring(lastEnd);
+        extraCodeParts.push(lastChunk);
     }
 
     // process the extracted code
     let combined = extraCodeParts.join("");
 
-    // trim the start/end to avoid massive gaps at boundaries
-    combined = combined.trim();
+    // clean up excessive white space or empty statements left over from replacements
+    combined = combined.replace(/^[;\s]+/, "");
+    combined = combined.replace(/;\s*;/g, ";");
+    combined = combined.replace(/[ \t]+$/gm, "");
 
     // collapse excessive internal newlines (3+ -> 2)
     combined = combined.replace(/(\r\n|\r|\n){3,}/g, "\n\n");

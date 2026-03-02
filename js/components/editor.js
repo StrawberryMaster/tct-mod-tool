@@ -228,78 +228,100 @@ registerComponent('toolbar', {
 
                 // remove JS-style comments but preserve strings
                 // this lets mods such as the original Obamanation display here
+                // while keeping custom JS comments between #startcode/#endcode untouched
                 const stripJsonComments = (input) => {
-                    let out = '';
-                    let i = 0;
-                    let inString = false;
-                    let stringChar = '';
-                    let escape = false;
-                    let inSingleLine = false;
-                    let inMultiLine = false;
+                    const preserveCustomCodeBlocks = (source, transform) => {
+                        const preservedBlocks = [];
+                        const markerBlockRegex = /(?:\/\/\s*)?#\s*startcode[\s\S]*?(?:\/\/\s*)?#\s*endcode/gi;
 
-                    while (i < input.length) {
-                        const ch = input[i];
-                        const chNext = input[i + 1];
+                        const tokenized = source.replace(markerBlockRegex, (block) => {
+                            const token = `__TCT_CUSTOM_CODE_BLOCK_${preservedBlocks.length}__`;
+                            preservedBlocks.push(block);
+                            return token;
+                        });
 
-                        if (inSingleLine) {
-                            if (ch === '\n' || ch === '\r') {
-                                inSingleLine = false;
-                                out += ch;
+                        const transformed = transform(tokenized);
+                        return transformed.replace(/__TCT_CUSTOM_CODE_BLOCK_(\d+)__/g, (match, idxStr) => {
+                            const idx = Number(idxStr);
+                            return Number.isInteger(idx) && preservedBlocks[idx] != null
+                                ? preservedBlocks[idx]
+                                : match;
+                        });
+                    };
+
+                    return preserveCustomCodeBlocks(input, (safeInput) => {
+                        let out = '';
+                        let i = 0;
+                        let inString = false;
+                        let stringChar = '';
+                        let escape = false;
+                        let inSingleLine = false;
+                        let inMultiLine = false;
+
+                        while (i < safeInput.length) {
+                            const ch = safeInput[i];
+                            const chNext = safeInput[i + 1];
+
+                            if (inSingleLine) {
+                                if (ch === '\n' || ch === '\r') {
+                                    inSingleLine = false;
+                                    out += ch;
+                                }
+                                // otherwise skip
+                                i++;
+                                continue;
                             }
-                            // otherwise skip
-                            i++;
-                            continue;
-                        }
 
-                        if (inMultiLine) {
-                            if (ch === '*' && chNext === '/') {
-                                inMultiLine = false;
+                            if (inMultiLine) {
+                                if (ch === '*' && chNext === '/') {
+                                    inMultiLine = false;
+                                    i += 2;
+                                    continue;
+                                }
+                                i++;
+                                continue;
+                            }
+
+                            if (inString) {
+                                out += ch;
+                                if (!escape && ch === stringChar) {
+                                    inString = false;
+                                    stringChar = '';
+                                }
+                                escape = (!escape && ch === '\\') ? true : false;
+                                i++;
+                                continue;
+                            }
+
+                            // not in string/comment
+                            if (ch === '"' || ch === "'") {
+                                inString = true;
+                                stringChar = ch;
+                                out += ch;
+                                i++;
+                                continue;
+                            }
+
+                            // single-line comment
+                            if (ch === '/' && chNext === '/') {
+                                inSingleLine = true;
                                 i += 2;
                                 continue;
                             }
-                            i++;
-                            continue;
-                        }
 
-                        if (inString) {
-                            out += ch;
-                            if (!escape && ch === stringChar) {
-                                inString = false;
-                                stringChar = '';
+                            // multi-line comment
+                            if (ch === '/' && chNext === '*') {
+                                inMultiLine = true;
+                                i += 2;
+                                continue;
                             }
-                            escape = (!escape && ch === '\\') ? true : false;
-                            i++;
-                            continue;
-                        }
 
-                        // not in string/comment
-                        if (ch === '"' || ch === "'") {
-                            inString = true;
-                            stringChar = ch;
                             out += ch;
                             i++;
-                            continue;
                         }
 
-                        // single-line comment
-                        if (ch === '/' && chNext === '/') {
-                            inSingleLine = true;
-                            i += 2;
-                            continue;
-                        }
-
-                        // multi-line comment
-                        if (ch === '/' && chNext === '*') {
-                            inMultiLine = true;
-                            i += 2;
-                            continue;
-                        }
-
-                        out += ch;
-                        i++;
-                    }
-
-                    return out;
+                        return out;
+                    });
                 };
 
                 reader.onload = (evt) => {
