@@ -10,6 +10,49 @@ window.registerComponent = function (name, definition) {
     }
 };
 
+(function () {
+    const THEME_KEY = 'tct-theme';
+
+    function resolvePreferredTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === 'light' || saved === 'dark') {
+            return saved;
+        }
+
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+
+        return 'light';
+    }
+
+    function applyTheme(theme) {
+        const nextTheme = theme === 'dark' ? 'dark' : 'light';
+        const root = document.documentElement;
+        root.setAttribute('data-theme', nextTheme);
+        root.style.colorScheme = nextTheme;
+        localStorage.setItem(THEME_KEY, nextTheme);
+        return nextTheme;
+    }
+
+    window.getCurrentTheme = function () {
+        const current = document.documentElement.getAttribute('data-theme');
+        return current === 'dark' ? 'dark' : 'light';
+    };
+
+    window.setTheme = function (theme) {
+        return applyTheme(theme);
+    };
+
+    window.toggleTheme = function () {
+        const current = window.getCurrentTheme();
+        const next = current === 'dark' ? 'light' : 'dark';
+        return applyTheme(next);
+    };
+
+    applyTheme(resolvePreferredTheme());
+})();
+
 const TEMPLATE_NAMES =
     [
         "1844-Clay.txt",

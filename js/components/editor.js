@@ -3,6 +3,7 @@ registerComponent('toolbar', {
     data() {
         return {
             localAutosaveEnabled: window.autosaveEnabled,
+            currentTheme: (window.getCurrentTheme && window.getCurrentTheme()) || 'light',
             showModPresets: false,
             modPresets: [],
             newPresetName: '',
@@ -17,6 +18,7 @@ registerComponent('toolbar', {
     },
 
     created() {
+        this.syncThemeState();
         this.ensureLoadPresets().catch(err => {
             console.warn('Failed to load mod presets on created():', err);
         });
@@ -51,7 +53,8 @@ registerComponent('toolbar', {
                     </svg>
                     Mod presets
                 </button>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable Autosave" : "Enable Autosave"}}</button>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
+                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleThemeMode()">{{ currentTheme === 'dark' ? 'Light theme' : 'Dark theme' }}</button>
                 <a href="./code1.html" class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
             </div>
         </div>
@@ -184,6 +187,17 @@ registerComponent('toolbar', {
     `,
 
     methods: {
+
+        syncThemeState: function () {
+            this.currentTheme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
+        },
+
+        toggleThemeMode: function () {
+            if (window.toggleTheme) {
+                window.toggleTheme();
+            }
+            this.syncThemeState();
+        },
 
         toggleAutosave: function (evt) {
             const newState = !window.autosaveEnabled;

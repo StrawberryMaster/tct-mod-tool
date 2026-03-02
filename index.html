@@ -21,7 +21,7 @@
         }
 
         .starting-margins {
-            background-color: rgba(255, 255, 255, 0.5);
+            background-color: var(--card-bg);
             padding: 8px;
             border-radius: 16px;
             text-align: right;
@@ -38,7 +38,7 @@
             ::before,
             ::backdrop,
             ::file-selector-button {
-                border-color: var(--color-gray-200, currentColor);
+                border-color: var(--border-color, currentColor);
             }
         }
 
@@ -51,16 +51,16 @@
         }
 
         .mt-2 select {
-            background: #e9e9ed;
+            background: var(--muted-surface);
         }
 
         .mt-2 textarea {
-            background: #fff;
+            background: var(--input-bg);
         }
 
         .mt-2 select,
         .mt-2 textarea {
-            border-color: #d1d5db;
+            border-color: var(--border-color);
             box-shadow: none;
         }
 
@@ -70,10 +70,137 @@
         }
 
         :root {
+            --app-bg: #f3f4f6;
+            --app-panel-bg: #e5e7eb;
+            --app-editor-bg: #f3f4f6;
+            --app-text: #111827;
+            --card-bg: rgba(255, 255, 255, 0.65);
+            --muted-surface: #e9e9ed;
+            --input-bg: #ffffff;
+            --border-color: #d1d5db;
             --brand-start: #0f172a;
             --brand-end: #2563eb;
             --header-contrast: #ffffff;
             --footer-bg: rgba(37, 99, 235, 0.95);
+        }
+
+        html[data-theme="dark"] {
+            --app-bg: #0b1220;
+            --app-panel-bg: #111827;
+            --app-editor-bg: #0f172a;
+            --app-text: #e5e7eb;
+            --card-bg: rgba(31, 41, 55, 0.85);
+            --muted-surface: #374151;
+            --input-bg: #111827;
+            --border-color: #4b5563;
+            --brand-start: #020617;
+            --brand-end: #1d4ed8;
+            --header-contrast: #f9fafb;
+            --footer-bg: rgba(30, 64, 175, 0.95);
+        }
+
+        body {
+            background: var(--app-bg);
+            color: var(--app-text);
+        }
+
+        #app {
+            background: var(--app-panel-bg);
+        }
+
+        #editor {
+            background: var(--app-editor-bg);
+        }
+
+        html[data-theme="dark"] .bg-white {
+            background-color: #1f2937 !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-white\/90 {
+            background-color: rgba(17, 24, 39, 0.9) !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-gray-50 {
+            background-color: #243244 !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-gray-100 {
+            background-color: #1a2535 !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-gray-200 {
+            background-color: #1f2937 !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-gray-300 {
+            background-color: #374151 !important;
+            color: #e5e7eb;
+        }
+
+        html[data-theme="dark"] .bg-blue-50 {
+            background-color: #1e3a5f !important;
+            color: #e5e7eb !important;
+        }
+
+        html[data-theme="dark"] .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+
+        html[data-theme="dark"] .hover\:bg-gray-100:hover {
+            background-color: #374151 !important;
+        }
+
+        html[data-theme="dark"] .hover\:bg-gray-300:hover,
+        html[data-theme="dark"] .hover\:bg-gray-400:hover,
+        html[data-theme="dark"] .hover\:bg-gray-500:hover,
+        html[data-theme="dark"] .hover\:bg-gray-600:hover {
+            background-color: #4b5563 !important;
+        }
+
+        html[data-theme="dark"] .text-gray-500,
+        html[data-theme="dark"] .text-gray-600,
+        html[data-theme="dark"] .text-gray-700,
+        html[data-theme="dark"] .text-gray-800,
+        html[data-theme="dark"] .text-black {
+            color: #d1d5db !important;
+        }
+
+        html[data-theme="dark"] .border,
+        html[data-theme="dark"] .border-gray-200,
+        html[data-theme="dark"] .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+
+        html[data-theme="dark"] input,
+        html[data-theme="dark"] textarea,
+        html[data-theme="dark"] select {
+            background-color: #111827;
+            color: #e5e7eb;
+            border-color: #4b5563;
+        }
+
+        html[data-theme="dark"] input::placeholder,
+        html[data-theme="dark"] textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        html[data-theme="dark"] input:focus,
+        html[data-theme="dark"] textarea:focus,
+        html[data-theme="dark"] select:focus {
+            outline-color: #60a5fa;
+        }
+
+        html[data-theme="dark"] .shadow,
+        html[data-theme="dark"] .shadow-sm,
+        html[data-theme="dark"] .shadow-lg,
+        html[data-theme="dark"] .shadow-xl,
+        html[data-theme="dark"] .shadow-xs {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
         }
 
         .app-header,
@@ -157,7 +284,7 @@
     </style>
 </head>
 
-<body class="bg-gray-100">
+<body>
 
     <div class="app-header" role="banner" aria-label="Jet's TCT Mod Tool header">
         <div>
