@@ -411,7 +411,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const blocks = rules.map(rule => {
             const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
             const swaps = Array.isArray(rule.swaps) ? rule.swaps.filter(s => Number.isFinite(s?.pk1) && Number.isFinite(s?.pk2)) : [];
-            
+
             const hasConditions = rule.conditions && Array.isArray(rule.conditions) && rule.conditions.some(c => c && c.variable);
             if (!swaps.length || (!triggers.length && !hasConditions)) return '';
 
@@ -510,8 +510,13 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             .join('\n');
     },
 
-    insertSwapsInsideCyoAdventure(out, blocks) {
-        if (!blocks.trim()) return out;
+    insertSwapsInsideCyoAdventure(out, blocksByType = {}) {
+        const cleanBlock = (s) => String(s || '').replace(/\r\n/g, '\n').trim();
+        let questionBlock = cleanBlock(blocksByType.question);
+        let answerBlock = cleanBlock(blocksByType.answer);
+        let combinedForInsert = [questionBlock, answerBlock].filter(Boolean).join('\n\n');
+
+        if (!combinedForInsert) return out;
 
         // clean up any legacy BEGIN/END wrapped blocks from older exports
         out = out.replace(/\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/m, '');
@@ -528,7 +533,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             m = reNamed.exec(out);
             if (!m) {
                 // as last resort, just append at end without indentation
-                return out + `\n\n${blocks}\n`;
+                return out + `\n\n${combinedForInsert}\n`;
             }
             openIdx = m.index + m[0].length - 1;
         }
@@ -547,11 +552,25 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         }
         if (closeIdx === -1) {
             // malformed; append at end
-            return out + `\n\n${blocks}\n`;
+            return out + `\n\n${combinedForInsert}\n`;
         }
 
         const bodyStart = openIdx + 1;
         let body = out.slice(bodyStart, closeIdx);
+
+        // if user already has manual logic under section headers, preserve it
+        // and avoid rewriting those sections.
+        if (questionBlock) {
+            const hasManualQuestionSection = /\/\/\s*question swap CYOA here[\s\S]*?questionSwapper\s*\(/m.test(body);
+            if (hasManualQuestionSection) questionBlock = '';
+        }
+        if (answerBlock) {
+            const hasManualAnswerSection = /\/\/\s*answer swap CYOA here[\s\S]*?answerSwapper\s*\(/m.test(body);
+            if (hasManualAnswerSection) answerBlock = '';
+        }
+
+        combinedForInsert = [questionBlock, answerBlock].filter(Boolean).join('\n\n');
+        if (!combinedForInsert) return out;
 
         // prefer to insert after the 'ans =' assignment if present
         const ansRe = /\bans\s*=\s*campaignTrail_temp\.player_answers\s*\[\s*campaignTrail_temp\.player_answers\.length\s*-\s*1\s*\]\s*;?/m;
@@ -577,23 +596,43 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             }
         }
 
-        // if a previous header exists, replace from that header to the next same-indentation comment or end of body
-        const headerRe = /^(\s*)\/\/\s*answer swap CYOA here.*$/m;
-        const headerMatch = headerRe.exec(body);
-        if (headerMatch) {
+        const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const replaceSectionByHeader = (srcBody, headerText, blockText) => {
+            if (!blockText) return { body: srcBody, replaced: false };
+
+            const headerRe = new RegExp(`^(\\s*)//\\s*${escapeRegExp(headerText)}.*$`, 'm');
+            const headerMatch = headerRe.exec(srcBody);
+            if (!headerMatch) return { body: srcBody, replaced: false };
+
             const headerIndent = headerMatch[1] || '';
-            const afterHeader = body.slice(headerMatch.index + headerMatch[0].length);
-            // next comment at the same indentation (not our header)
-            const nextOtherCommentRe = new RegExp(`^${headerIndent}//(?!\\s*answer swap CYOA here).*`, 'm');
+            const afterHeader = srcBody.slice(headerMatch.index + headerMatch[0].length);
+            const nextOtherCommentRe = new RegExp(`^${escapeRegExp(headerIndent)}//(?!\\s*${escapeRegExp(headerText)}\\b).*`, 'm');
             const nextOther = nextOtherCommentRe.exec(afterHeader);
             const replaceEndInBody = headerMatch.index + headerMatch[0].length + (nextOther ? nextOther.index : afterHeader.length);
-            const newSection = this.indentBlock(blocks, headerIndent);
-            body = body.slice(0, headerMatch.index) + newSection + body.slice(replaceEndInBody);
+            const newSection = this.indentBlock(blockText, headerIndent);
+            const nextBody = srcBody.slice(0, headerMatch.index) + newSection + srcBody.slice(replaceEndInBody);
+            return { body: nextBody, replaced: true };
+        };
+
+        let replacedAny = false;
+        if (questionBlock) {
+            const resQ = replaceSectionByHeader(body, 'question swap CYOA here', questionBlock);
+            body = resQ.body;
+            replacedAny = replacedAny || resQ.replaced;
+        }
+        if (answerBlock) {
+            const resA = replaceSectionByHeader(body, 'answer swap CYOA here', answerBlock);
+            body = resA.body;
+            replacedAny = replacedAny || resA.replaced;
+        }
+
+        if (replacedAny) {
+            body = body.replace(/\n{3,}/g, '\n\n');
             return out.slice(0, bodyStart) + body + out.slice(closeIdx);
         }
 
-        // prepare neat, indented payload with the header included in 'blocks'
-        const indentedPayload = '\n' + this.indentBlock(blocks, indentForInsert) + '\n';
+        // no section headers found; insert both blocks after ans assignment
+        const indentedPayload = '\n' + this.indentBlock(combinedForInsert, indentForInsert) + '\n';
 
         if (insertPosInBody >= 0) {
             // insert right after ans assignment
@@ -601,7 +640,7 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
         } else {
             // insert at top of body
-            const newBody = '\n' + this.indentBlock(blocks, indentForInsert) + '\n' + body;
+            const newBody = '\n' + this.indentBlock(combinedForInsert, indentForInsert) + '\n' + body;
             return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
         }
     },
@@ -609,7 +648,17 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     insertSwapperAfterHelper(out) {
         const questionSwapFunc = this.buildQuestionSwapperFunction();
         const answerSwapFunc = this.buildAnswerSwapperFunction();
-        const combinedFuncs = questionSwapFunc + '\n\n' + answerSwapFunc;
+        const hasQuestionSwapper = /function\s+questionSwapper\s*\(/m.test(out);
+        const hasAnswerSwapper = /function\s+answerSwapper\s*\(/m.test(out);
+
+        if (hasQuestionSwapper && hasAnswerSwapper) {
+            return out;
+        }
+
+        const funcsToInsert = [];
+        if (!hasQuestionSwapper) funcsToInsert.push(questionSwapFunc);
+        if (!hasAnswerSwapper) funcsToInsert.push(answerSwapFunc);
+        const combinedFuncs = funcsToInsert.join('\n\n');
 
         // try to find getQuestionNumberFromPk function
         const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
@@ -632,11 +681,31 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         }
 
         if (window.$TCT.jet_data.cyoa_enabled) {
-            out = this.insertSwapperAfterHelper(out);
             const questionBlocks = this.buildQuestionSwapBlocks();
             const answerBlocks = this.buildAnswerSwapBlocks();
-            const combinedBlocks = [questionBlocks, answerBlocks].filter(Boolean).join('\n\n');
-            out = this.insertSwapsInsideCyoAdventure(out, combinedBlocks);
+            const injectInto = (src) => {
+                let next = this.insertSwapperAfterHelper(src);
+                next = this.insertSwapsInsideCyoAdventure(next, {
+                    question: questionBlocks,
+                    answer: answerBlocks
+                });
+                return next;
+            };
+
+            const startMarker = '//#startcode';
+            const endMarker = '//#endcode';
+            const startIdx = out.indexOf(startMarker);
+            const endIdx = out.indexOf(endMarker);
+
+            if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                const blockStart = startIdx + startMarker.length;
+                const before = out.slice(0, blockStart);
+                const block = out.slice(blockStart, endIdx);
+                const after = out.slice(endIdx);
+                out = before + injectInto(block) + after;
+            } else {
+                out = injectInto(out);
+            }
         }
 
         return out;

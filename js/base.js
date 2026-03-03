@@ -1241,7 +1241,6 @@ class TCTData {
         }
 
         const generatedCyoaCode = this.getCYOACode();
-        parts.push(generatedCyoaCode);
 
         // helper to stringify data collections
         const stringifyCollection = (name, collection, isMap = false) => {
@@ -1284,132 +1283,45 @@ class TCTData {
 
         let codeToAdd = this.jet_data.code_to_add || "";
 
-        // if generated CYOA code was also imported into custom code, strip it from #startcode
-        // this is to avoid duplicate code from CYOA, helpers, and other functions
-        if (generatedCyoaCode && codeToAdd) {
+        // normalize custom code to avoid issues with inconsistent newlines or trailing spaces
+        if (codeToAdd) {
             let normalizedCustom = codeToAdd.replace(/\r\n/g, "\n");
-
-            const findFunctionEnd = (src, startIndex) => {
-                const open = src.indexOf("{", startIndex);
-                if (open === -1) return -1;
-
-                let depth = 0;
-                let inSingle = false, inDouble = false, inTemplate = false;
-                let inLineComment = false, inBlockComment = false;
-                let escaped = false;
-
-                for (let i = open; i < src.length; i++) {
-                    const ch = src[i];
-                    const next = i + 1 < src.length ? src[i + 1] : "";
-
-                    if (inLineComment) {
-                        if (ch === "\n") inLineComment = false;
-                        continue;
-                    }
-                    if (inBlockComment) {
-                        if (ch === "*" && next === "/") {
-                            inBlockComment = false;
-                            i++;
-                        }
-                        continue;
-                    }
-
-                    if (inSingle) {
-                        if (!escaped && ch === "'") inSingle = false;
-                        escaped = !escaped && ch === "\\";
-                        continue;
-                    }
-                    if (inDouble) {
-                        if (!escaped && ch === '"') inDouble = false;
-                        escaped = !escaped && ch === "\\";
-                        continue;
-                    }
-                    if (inTemplate) {
-                        if (!escaped && ch === "`") inTemplate = false;
-                        escaped = !escaped && ch === "\\";
-                        continue;
-                    }
-
-                    if (ch === "/" && next === "/") {
-                        inLineComment = true;
-                        i++;
-                        continue;
-                    }
-                    if (ch === "/" && next === "*") {
-                        inBlockComment = true;
-                        i++;
-                        continue;
-                    }
-
-                    if (ch === "'") {
-                        inSingle = true;
-                        escaped = false;
-                        continue;
-                    }
-                    if (ch === '"') {
-                        inDouble = true;
-                        escaped = false;
-                        continue;
-                    }
-                    if (ch === "`") {
-                        inTemplate = true;
-                        escaped = false;
-                        continue;
-                    }
-
-                    if (ch === "{") depth++;
-                    else if (ch === "}") {
-                        depth--;
-                        if (depth === 0) return i + 1;
-                    }
-                }
-
-                return -1;
-            };
-
-            const stripLegacyCyoaBlock = (src) => {
-                const markers = [
-                    "campaignTrail_temp.cyoa = true;",
-                    "let _questionIdxByPk = null;",
-                    "function _rebuildQuestionIdxMap(",
-                    "function getQuestionIndexFromPk(",
-                    "function getJumpIndexFromPk(",
-                    "function getQuestionNumberFromPk(",
-                    "cyoAdventure = function"
-                ];
-
-                let blockStart = -1;
-                for (const marker of markers) {
-                    const idx = src.indexOf(marker);
-                    if (idx !== -1 && (blockStart === -1 || idx < blockStart)) {
-                        blockStart = idx;
-                    }
-                }
-
-                if (blockStart === -1) return src;
-
-                const adventureIdx = src.indexOf("cyoAdventure = function", blockStart);
-                if (adventureIdx === -1) return src;
-
-                let blockEnd = findFunctionEnd(src, adventureIdx);
-                if (blockEnd === -1) return src;
-
-                // consume optional semicolon and trailing whitespace/newlines
-                while (blockEnd < src.length && /[;\s]/.test(src[blockEnd])) {
-                    blockEnd++;
-                }
-
-                return src.slice(0, blockStart) + src.slice(blockEnd);
-            };
-
-            normalizedCustom = stripLegacyCyoaBlock(normalizedCustom);
-
-            if (generatedCyoaCode.includes("let _questionIdxByPk = null;")) {
-                normalizedCustom = normalizedCustom.replace(/^\s*let\s+_questionIdxByPk\s*=\s*null;\s*$/gm, "");
-            }
-
-            normalizedCustom = normalizedCustom.replace(/(\n\s*){3,}/g, "\n\n").trim();
+            normalizedCustom = normalizedCustom
+                .replace(/[ \t]+$/gm, "")
+                .replace(/^\n+/, "")
+                .replace(/\n+$/, "");
             codeToAdd = normalizedCustom;
+        }
+
+        // keep generated CYOA code inside //#startcode when possible
+        // if custom code already defines cyoAdventure, only inject missing
+        // helper prelude right before the first cyoAdventure
+        if (generatedCyoaCode) {
+            const normalizedGenerated = generatedCyoaCode.replace(/\r\n/g, "\n").trim();
+            const cyoaFnRe = /cyoAdventure\s*=\s*function\s*\(/m;
+            const helperSignatureRe = /function\s+(getQuestionNumberFromPk|getJumpIndexFromPk|getQuestionIndexFromPk)\s*\(/m;
+
+            const splitIdx = normalizedGenerated.search(cyoaFnRe);
+            const generatedPrelude = splitIdx >= 0
+                ? normalizedGenerated.slice(0, splitIdx).trim()
+                : normalizedGenerated;
+
+            const customHasCyoaFn = cyoaFnRe.test(codeToAdd);
+            const customHasHelpers = helperSignatureRe.test(codeToAdd);
+
+            if (customHasCyoaFn) {
+                if (generatedPrelude && !customHasHelpers) {
+                    const match = cyoaFnRe.exec(codeToAdd);
+                    if (match) {
+                        const before = codeToAdd.slice(0, match.index).replace(/\s*$/, "");
+                        const after = codeToAdd.slice(match.index).replace(/^\s*/, "");
+                        codeToAdd = `${before ? before + "\n\n" : ""}${generatedPrelude}\n\n${after}`;
+                    }
+                }
+            } else {
+                const customTrimmed = (codeToAdd || "").trim();
+                codeToAdd = [normalizedGenerated, customTrimmed].filter(Boolean).join("\n\n");
+            }
         }
 
         if (codeToAdd) {
@@ -2064,19 +1976,6 @@ function loadDataFromFile(raw_json) {
             rangesToExclude.push({ start: match.index, end: match.index + match[0].length });
         }
     });
-
-    // exclude generated CYOA code block if present at top-level,
-    // so it is not duplicated later inside //#startcode
-    const cyoaStart = raw_json.indexOf("campaignTrail_temp.cyoa = true;");
-    if (cyoaStart !== -1) {
-        const questionsAssignMatch = /campaignTrail_temp\.questions_json\s*=/g;
-        questionsAssignMatch.lastIndex = cyoaStart;
-        const assignMatch = questionsAssignMatch.exec(raw_json);
-        const questionsStart = assignMatch ? assignMatch.index : -1;
-        if (questionsStart !== -1 && questionsStart > cyoaStart) {
-            rangesToExclude.push({ start: cyoaStart, end: questionsStart });
-        }
-    }
 
     // merge overlapping ranges and ensure logical order
     rangesToExclude.sort((a, b) => a.start - b.start);
