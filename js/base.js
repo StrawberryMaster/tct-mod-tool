@@ -1294,28 +1294,143 @@ class TCTData {
         }
 
         // keep generated CYOA code inside //#startcode when possible
-        // if custom code already defines cyoAdventure, only inject missing
-        // helper prelude right before the first cyoAdventure
+        // if custom code already defines cyoAdventure, merge in generated
+        // helpers + variable declarations + variable effects without
+        // clobbering the user's custom CYOA code
         if (generatedCyoaCode) {
             const normalizedGenerated = generatedCyoaCode.replace(/\r\n/g, "\n").trim();
             const cyoaFnRe = /cyoAdventure\s*=\s*function\s*\(/m;
             const helperSignatureRe = /function\s+(getQuestionNumberFromPk|getJumpIndexFromPk|getQuestionIndexFromPk)\s*\(/m;
+            const generatedVarBlockRe = /\/\/ CYOA Variables\n([\s\S]*?)(?=\ncyoAdventure\s*=\s*function\s*\()/m;
+            const generatedFnBodyRe = /cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{([\s\S]*?)\n\}\s*$/m;
+
+            const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+            const findMatchingBrace = (text, openBraceIndex) => {
+                let depth = 0;
+                for (let i = openBraceIndex; i < text.length; i++) {
+                    const ch = text[i];
+                    if (ch === '{') depth++;
+                    else if (ch === '}') {
+                        depth--;
+                        if (depth === 0) return i;
+                    }
+                }
+                return -1;
+            };
+
+            const stripCommonIndent = (block) => {
+                const lines = block.split("\n");
+                let minIndent = null;
+                let minPositiveIndent = null;
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const indent = line.match(/^\s*/)[0].length;
+                    minIndent = minIndent == null ? indent : Math.min(minIndent, indent);
+                    if (indent > 0) {
+                        minPositiveIndent = minPositiveIndent == null ? indent : Math.min(minPositiveIndent, indent);
+                    }
+                }
+
+                if (minIndent == null) return block;
+
+                // sometimes extraction leaves only the first line at column 0 while
+                // all other lines keep one indent level. in that case, trim the
+                // smallest positive indent from indented lines for better formatting
+                if (minIndent === 0 && minPositiveIndent != null) {
+                    return lines.map(line => {
+                        if (!line.trim()) return line;
+                        const indent = line.match(/^\s*/)[0].length;
+                        return indent >= minPositiveIndent ? line.slice(minPositiveIndent) : line;
+                    }).join("\n");
+                }
+
+                if (minIndent === 0) return block;
+                return lines.map(line => line.trim() ? line.slice(minIndent) : line).join("\n");
+            };
 
             const splitIdx = normalizedGenerated.search(cyoaFnRe);
             const generatedPrelude = splitIdx >= 0
                 ? normalizedGenerated.slice(0, splitIdx).trim()
                 : normalizedGenerated;
 
+            const generatedVarMatch = normalizedGenerated.match(generatedVarBlockRe);
+            const generatedVarDecls = generatedVarMatch ? generatedVarMatch[1].trim() : "";
+
+            const generatedFnBodyMatch = normalizedGenerated.match(generatedFnBodyRe);
+            let generatedEffects = "";
+            if (generatedFnBodyMatch) {
+                const fnBody = generatedFnBodyMatch[1];
+                const withoutAns = fnBody.replace(/^\s*const\s+ans\s*=.*?;\s*/m, "").trim();
+                generatedEffects = withoutAns.split(/\n\s*\/\/ Branching logic\b/m)[0].trim();
+            }
+
             const customHasCyoaFn = cyoaFnRe.test(codeToAdd);
             const customHasHelpers = helperSignatureRe.test(codeToAdd);
 
             if (customHasCyoaFn) {
+                // inject helper prelude if missing
                 if (generatedPrelude && !customHasHelpers) {
                     const match = cyoaFnRe.exec(codeToAdd);
                     if (match) {
                         const before = codeToAdd.slice(0, match.index).replace(/\s*$/, "");
                         const after = codeToAdd.slice(match.index).replace(/^\s*/, "");
                         codeToAdd = `${before ? before + "\n\n" : ""}${generatedPrelude}\n\n${after}`;
+                    }
+                }
+
+                // inject missing variable declarations before custom CYOA
+                const vars = this.getAllCyoaVariables();
+                const missingVarDecls = [];
+                for (const variable of vars) {
+                    const varName = String(variable.name || "").trim();
+                    if (!varName) continue;
+                    const declRe = new RegExp(`\\b(?:var|let|const)\\s+${escapeRegExp(varName)}\\s*=`);
+                    if (!declRe.test(codeToAdd)) {
+                        missingVarDecls.push(`var ${varName} = ${variable.defaultValue};`);
+                    }
+                }
+
+                if (missingVarDecls.length > 0) {
+                    const fnMatch = cyoaFnRe.exec(codeToAdd);
+                    if (fnMatch) {
+                        const before = codeToAdd.slice(0, fnMatch.index).replace(/\s*$/, "");
+                        const after = codeToAdd.slice(fnMatch.index).replace(/^\s*/, "");
+                        const declBlock = `// CYOA Variables\n${missingVarDecls.join("\n")}`;
+                        codeToAdd = `${before ? before + "\n\n" : ""}${declBlock}\n\n${after}`;
+                    }
+                }
+
+                // inject generated variable effects into custom CYOA body
+                if (generatedEffects) {
+                    const fnMatch = cyoaFnRe.exec(codeToAdd);
+                    if (fnMatch) {
+                        const openBraceIdx = codeToAdd.indexOf("{", fnMatch.index);
+                        const closeBraceIdx = openBraceIdx >= 0 ? findMatchingBrace(codeToAdd, openBraceIdx) : -1;
+                        if (openBraceIdx >= 0 && closeBraceIdx > openBraceIdx) {
+                            let body = codeToAdd.slice(openBraceIdx + 1, closeBraceIdx);
+
+                            const blockStart = "// [JETS_CYOA_VARIABLE_EFFECTS_START]";
+                            const blockEnd = "// [JETS_CYOA_VARIABLE_EFFECTS_END]";
+                            const existingBlockRe = /\n?\s*\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_START\][\s\S]*?\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_END\]\n?/m;
+                            body = body.replace(existingBlockRe, "\n");
+
+                            const ansLineMatch = body.match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=.*?(?:;\s*|\n)/m);
+                            const indent = ansLineMatch ? ansLineMatch[1] : "    ";
+                            const insertionPos = ansLineMatch
+                                ? (ansLineMatch.index + ansLineMatch[0].length)
+                                : 0;
+
+                            const normalizedEffects = stripCommonIndent(generatedEffects)
+                                .split("\n")
+                                .map(line => line.trim() ? `${indent}${line}` : "")
+                                .join("\n");
+
+                            const block = `\n${indent}${blockStart}\n${normalizedEffects}\n${indent}${blockEnd}\n`;
+                            body = `${body.slice(0, insertionPos)}${block}${body.slice(insertionPos)}`;
+
+                            codeToAdd = `${codeToAdd.slice(0, openBraceIdx + 1)}${body}${codeToAdd.slice(closeBraceIdx)}`;
+                        }
                     }
                 }
             } else {
