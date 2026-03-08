@@ -218,6 +218,7 @@ class TCTData {
             if (!Array.isArray(newOrderPks) || newOrderPks.length !== current.length) {
                 console.warn("reorderQuestions: new order length mismatch");
             }
+            const requestedSet = new Set(newOrderPks);
             const lookup = new Map();
             for (let i = 0; i < current.length; i++) {
                 lookup.set(current[i].pk, current[i]);
@@ -237,7 +238,7 @@ class TCTData {
             }
             // append any stragglers not in newOrderPks
             if (ordered.length < current.length) {
-                const missing = current.filter(q => !newOrderPks.includes(q.pk));
+                const missing = current.filter(q => !requestedSet.has(q.pk));
                 ordered.push(...missing);
             }
             // mutate the existing map in place
@@ -740,6 +741,7 @@ class TCTData {
             if (!Array.isArray(newOrderIds) || newOrderIds.length !== current.length) {
                 console.warn("reorderEndings: new order length mismatch");
             }
+            const requestedSet = new Set(newOrderIds.map(id => Number(id)));
 
             // validate that provided IDs are all present
             for (const id of newOrderIds) {
@@ -759,7 +761,7 @@ class TCTData {
 
             // append any stragglers not in newOrderIds
             for (const ending of current) {
-                if (!newOrderIds.includes(ending.id)) {
+                if (!requestedSet.has(Number(ending.id))) {
                     newEndingData[ending.id] = ending;
                 }
             }
@@ -940,7 +942,12 @@ class TCTData {
 
     getPVForState(pk) {
         try {
-            return getCurrentVoteResults(this).filter((x) => x.state == pk)[0].result.map(
+            const stateResult = getCurrentVoteResults(this).find((x) => x.state == pk);
+            if (!stateResult || !Array.isArray(stateResult.result)) {
+                return ["No PV data available for state"];
+            }
+
+            return stateResult.result.map(
                 (x) => {
                     let nickname = this.getNicknameForCandidate(x.candidate);
                     let canName = nickname != '' && nickname != null ? nickname : x.candidate;
@@ -976,8 +983,6 @@ class TCTData {
 
     addCandidate() {
         const candidatePk = this.getNewPk();
-
-        const s = Object.keys(this.states);
         const issues = Object.keys(this.issues);
 
         this.addStateMultipliersForCandidate(candidatePk);
@@ -1002,6 +1007,35 @@ class TCTData {
         return candidatePk;
     }
 
+    _addStateRelations(statePk, candidatePks, issuePks) {
+        for (let i = 0; i < candidatePks.length; i++) {
+            const cPk = this.getNewPk();
+            this.candidate_state_multiplier[cPk] = {
+                "model": "campaign_trail.candidate_state_multiplier",
+                "pk": cPk,
+                "fields": {
+                    "candidate": candidatePks[i],
+                    "state": statePk,
+                    "state_multiplier": 1
+                }
+            };
+        }
+
+        for (let i = 0; i < issuePks.length; i++) {
+            const iPk = this.getNewPk();
+            this.state_issue_scores[iPk] = {
+                "model": "campaign_trail.state_issue_score",
+                "pk": iPk,
+                "fields": {
+                    "state": statePk,
+                    "issue": Number(issuePks[i]),
+                    "state_issue_score": 0,
+                    "weight": 1.5
+                }
+            };
+        }
+    }
+
     createNewState() {
         const cans = this.getAllCandidatePKs();
         const issues = Object.keys(this.issues);
@@ -1022,39 +1056,11 @@ class TCTData {
         }
         this.states[newPk] = x;
 
-        for (let i = 0; i < cans.length; i++) {
-            const cPk = this.getNewPk();
-            // Create candidate state multipliers
-            let c = {
-                "model": "campaign_trail.candidate_state_multiplier",
-                "pk": cPk,
-                "fields": {
-                    "candidate": cans[i],
-                    "state": newPk,
-                    "state_multiplier": 1
-                }
-            }
-            this.candidate_state_multiplier[cPk] = c;
-        }
+        this._addStateRelations(newPk, cans, issues);
         this._invalidateCache('candidate_state_multiplier_by_candidate');
         this._invalidateCache('candidate_state_multiplier_by_state');
-
-        for (let i = 0; i < issues.length; i++) {
-            const iPk = this.getNewPk();
-            // Create state issue scores
-            let iss = {
-                "model": "campaign_trail.state_issue_score",
-                "pk": iPk,
-                "fields": {
-                    "state": newPk,
-                    "issue": Number(issues[i]),
-                    "state_issue_score": 0,
-                    "weight": 1.5
-                }
-            }
-            this.state_issue_scores[iPk] = iss;
-        }
         this._invalidateCache('state_issue_scores_by_state');
+        this._invalidateCache('state_issue_scores_by_issue');
 
         return newPk;
     }
@@ -1102,35 +1108,7 @@ class TCTData {
                         "d": dAttr
                     };
                     this.states[newPk] = state;
-
-                    for (let j = 0; j < cans.length; j++) {
-                        const cPk = this.getNewPk();
-                        const c = {
-                            "model": "campaign_trail.candidate_state_multiplier",
-                            "pk": cPk,
-                            "fields": {
-                                "candidate": cans[j],
-                                "state": newPk,
-                                "state_multiplier": 1
-                            }
-                        };
-                        this.candidate_state_multiplier[cPk] = c;
-                    }
-
-                    for (let k = 0; k < issues.length; k++) {
-                        const iPk = this.getNewPk();
-                        const iss = {
-                            "model": "campaign_trail.state_issue_score",
-                            "pk": iPk,
-                            "fields": {
-                                "state": newPk,
-                                "issue": Number(issues[k]),
-                                "state_issue_score": 0,
-                                "weight": 1.5
-                            }
-                        };
-                        this.state_issue_scores[iPk] = iss;
-                    }
+                    this._addStateRelations(newPk, cans, issues);
                 }
                 parsedViaDOM = true;
             }
@@ -1176,40 +1154,13 @@ class TCTData {
                     "d": d
                 };
                 this.states[newPk] = state;
-
-                for (let j = 0; j < cans.length; j++) {
-                    const cPk = this.getNewPk();
-                    const c = {
-                        "model": "campaign_trail.candidate_state_multiplier",
-                        "pk": cPk,
-                        "fields": {
-                            "candidate": cans[j],
-                            "state": newPk,
-                            "state_multiplier": 1
-                        }
-                    };
-                    this.candidate_state_multiplier[cPk] = c;
-                }
-
-                for (let k = 0; k < issues.length; k++) {
-                    const iPk = this.getNewPk();
-                    const iss = {
-                        "model": "campaign_trail.state_issue_score",
-                        "pk": iPk,
-                        "fields": {
-                            "state": newPk,
-                            "issue": Number(issues[k]),
-                            "state_issue_score": 0,
-                            "weight": 1.5
-                        }
-                    };
-                    this.state_issue_scores[iPk] = iss;
-                }
+                this._addStateRelations(newPk, cans, issues);
             }
         }
         this._invalidateCache('candidate_state_multiplier_by_candidate');
         this._invalidateCache('candidate_state_multiplier_by_state');
         this._invalidateCache('state_issue_scores_by_state');
+        this._invalidateCache('state_issue_scores_by_issue');
     }
 
     getMapCode() {
@@ -1701,7 +1652,6 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     // safety check if string empty
     if (!startString) return fallback;
 
-    const possibleEndings = getAllIndexes(startString, end);
     let foundValidJSON = false;
 
     // regex to match strings (group 1: double, single, or backtick), block comments (group 2), or line comments (group 3)
@@ -1711,8 +1661,13 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
     // matches: // comment [newline] {
     const commentPreserverRegex = /\/\/(.*)\s*[\r\n]+\s*\{/g;
 
-    for (let i = 0; i < possibleEndings.length; i++) {
-        let raw = startString.slice(0, possibleEndings[i]);
+    // probe each candidate terminator lazily to avoid building an index array for large files
+    let searchFrom = 0;
+    while (true) {
+        const endIdx = startString.indexOf(end, searchFrom);
+        if (endIdx === -1) break;
+
+        let raw = startString.slice(0, endIdx);
         let trimmedRaw = raw.trim();
 
         // if the content is wrapped in quotes, unwrap it
@@ -1758,7 +1713,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
             foundValidJSON = true;
             if (outRange) {
                 outRange.start = startIndex;
-                outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+                outRange.end = startIndex + start.length + endIdx + end.length;
             }
             console.log("Found valid ending for " + start + "!");
             break;
@@ -1773,7 +1728,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     foundValidJSON = true;
                     if (outRange) {
                         outRange.start = startIndex;
-                        outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+                        outRange.end = startIndex + start.length + endIdx + end.length;
                     }
                     console.log("Found valid ending for " + start + " via loose evaluation!");
                     break;
@@ -1790,13 +1745,15 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                     foundValidJSON = true;
                     if (outRange) {
                         outRange.start = startIndex;
-                        outRange.end = startIndex + start.length + possibleEndings[i] + end.length;
+                        outRange.end = startIndex + start.length + endIdx + end.length;
                     }
                     console.log("Found valid ending for " + start + " after sanitizing escaped quotes!");
                     break;
                 } catch (e2) { }
             }
         }
+
+        searchFrom = endIdx + 1;
     }
 
     if (!foundValidJSON) {
@@ -1830,14 +1787,27 @@ function loadDataFromFile(raw_json) {
     let pkReplacements = new Map();
 
     const rangesToExclude = [];
+    const sectionPatternCache = new Map();
+
+    function getSectionPattern(name) {
+        if (!sectionPatternCache.has(name)) {
+            // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
+            // we use a lookahead for the assignment to avoid capturing the property name itself if possible,
+            // but here we match the whole assignment to define the exclusion range
+            const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
+            sectionPatternCache.set(name, pattern);
+        }
+        return sectionPatternCache.get(name);
+    }
+
+    function normalizeTextEncoding(text) {
+        if (typeof text !== 'string') return text;
+        return text.replaceAll("â€™", "'").replaceAll("â€”", "—");
+    }
+
     function getSection(name, required = true, fallback = []) {
         const range = { start: -1, end: -1 };
-
-        // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
-        // we use a lookahead for the assignment to avoid capturing the property name itself if possible,
-        // but here we match the whole assignment to define the exclusion range.
-        const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
-        const match = raw_json.match(pattern);
+        const match = raw_json.match(getSectionPattern(name));
 
         if (match) {
             const foundStart = match[0];
@@ -1930,19 +1900,19 @@ function loadDataFromFile(raw_json) {
 
     // load questions
     getSection("questions_json").forEach(q => {
-        if (q?.fields?.description) q.fields.description = q.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        if (q?.fields?.description) q.fields.description = normalizeTextEncoding(q.fields.description);
         ensureUniqueAndStore(questions, q);
     });
 
     // load answers
     getSection("answers_json").forEach(a => {
-        if (a?.fields?.description) a.fields.description = a.fields.description.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        if (a?.fields?.description) a.fields.description = normalizeTextEncoding(a.fields.description);
         ensureUniqueAndStore(answers, a);
     });
 
     // load feedback
     getSection("answer_feedback_json").forEach(f => {
-        if (f?.fields?.answer_feedback) f.fields.answer_feedback = f.fields.answer_feedback.replaceAll("â€™", "'").replaceAll("â€”", "—");
+        if (f?.fields?.answer_feedback) f.fields.answer_feedback = normalizeTextEncoding(f.fields.answer_feedback);
         ensureUniqueAndStore(feedbacks, f);
     });
 
@@ -1979,21 +1949,24 @@ function loadDataFromFile(raw_json) {
             "question", "answer", "candidate", "issue", "state", "affected_candidate", "running_mate"
         ];
 
-        allContainers.forEach(container => {
+        for (let i = 0; i < allContainers.length; i++) {
+            const container = allContainers[i];
             const values = container instanceof Map ? Array.from(container.values()) : Object.values(container);
 
-            values.forEach(item => {
-                if (!item.fields) return;
+            for (let j = 0; j < values.length; j++) {
+                const item = values[j];
+                if (!item.fields) continue;
 
-                foreignKeyFields.forEach(field => {
+                for (let k = 0; k < foreignKeyFields.length; k++) {
+                    const field = foreignKeyFields[k];
                     const val = item.fields[field];
                     // if the field value matches a bad ID we replaced
                     if (val !== undefined && pkReplacements.has(val)) {
                         item.fields[field] = pkReplacements.get(val);
                     }
-                });
-            });
-        });
+                }
+            }
+        }
     }
 
     jet_data = getSection("jet_data", false, [{}])[0];
@@ -2150,12 +2123,3 @@ function loadDataFromFile(raw_json) {
     return data;
 }
 
-
-// https://stackoverflow.com/questions/20798477/how-to-find-the-indexes-of-all-occurrences-of-an-element-in-array#:~:text=The%20.,val%2C%20i%2B1))%20!%3D
-function getAllIndexes(arr, val) {
-    var indexes = [], i = -1;
-    while ((i = arr.indexOf(val, i + 1)) != -1) {
-        indexes.push(i);
-    }
-    return indexes;
-}
