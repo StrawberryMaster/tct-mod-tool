@@ -1415,7 +1415,7 @@ class TCTData {
                             const existingBlockRe = /\n?\s*\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_START\][\s\S]*?\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_END\]\n?/m;
                             body = body.replace(existingBlockRe, "\n");
 
-                            const ansLineMatch = body.match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=.*?(?:;\s*|\n)/m);
+                            const ansLineMatch = body.match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=.*?(?:;[ \t]*(?:\r?\n|$)|\r?\n)/m);
                             const indent = ansLineMatch ? ansLineMatch[1] : "    ";
                             const insertionPos = ansLineMatch
                                 ? (ansLineMatch.index + ansLineMatch[0].length)
