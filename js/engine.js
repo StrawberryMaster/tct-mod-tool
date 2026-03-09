@@ -73,6 +73,17 @@ let global_parameter = [
 
 const VARIANCE = global_parameter[0].fields.global_variance;
 
+function splitEVTopTwo(totalEV, topVotes, totalVotes) {
+    if (!Number.isFinite(totalEV) || totalEV <= 0) return [0, 0];
+    if (!Number.isFinite(topVotes) || !Number.isFinite(totalVotes) || totalVotes <= 0) {
+        return [totalEV, 0];
+    }
+
+    let winnerEV = Math.round((topVotes / totalVotes) * totalEV);
+    winnerEV = Math.max(0, Math.min(totalEV, winnerEV));
+    return [winnerEV, totalEV - winnerEV];
+}
+
 function getCurrentVoteResults(e) {
     // reset RNG state
     rand = sfc32(seed[0], seed[1], seed[2], seed[3]);
@@ -120,12 +131,13 @@ function getCurrentVoteResults(e) {
         answerIssueMap.get(f.issue).push(f);
     }
 
-    // index answer state scores: Map<stateId, Array<{answer, multiplier, cand, affected}>>
-    const answerStateMap = new Map();
+    // index answer state scores as aggregate lookup keyed by state/answer/affected candidate
+    const answerStateAgg = new Map();
     for (let i = 0; i < e.answer_score_state.length; i++) {
         const f = e.answer_score_state[i].fields;
-        if (!answerStateMap.has(f.state)) answerStateMap.set(f.state, []);
-        answerStateMap.get(f.state).push(f);
+        if (f.candidate !== e.candidate_id) continue;
+        const key = `${f.state}|${f.answer}|${f.affected_candidate}`;
+        answerStateAgg.set(key, (answerStateAgg.get(key) || 0) + f.state_multiplier);
     }
 
     // index state issue scores: Map<stateId_issueId, {score, weight}>
@@ -146,7 +158,11 @@ function getCurrentVoteResults(e) {
     }
 
     const states = Object.values(e.states);
-    const visitMap = new Set(e.player_visits);
+    const visitCountByState = new Map();
+    for (let i = 0; i < e.player_visits.length; i++) {
+        const st = e.player_visits[i];
+        visitCountByState.set(st, (visitCountByState.get(st) || 0) + 1);
+    }
     const playerAnswers = e.player_answers || [];
 
     // calculate global multipliers per candidate
@@ -243,24 +259,18 @@ function getCurrentVoteResults(e) {
             const stateId = multipliers[r].state;
             let w = 0;
 
-            const relevantStateAnswers = answerStateMap.get(stateId);
-            if (relevantStateAnswers) {
-                for (let j = 0; j < relevantStateAnswers.length; j++) {
-                    const rsa = relevantStateAnswers[j];
-                    if (rsa.candidate == e.candidate_id &&
-                        rsa.affected_candidate == candidates[a] &&
-                        playerAnswers.includes(rsa.answer)) {
-                        w += rsa.state_multiplier;
-                    }
-                }
+            for (let j = 0; j < playerAnswers.length; j++) {
+                const ans = playerAnswers[j];
+                w += answerStateAgg.get(`${stateId}|${ans}|${candidates[a]}`) || 0;
             }
 
             if (a === 0) {
                 if (e.running_mate_state_id == stateId) {
                     w += RUNNING_MATE_STATE_BOOST * multipliers[r].state_multiplier;
                 }
-                if (visitMap.has(stateId)) {
-                    w += VISIT_STATE_BOOST * Math.max(0.1, multipliers[r].state_multiplier) * visitMult;
+                const visits = visitCountByState.get(stateId) || 0;
+                if (visits > 0) {
+                    w += visits * VISIT_STATE_BOOST * Math.max(0.1, multipliers[r].state_multiplier) * visitMult;
                 }
             }
             multipliers[r].state_multiplier += w;
@@ -272,6 +282,7 @@ function getCurrentVoteResults(e) {
     const baseMultipliers = f[0].state_multipliers;
 
     const cachedIssueScores = u.map(c => c.issue_scores);
+    const playerIssueIds = (cachedIssueScores[0] || []).map((it) => it.issue);
 
     for (let a = 0; a < baseMultipliers.length; a++) {
         const stateId = baseMultipliers[a].state;
@@ -283,7 +294,8 @@ function getCurrentVoteResults(e) {
 
             for (let d = 0; d < cIssues.length; d++) {
                 const issueId = cIssues[d].issue;
-                const scoreObj = stateIssueScoreMap.get(`${stateId}_${issueId}`);
+                const refIssueId = playerIssueIds[d] ?? issueId;
+                const scoreObj = stateIssueScoreMap.get(`${stateId}_${refIssueId}`);
 
                 let T = 0, A = 1;
                 if (scoreObj) {
@@ -369,8 +381,8 @@ function getCurrentVoteResults(e) {
                 let H = 0;
                 for (let r = 0; r < y[a].result.length; r++) H += y[a].result[r].votes;
 
-                const L = Math.ceil(y[a].result[0].votes / H * O * 1.25);
-                const D = O - L;
+                const topVotes = y[a].result[0]?.votes || 0;
+                const [L, D] = splitEVTopTwo(O, topVotes, H);
                 for (let r = 0; r < y[a].result.length; r++) {
                     y[a].result[r].electoral_votes = (r === 0) ? L : (r === 1 ? D : 0);
                 }
