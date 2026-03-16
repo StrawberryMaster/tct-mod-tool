@@ -849,6 +849,277 @@ class TCTData {
         return Array.from(cans).sort((a, b) => a - b);
     }
 
+    _resolveMapElementId(el) {
+        let node = el;
+        while (node && typeof node.getAttribute === 'function') {
+            const idAttr = node.getAttribute('id') || node.getAttribute('data-id');
+            if (idAttr && idAttr.trim() !== '') {
+                return idAttr.trim();
+            }
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    _resolveMapElementName(el, fallback) {
+        let node = el;
+        while (node && typeof node.getAttribute === 'function') {
+            const dataName = node.getAttribute('data-name');
+            if (dataName && dataName.trim() !== '') {
+                return dataName.trim();
+            }
+            node = node.parentElement;
+        }
+        return fallback;
+    }
+
+    _collectTransformChain(el) {
+        const transforms = [];
+        let node = el;
+
+        while (node && typeof node.getAttribute === 'function') {
+            const t = node.getAttribute('transform');
+            if (t && t.trim() !== '') {
+                transforms.push(t.trim());
+            }
+
+            const tag = (node.tagName || '').toLowerCase();
+            if (tag === 'svg') {
+                break;
+            }
+
+            node = node.parentElement;
+        }
+
+        if (transforms.length === 0) {
+            return '';
+        }
+
+        transforms.reverse();
+        return transforms.join(' ');
+    }
+
+    _readSvgNumber(el, attrName, fallback = 0) {
+        const raw = el.getAttribute(attrName);
+        const num = Number(raw);
+        return Number.isFinite(num) ? num : fallback;
+    }
+
+    _polyPointsToPath(pointsRaw, shouldClose) {
+        if (!pointsRaw || typeof pointsRaw !== 'string') {
+            return null;
+        }
+        const nums = pointsRaw.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
+        if (!nums || nums.length < 4 || nums.length % 2 !== 0) {
+            return null;
+        }
+
+        const coords = nums.map((x) => Number(x));
+        if (coords.some((x) => !Number.isFinite(x))) {
+            return null;
+        }
+
+        let d = `M ${coords[0]} ${coords[1]}`;
+        for (let i = 2; i < coords.length; i += 2) {
+            d += ` L ${coords[i]} ${coords[i + 1]}`;
+        }
+        if (shouldClose) {
+            d += ' Z';
+        }
+        return d;
+    }
+
+    _rectToPath(el) {
+        const x = this._readSvgNumber(el, 'x', 0);
+        const y = this._readSvgNumber(el, 'y', 0);
+        const width = this._readSvgNumber(el, 'width', NaN);
+        const height = this._readSvgNumber(el, 'height', NaN);
+
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+            return null;
+        }
+
+        let rx = this._readSvgNumber(el, 'rx', 0);
+        let ry = this._readSvgNumber(el, 'ry', 0);
+
+        if (rx > 0 || ry > 0) {
+            if (rx <= 0) rx = ry;
+            if (ry <= 0) ry = rx;
+            rx = Math.min(rx, width / 2);
+            ry = Math.min(ry, height / 2);
+            return [
+                `M ${x + rx} ${y}`,
+                `H ${x + width - rx}`,
+                `A ${rx} ${ry} 0 0 1 ${x + width} ${y + ry}`,
+                `V ${y + height - ry}`,
+                `A ${rx} ${ry} 0 0 1 ${x + width - rx} ${y + height}`,
+                `H ${x + rx}`,
+                `A ${rx} ${ry} 0 0 1 ${x} ${y + height - ry}`,
+                `V ${y + ry}`,
+                `A ${rx} ${ry} 0 0 1 ${x + rx} ${y}`,
+                'Z'
+            ].join(' ');
+        }
+
+        return `M ${x} ${y} H ${x + width} V ${y + height} H ${x} Z`;
+    }
+
+    _circleToPath(el) {
+        const cx = this._readSvgNumber(el, 'cx', 0);
+        const cy = this._readSvgNumber(el, 'cy', 0);
+        const r = this._readSvgNumber(el, 'r', NaN);
+        if (!Number.isFinite(r) || r <= 0) {
+            return null;
+        }
+
+        return `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
+    }
+
+    _ellipseToPath(el) {
+        const cx = this._readSvgNumber(el, 'cx', 0);
+        const cy = this._readSvgNumber(el, 'cy', 0);
+        const rx = this._readSvgNumber(el, 'rx', NaN);
+        const ry = this._readSvgNumber(el, 'ry', NaN);
+        if (!Number.isFinite(rx) || !Number.isFinite(ry) || rx <= 0 || ry <= 0) {
+            return null;
+        }
+
+        return `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
+    }
+
+    _lineToPath(el) {
+        const x1 = this._readSvgNumber(el, 'x1', NaN);
+        const y1 = this._readSvgNumber(el, 'y1', NaN);
+        const x2 = this._readSvgNumber(el, 'x2', NaN);
+        const y2 = this._readSvgNumber(el, 'y2', NaN);
+        if (![x1, y1, x2, y2].every((x) => Number.isFinite(x))) {
+            return null;
+        }
+        return `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+
+    _shapeToPathData(el) {
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'path') {
+            const d = el.getAttribute('d');
+            return d && d.trim() !== '' ? d : null;
+        }
+        if (tag === 'polygon') {
+            return this._polyPointsToPath(el.getAttribute('points'), true);
+        }
+        if (tag === 'polyline') {
+            return this._polyPointsToPath(el.getAttribute('points'), false);
+        }
+        if (tag === 'rect') {
+            return this._rectToPath(el);
+        }
+        if (tag === 'circle') {
+            return this._circleToPath(el);
+        }
+        if (tag === 'ellipse') {
+            return this._ellipseToPath(el);
+        }
+        if (tag === 'line') {
+            return this._lineToPath(el);
+        }
+        return null;
+    }
+
+    _extractMapShapes(svg) {
+        const out = [];
+        const warnings = [];
+
+        if (!svg || typeof svg !== 'string') {
+            warnings.push('Input SVG is empty or not a string.');
+            return { out, warnings };
+        }
+
+        try {
+            if (typeof DOMParser !== 'undefined') {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+                const parserError = svgDoc.querySelector('parsererror');
+                if (parserError) {
+                    warnings.push('SVG parser reported errors. Some elements may be skipped.');
+                }
+
+                const shapeNodes = svgDoc.querySelectorAll('path, polygon, polyline, rect, circle, ellipse, line');
+
+                for (let i = 0; i < shapeNodes.length; i++) {
+                    const node = shapeNodes[i];
+                    const tag = (node.tagName || '').toLowerCase();
+                    const dAttr = this._shapeToPathData(node);
+                    if (!dAttr) {
+                        warnings.push(`Skipped element #${i} (<${tag}>): missing or invalid geometry attributes.`);
+                        continue;
+                    }
+
+                    const idAttr = this._resolveMapElementId(node);
+                    if (!idAttr) {
+                        warnings.push(`Skipped element #${i} (<${tag}>): missing id/data-id on element and parent groups.`);
+                        continue;
+                    }
+
+                    const transformAttr = this._collectTransformChain(node);
+
+                    const abbr = idAttr.split(' ')[0].replaceAll('-', '_');
+                    const nameAttr = this._resolveMapElementName(node, idAttr);
+                    out.push({
+                        id: idAttr,
+                        abbr,
+                        name: nameAttr,
+                        d: dAttr,
+                        transform: transformAttr,
+                        tag,
+                        index: i
+                    });
+                }
+
+                const seenAbbr = new Set();
+                for (let i = 0; i < out.length; i++) {
+                    const abbr = out[i].abbr;
+                    if (seenAbbr.has(abbr)) {
+                        warnings.push(`Duplicate state abbreviation "${abbr}" detected from id "${out[i].id}".`);
+                    }
+                    seenAbbr.add(abbr);
+                }
+
+                return { out, warnings };
+            }
+        } catch (err) {
+            warnings.push(`DOM parsing failed: ${err?.message || err}`);
+        }
+
+        warnings.push('DOMParser unavailable. Falling back to path-only regex parsing.');
+
+        const pathRegex = /<path\b[^>]*>/gi;
+        const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
+        const dataIdRe = /(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i;
+        const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
+        const transformRe = /(?:^|[\s"'<])transform\s*=\s*"([^"]+)"/i;
+        const paths = svg.match(pathRegex) || [];
+
+        for (let i = 0; i < paths.length; i++) {
+            const tag = paths[i];
+            const idMatch = idReStrict.exec(tag) || dataIdRe.exec(tag);
+            const dMatch = dReStrict.exec(tag);
+
+            if (!idMatch || !dMatch) {
+                warnings.push(`Skipped regex path #${i}: missing id/data-id or d attribute.`);
+                continue;
+            }
+
+            const id = idMatch[1];
+            const d = dMatch[1];
+            const transformMatch = transformRe.exec(tag);
+            const transform = transformMatch?.[1]?.trim() || '';
+            const abbr = id.split(' ')[0].replaceAll('-', '_');
+            out.push({ id, abbr, name: id, d, transform, tag: 'path', index: i });
+        }
+
+        return { out, warnings };
+    }
+
     getMapForPreview(svg) {
         console.log("getMapForPreview called with SVG length:", svg?.length ?? 0);
         if (!svg || typeof svg !== 'string') {
@@ -856,65 +1127,17 @@ class TCTData {
             return [];
         }
 
-        // prefer DOM parsing when available
-        try {
-            if (typeof DOMParser !== 'undefined') {
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
-                const pathElements = svgDoc.querySelectorAll('path');
-                console.log(`Found ${pathElements.length} path elements in SVG`);
-
-                const out = [];
-                for (let i = 0; i < pathElements.length; i++) {
-                    try {
-                        const path = pathElements[i];
-                        const idAttr = path.getAttribute('id') || path.getAttribute('data-id');
-                        const dAttr = path.getAttribute('d');
-                        if (!idAttr || !dAttr) {
-                            if (i % 25 === 0) console.warn(`Path at index ${i} missing id or d attribute`);
-                            continue;
-                        }
-                        const abbr = idAttr.split(" ")[0].replaceAll("-", "_");
-                        out.push([abbr, dAttr]);
-                        if (i % 10 === 0) console.log(`Processed state: ${abbr}`);
-                    } catch (err) {
-                        console.error(`Error processing path at index ${i}:`, err);
-                    }
-                }
-                console.log(`Successfully processed ${out.length} states`);
-                return out;
-            }
-        } catch (e) {
-            console.warn("DOMParser not available; falling back to regex parsing.");
-        }
-
-        // fallback: regex parsing when DOMParser is not available
-        const out = [];
-        const pathRegex = /<path\b[^>]*>/gi;
-        const attrRegex = /(?:^|[\s"'<])(id|data-id|d)\s*=\s*"([^"]+)"/gi;
-
-        let match;
-        while ((match = pathRegex.exec(svg)) !== null) {
-            const tag = match[0];
-            let id = null, d = null;
-            let attrMatch;
-
-            // reset lastIndex for the tag string
-            attrRegex.lastIndex = 0;
-            while ((attrMatch = attrRegex.exec(tag)) !== null) {
-                const name = attrMatch[1];
-                const val = attrMatch[2];
-                if (name === 'd') d = val;
-                else if (!id) id = val; // prioritize first id found
-            }
-
-            if (id && d) {
-                const abbr = id.split(" ")[0].replaceAll("-", "_");
-                out.push([abbr, d]);
+        const parsed = this._extractMapShapes(svg);
+        if (parsed.warnings.length > 0) {
+            console.warn(`Map preview parsing produced ${parsed.warnings.length} warning(s).`);
+            for (let i = 0; i < parsed.warnings.length; i++) {
+                console.warn(parsed.warnings[i]);
             }
         }
-        console.log(`Regex fallback processed ${out.length} states`);
-        return out;
+
+        const previewData = parsed.out.map((x) => [x.abbr, x.d, x.transform || '']);
+        console.log(`Successfully processed ${previewData.length} states for preview`);
+        return previewData;
     }
 
     deleteCandidate(pk) {
@@ -1076,87 +1299,38 @@ class TCTData {
         const svg = this.jet_data.mapping_data.mapSvg || "";
         const electionPk = this.jet_data.mapping_data.electionPk ?? -1;
 
-        // DOM parsing approach
-        let parsedViaDOM = false;
-        try {
-            if (typeof DOMParser !== 'undefined') {
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
-                const pathNodes = svgDoc.querySelectorAll('path');
+        const parsed = this._extractMapShapes(svg);
+        this.jet_data.mapping_data.lastImportWarnings = parsed.warnings;
 
-                for (let i = 0; i < pathNodes.length; i++) {
-                    const p = pathNodes[i];
-                    const idAttr = p.getAttribute('id') || p.getAttribute('data-id');
-                    const nameAttr = p.getAttribute('data-name') || idAttr;
-                    const dAttr = p.getAttribute('d');
-                    if (!idAttr || !dAttr) continue;
-
-                    const abbr = idAttr.split(" ")[0].replaceAll("-", "_");
-                    const newPk = this.getNewPk();
-                    const state = {
-                        "model": "campaign_trail.state",
-                        "pk": newPk,
-                        "fields": {
-                            "name": nameAttr || abbr,
-                            "abbr": abbr,
-                            "electoral_votes": 1,
-                            "popular_votes": 10,
-                            "poll_closing_time": 120,
-                            "winner_take_all_flg": 1,
-                            "election": electionPk,
-                        },
-                        "d": dAttr
-                    };
-                    this.states[newPk] = state;
-                    this._addStateRelations(newPk, cans, issues);
-                }
-                parsedViaDOM = true;
-            }
-        } catch (err) {
-            console.warn("DOMParser failed in loadMap, falling back to regex:", err);
+        for (let i = 0; i < parsed.out.length; i++) {
+            const shape = parsed.out[i];
+            const newPk = this.getNewPk();
+            const state = {
+                "model": "campaign_trail.state",
+                "pk": newPk,
+                "fields": {
+                    "name": shape.name || shape.abbr,
+                    "abbr": shape.abbr,
+                    "electoral_votes": 1,
+                    "popular_votes": 10,
+                    "poll_closing_time": 120,
+                    "winner_take_all_flg": 1,
+                    "election": electionPk,
+                },
+                "d": shape.d,
+                "transform": shape.transform || ""
+            };
+            this.states[newPk] = state;
+            this._addStateRelations(newPk, cans, issues);
         }
 
-        if (!parsedViaDOM) {
-            // regex fallback with strict attribute matching
-            const pathRegex = /<path\b[^>]*>/gi;
-            const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
-            const dataIdRe = /(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i;
-            const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
-
-            const paths = svg.match(pathRegex) || [];
-
-            for (let i = 0; i < paths.length; i++) {
-                const tag = paths[i];
-                const idMatch = idReStrict.exec(tag) || dataIdRe.exec(tag);
-                const dMatch = dReStrict.exec(tag);
-                if (!idMatch || !dMatch) {
-                    console.warn(`Skipping path index ${i} due to missing id or d attribute`);
-                    continue;
-                }
-
-                const id = idMatch[1];
-                const d = dMatch[1];
-                const abbr = id.split(" ")[0].replaceAll("-", "_");
-
-                const newPk = this.getNewPk();
-                const state = {
-                    "model": "campaign_trail.state",
-                    "pk": newPk,
-                    "fields": {
-                        "name": id,
-                        "abbr": abbr,
-                        "electoral_votes": 1,
-                        "popular_votes": 10,
-                        "poll_closing_time": 120,
-                        "winner_take_all_flg": 1,
-                        "election": electionPk,
-                    },
-                    "d": d
-                };
-                this.states[newPk] = state;
-                this._addStateRelations(newPk, cans, issues);
+        if (parsed.warnings.length > 0) {
+            console.warn(`Map import completed with ${parsed.warnings.length} warning(s).`);
+            for (let i = 0; i < parsed.warnings.length; i++) {
+                console.warn(parsed.warnings[i]);
             }
         }
+
         this._invalidateCache('candidate_state_multiplier_by_candidate');
         this._invalidateCache('candidate_state_multiplier_by_state');
         this._invalidateCache('state_issue_scores_by_state');
@@ -1165,7 +1339,7 @@ class TCTData {
 
     getMapCode() {
         const viewboxCode = false ? "this.paper.setViewBox(0,0,c,u,false);" : `this.paper.setViewBox(${this.jet_data.mapping_data.dx}, ${this.jet_data.mapping_data.dy}, ${this.jet_data.mapping_data.x}, ${this.jet_data.mapping_data.y}, false);`;
-        return `(function(e,t,n,r,i){function s(e,t,n,r){r=r instanceof Array?r:[];var i={};for(var s=0;s<r.length;s++){i[r[s]]=true}var o=function(e){this.element=e};o.prototype=n;e.fn[t]=function(){var n=arguments;var r=this;this.each(function(){var s=e(this);var u=s.data("plugin-"+t);if(!u){u=new o(s);s.data("plugin-"+t,u);if(u._init){u._init.apply(u,n)}}else if(typeof n[0]=="string"&&n[0].charAt(0)!="_"&&typeof u[n[0]]=="function"){var a=Array.prototype.slice.call(n,1);var f=u[n[0]].apply(u,a);if(n[0]in i){r=f}}});return r}}var o=370,u=215,a=10;var f={stateStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},stateHoverStyles:{fill:"#33c",stroke:"#000",scale:[1.1,1.1]},stateSpecificStyles:{},stateSpecificHoverStyles:{},click:null,mouseover:null,mouseout:null,clickState:{},mouseoverState:{},mouseoutState:{},showLabels:true,labelWidth:20,labelHeight:15,labelGap:6,labelRadius:3,labelBackingStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},labelBackingHoverStyles:{fill:"#33c",stroke:"#000"},stateSpecificLabelBackingStyles:{},stateSpecificLabelBackingHoverStyles:{},labelTextStyles:{fill:"#fff",stroke:"none","font-weight":300,"stroke-width":0,"font-size":"10px"},labelTextHoverStyles:{},stateSpecificLabelTextStyles:{},stateSpecificLabelTextHoverStyles:{}};var l={_init:function(t){this.options={};e.extend(this.options,f,t);var n=this.element.width();var i=this.element.height();var s=this.element.width()/o;var l=this.element.height()/u;this.scale=Math.min(s,l);this.labelAreaWidth=Math.ceil(a/this.scale);var c=o+Math.max(0,this.labelAreaWidth-a);this.paper=r(this.element.get(0),c,u);this.paper.setSize(n,i);${viewboxCode}this.stateHitAreas={};this.stateShapes={};this.topShape=null;this._initCreateStates();this.labelShapes={};this.labelTexts={};this.labelHitAreas={};if(this.options.showLabels){this._initCreateLabels()}},_initCreateStates:function(){var t=this.options.stateStyles;var n=this.paper;var r={${this.getStateJavascriptForMapping()}};var i={};for(var s in r){i={};if(this.options.stateSpecificStyles[s]){e.extend(i,t,this.options.stateSpecificStyles[s])}else{i=t}this.stateShapes[s]=n.path(r[s]).attr(i);this.topShape=this.stateShapes[s];this.stateHitAreas[s]=n.path(r[s]).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.stateHitAreas[s].node.dataState=s}this._onClickProxy=e.proxy(this,"_onClick");this._onMouseOverProxy=e.proxy(this,"_onMouseOver"),this._onMouseOutProxy=e.proxy(this,"_onMouseOut");for(var s in this.stateHitAreas){this.stateHitAreas[s].toFront();e(this.stateHitAreas[s].node).bind("mouseout",this._onMouseOutProxy);e(this.stateHitAreas[s].node).bind("click",this._onClickProxy);e(this.stateHitAreas[s].node).bind("mouseover",this._onMouseOverProxy)}},_initCreateLabels:function(){var t=this.paper;var n=[];var r=860;var i=220;var s=this.options.labelWidth;var o=this.options.labelHeight;var u=this.options.labelGap;var a=this.options.labelRadius;var f=s/this.scale;var l=o/this.scale;var c=(s+u)/this.scale;var h=(o+u)/this.scale*.5;var p=a/this.scale;var d=this.options.labelBackingStyles;var v=this.options.labelTextStyles;var m={};for(var g=0,y,b,w;g<n.length;++g){w=n[g];y=(g+1)%2*c+r;b=g*h+i,m={};if(this.options.stateSpecificLabelBackingStyles[w]){e.extend(m,d,this.options.stateSpecificLabelBackingStyles[w])}else{m=d}this.labelShapes[w]=t.rect(y,b,f,l,p).attr(m);m={};if(this.options.stateSpecificLabelTextStyles[w]){e.extend(m,v,this.options.stateSpecificLabelTextStyles[w])}else{e.extend(m,v)}if(m["font-size"]){m["font-size"]=parseInt(m["font-size"])/this.scale+"px"}this.labelTexts[w]=t.text(y+f/2,b+l/2,w).attr(m);this.labelHitAreas[w]=t.rect(y,b,f,l,p).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.labelHitAreas[w].node.dataState=w}for(var w in this.labelHitAreas){this.labelHitAreas[w].toFront();e(this.labelHitAreas[w].node).bind("mouseout",this._onMouseOutProxy);e(this.labelHitAreas[w].node).bind("click",this._onClickProxy);e(this.labelHitAreas[w].node).bind("mouseover",this._onMouseOverProxy)}},_getStateFromEvent:function(e){var t=e.target&&e.target.dataState||e.dataState;return this._getState(t)},_getState:function(e){var t=this.stateShapes[e];var n=this.stateHitAreas[e];var r=this.labelShapes[e];var i=this.labelTexts[e];var s=this.labelHitAreas[e];return{shape:t,hitArea:n,name:e,labelBacking:r,labelText:i,labelHitArea:s}},_onMouseOut:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseout",e,t)},_defaultMouseOutAction:function(t){var n={};if(this.options.stateSpecificStyles[t.name]){e.extend(n,this.options.stateStyles,this.options.stateSpecificStyles[t.name])}else{n=this.options.stateStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingStyles[t.name]){e.extend(n,this.options.labelBackingStyles,this.options.stateSpecificLabelBackingStyles[t.name])}else{n=this.options.labelBackingStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_onClick:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("click",e,t)},_onMouseOver:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseover",e,t)},_defaultMouseOverAction:function(t){this.bringShapeToFront(t.shape);this.paper.safari();var n={};if(this.options.stateSpecificHoverStyles[t.name]){e.extend(n,this.options.stateHoverStyles,this.options.stateSpecificHoverStyles[t.name])}else{n=this.options.stateHoverStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingHoverStyles[t.name]){e.extend(n,this.options.labelBackingHoverStyles,this.options.stateSpecificLabelBackingHoverStyles[t.name])}else{n=this.options.labelBackingHoverStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_triggerEvent:function(t,n,r){var i=r.name;var s=false;var o=e.Event("usmap"+t+i);o.originalEvent=n;if(this.options[t+"State"][i]){s=this.options[t+"State"][i](o,r)===false}if(o.isPropagationStopped()){this.element.trigger(o,[r]);s=s||o.isDefaultPrevented()}if(!o.isPropagationStopped()){var u=e.Event("usmap"+t);u.originalEvent=n;if(this.options[t]){s=this.options[t](u,r)===false||s}if(!u.isPropagationStopped()){this.element.trigger(u,[r]);s=s||u.isDefaultPrevented()}}if(!s){switch(t){case"mouseover":this._defaultMouseOverAction(r);break;case"mouseout":this._defaultMouseOutAction(r);break}}return!s},trigger:function(e,t,n){t=t.replace("usmap","");e=e.toUpperCase();var r=this._getState(e);this._triggerEvent(t,n,r)},bringShapeToFront:function(e){if(this.topShape){e.insertAfter(this.topShape)}this.topShape=e}};var c=[];s(e,"usmap",l,c)})(jQuery,document,window,Raphael)`
+        return `(function(e,t,n,r,i){function s(e,t,n,r){r=r instanceof Array?r:[];var i={};for(var s=0;s<r.length;s++){i[r[s]]=true}var o=function(e){this.element=e};o.prototype=n;e.fn[t]=function(){var n=arguments;var r=this;this.each(function(){var s=e(this);var u=s.data("plugin-"+t);if(!u){u=new o(s);s.data("plugin-"+t,u);if(u._init){u._init.apply(u,n)}}else if(typeof n[0]=="string"&&n[0].charAt(0)!="_"&&typeof u[n[0]]=="function"){var a=Array.prototype.slice.call(n,1);var f=u[n[0]].apply(u,a);if(n[0]in i){r=f}}});return r}}var o=370,u=215,a=10;var f={stateStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},stateHoverStyles:{fill:"#33c",stroke:"#000",scale:[1.1,1.1]},stateSpecificStyles:{},stateSpecificHoverStyles:{},click:null,mouseover:null,mouseout:null,clickState:{},mouseoverState:{},mouseoutState:{},showLabels:true,labelWidth:20,labelHeight:15,labelGap:6,labelRadius:3,labelBackingStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},labelBackingHoverStyles:{fill:"#33c",stroke:"#000"},stateSpecificLabelBackingStyles:{},stateSpecificLabelBackingHoverStyles:{},labelTextStyles:{fill:"#fff",stroke:"none","font-weight":300,"stroke-width":0,"font-size":"10px"},labelTextHoverStyles:{},stateSpecificLabelTextStyles:{},stateSpecificLabelTextHoverStyles:{}};var l={_init:function(t){this.options={};e.extend(this.options,f,t);var n=this.element.width();var i=this.element.height();var s=this.element.width()/o;var l=this.element.height()/u;this.scale=Math.min(s,l);this.labelAreaWidth=Math.ceil(a/this.scale);var c=o+Math.max(0,this.labelAreaWidth-a);this.paper=r(this.element.get(0),c,u);this.paper.setSize(n,i);${viewboxCode}this.stateHitAreas={};this.stateShapes={};this.topShape=null;this._initCreateStates();this.labelShapes={};this.labelTexts={};this.labelHitAreas={};if(this.options.showLabels){this._initCreateLabels()}},_initCreateStates:function(){var t=this.options.stateStyles;var n=this.paper;var r={${this.getStateJavascriptForMapping()}};var tr={${this.getStateTransformJavascriptForMapping()}};var i={};for(var s in r){i={};if(this.options.stateSpecificStyles[s]){e.extend(i,t,this.options.stateSpecificStyles[s])}else{i=t}this.stateShapes[s]=n.path(r[s]).attr(i);if(tr[s]){if(this.stateShapes[s].node&&this.stateShapes[s].node.setAttribute){this.stateShapes[s].node.setAttribute("transform",tr[s])}else{this.stateShapes[s].transform(tr[s])}}this.topShape=this.stateShapes[s];this.stateHitAreas[s]=n.path(r[s]).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});if(tr[s]){if(this.stateHitAreas[s].node&&this.stateHitAreas[s].node.setAttribute){this.stateHitAreas[s].node.setAttribute("transform",tr[s])}else{this.stateHitAreas[s].transform(tr[s])}}this.stateHitAreas[s].node.dataState=s}this._onClickProxy=e.proxy(this,"_onClick");this._onMouseOverProxy=e.proxy(this,"_onMouseOver"),this._onMouseOutProxy=e.proxy(this,"_onMouseOut");for(var s in this.stateHitAreas){this.stateHitAreas[s].toFront();e(this.stateHitAreas[s].node).bind("mouseout",this._onMouseOutProxy);e(this.stateHitAreas[s].node).bind("click",this._onClickProxy);e(this.stateHitAreas[s].node).bind("mouseover",this._onMouseOverProxy)}},_initCreateLabels:function(){var t=this.paper;var n=[];var r=860;var i=220;var s=this.options.labelWidth;var o=this.options.labelHeight;var u=this.options.labelGap;var a=this.options.labelRadius;var f=s/this.scale;var l=o/this.scale;var c=(s+u)/this.scale;var h=(o+u)/this.scale*.5;var p=a/this.scale;var d=this.options.labelBackingStyles;var v=this.options.labelTextStyles;var m={};for(var g=0,y,b,w;g<n.length;++g){w=n[g];y=(g+1)%2*c+r;b=g*h+i,m={};if(this.options.stateSpecificLabelBackingStyles[w]){e.extend(m,d,this.options.stateSpecificLabelBackingStyles[w])}else{m=d}this.labelShapes[w]=t.rect(y,b,f,l,p).attr(m);m={};if(this.options.stateSpecificLabelTextStyles[w]){e.extend(m,v,this.options.stateSpecificLabelTextStyles[w])}else{e.extend(m,v)}if(m["font-size"]){m["font-size"]=parseInt(m["font-size"])/this.scale+"px"}this.labelTexts[w]=t.text(y+f/2,b+l/2,w).attr(m);this.labelHitAreas[w]=t.rect(y,b,f,l,p).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.labelHitAreas[w].node.dataState=w}for(var w in this.labelHitAreas){this.labelHitAreas[w].toFront();e(this.labelHitAreas[w].node).bind("mouseout",this._onMouseOutProxy);e(this.labelHitAreas[w].node).bind("click",this._onClickProxy);e(this.labelHitAreas[w].node).bind("mouseover",this._onMouseOverProxy)}},_getStateFromEvent:function(e){var t=e.target&&e.target.dataState||e.dataState;return this._getState(t)},_getState:function(e){var t=this.stateShapes[e];var n=this.stateHitAreas[e];var r=this.labelShapes[e];var i=this.labelTexts[e];var s=this.labelHitAreas[e];return{shape:t,hitArea:n,name:e,labelBacking:r,labelText:i,labelHitArea:s}},_onMouseOut:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseout",e,t)},_defaultMouseOutAction:function(t){var n={};if(this.options.stateSpecificStyles[t.name]){e.extend(n,this.options.stateStyles,this.options.stateSpecificStyles[t.name])}else{n=this.options.stateStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingStyles[t.name]){e.extend(n,this.options.labelBackingStyles,this.options.stateSpecificLabelBackingStyles[t.name])}else{n=this.options.labelBackingStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_onClick:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("click",e,t)},_onMouseOver:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseover",e,t)},_defaultMouseOverAction:function(t){this.bringShapeToFront(t.shape);this.paper.safari();var n={};if(this.options.stateSpecificHoverStyles[t.name]){e.extend(n,this.options.stateHoverStyles,this.options.stateSpecificHoverStyles[t.name])}else{n=this.options.stateHoverStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingHoverStyles[t.name]){e.extend(n,this.options.labelBackingHoverStyles,this.options.stateSpecificLabelBackingHoverStyles[t.name])}else{n=this.options.labelBackingHoverStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_triggerEvent:function(t,n,r){var i=r.name;var s=false;var o=e.Event("usmap"+t+i);o.originalEvent=n;if(this.options[t+"State"][i]){s=this.options[t+"State"][i](o,r)===false}if(o.isPropagationStopped()){this.element.trigger(o,[r]);s=s||o.isDefaultPrevented()}if(!o.isPropagationStopped()){var u=e.Event("usmap"+t);u.originalEvent=n;if(this.options[t]){s=this.options[t](u,r)===false||s}if(!u.isPropagationStopped()){this.element.trigger(u,[r]);s=s||u.isDefaultPrevented()}}if(!s){switch(t){case"mouseover":this._defaultMouseOverAction(r);break;case"mouseout":this._defaultMouseOutAction(r);break}}return!s},trigger:function(e,t,n){t=t.replace("usmap","");e=e.toUpperCase();var r=this._getState(e);this._triggerEvent(t,n,r)},bringShapeToFront:function(e){if(this.topShape){e.insertAfter(this.topShape)}this.topShape=e}};var c=[];s(e,"usmap",l,c)})(jQuery,document,window,Raphael)`
     }
 
     getStateJavascriptForMapping() {
@@ -1181,6 +1355,22 @@ class TCTData {
         }
 
         return f
+    }
+
+    getStateTransformJavascriptForMapping() {
+        const chunks = [];
+        const states = Object.values(this.states);
+
+        for (let i = 0; i < states.length; i++) {
+            const abbr = states[i].fields.abbr;
+            const transform = states[i].transform || "";
+            if (transform) {
+                const escapedTransform = String(transform).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+                chunks.push(`"${abbr}":"${escapedTransform}"`);
+            }
+        }
+
+        return chunks.join(',');
     }
 
     exportCode2() {

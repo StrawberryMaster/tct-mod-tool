@@ -66,6 +66,13 @@ registerComponent('mapping', {
                             💡 The current zoom level ({{ Math.round(zoomLevel * 100) }}%) and pan position will be applied 
                             to the final map dimensions in your mod.
                         </p>
+
+                        <div v-if="importWarnings.length > 0" class="mt-3 rounded-sm border border-amber-300 bg-amber-50 p-3">
+                            <p class="text-sm font-semibold text-amber-800">Import warnings ({{ importWarnings.length }})</p>
+                            <ul class="mt-2 list-disc pl-5 text-xs text-amber-900 max-h-40 overflow-auto">
+                                <li v-for="(warning, idx) in importWarnings" :key="idx">{{ warning }}</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </details>
@@ -164,7 +171,15 @@ registerComponent('mapping', {
 
             this.$TCT.loadMap();
             this.$globalData.state = Object.keys(this.$TCT.states)[0];
-            alert("Custom map SVG loaded in. If there were any errors they are in the console. Check your states dropdown to confirm it is working.")
+            const warnings = this.importWarnings;
+            if (warnings.length > 0) {
+                console.warn(`Map import had ${warnings.length} warning(s):`);
+                for (let i = 0; i < warnings.length; i++) {
+                    console.warn(warnings[i]);
+                }
+            }
+
+            alert(`Custom map SVG loaded in with ${warnings.length} warning(s). Check the warning list and console for skipped regions.`)
             this.$globalData.mode = STATE;
             this.$globalData.dataVersion++;
 
@@ -277,6 +292,10 @@ registerComponent('mapping', {
             return this.$TCT.jet_data.mapping_data.electionPk;
         },
 
+        importWarnings: function () {
+            return this.$TCT.jet_data.mapping_data?.lastImportWarnings ?? [];
+        },
+
         enabled: function () {
             if (this.$TCT.jet_data.mapping_enabled == null) {
                 this.$TCT.jet_data.mapping_enabled = false;
@@ -300,7 +319,7 @@ registerComponent('map-preview', {
     template: `
     <div id="map_container">
         <svg height="400.125" version="1.1" width="722.156" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color:#BFE6FF; overflow: hidden; position: relative; left: -0.895844px; top: -0.552084px;" :viewBox="viewBox" preserveAspectRatio="xMinYMin">    
-            <path v-for="x in mapCode" :d="x[1]" :id="x[0]" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);" fill="#ff9494" stroke="#000000" ></path>
+            <path v-for="x in mapCode" :d="x[1]" :transform="x[2] || null" :id="x[0]" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);" fill="#ff9494" stroke="#000000" ></path>
         </svg>
     </div>
     `,

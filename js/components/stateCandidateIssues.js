@@ -1125,7 +1125,7 @@ registerComponent('issue-state-map-editor', {
                 const x = col * (size + padding) + 50;
                 const y = row * (size + padding) + 50;
                 const path = `M${x},${y} h${size} v${size} h-${size} Z`;
-                return [state.fields?.abbr || `S${state.pk}`, path];
+                return [state.fields?.abbr || `S${state.pk}`, path, ''];
             });
 
             this.usingBasicShapes = true;
@@ -1346,6 +1346,18 @@ registerComponent('issue-state-map-editor', {
             return 'M0,0 h20 v20 h-20 Z';
         },
 
+        getStateTransform(state) {
+            const abbr = state.fields?.abbr;
+            if (abbr) {
+                let entry = this.mapData.find(item => item[0] === abbr);
+                if (entry) return entry[2] || '';
+                const normalized = abbr.replaceAll('-', '_');
+                entry = this.mapData.find(item => item[0] === normalized);
+                if (entry) return entry[2] || '';
+            }
+            return state.transform || '';
+        },
+
         stateStroke(statePk) {
             if (this.selectedStates[statePk]) return '#000000';
             if (this.highlightedState == statePk) return '#666666';
@@ -1388,6 +1400,7 @@ registerComponent('issue-state-map-editor', {
                         v-for="state in states"
                         :key="state.pk"
                         :d="getStatePath(state)"
+                        :transform="getStateTransform(state) || null"
                         :style="{
                             fill: getStateColor(state.pk),
                             stroke: stateStroke(state.pk),
