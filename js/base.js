@@ -1422,161 +1422,73 @@ class TCTData {
 
         parts.push(this.getEndingCode());
 
-        let codeToAdd = this.jet_data.code_to_add || "";
+        let codeToAdd = (this.jet_data.code_to_add || "").trim();
 
-        // normalize custom code to avoid issues with inconsistent newlines or trailing spaces
+        // normalize custom code newlines
         if (codeToAdd) {
-            let normalizedCustom = codeToAdd.replace(/\r\n/g, "\n");
-            normalizedCustom = normalizedCustom
-                .replace(/[ \t]+$/gm, "")
-                .replace(/^\n+/, "")
-                .replace(/\n+$/, "");
-            codeToAdd = normalizedCustom;
+            codeToAdd = codeToAdd.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").replace(/^\n+/, "").replace(/\n+$/, "");
         }
 
-        // keep generated CYOA code inside //#startcode when possible
-        // if custom code already defines cyoAdventure, merge in generated
-        // helpers + variable declarations + variable effects without
-        // clobbering the user's custom CYOA code
+        // CYOA merging logic
         if (generatedCyoaCode) {
-            const normalizedGenerated = generatedCyoaCode.replace(/\r\n/g, "\n").trim();
-            const cyoaFnRe = /cyoAdventure\s*=\s*function\s*\(/m;
-            const helperSignatureRe = /function\s+(getQuestionNumberFromPk|getJumpIndexFromPk|getQuestionIndexFromPk)\s*\(/m;
-            const generatedVarBlockRe = /\/\/ CYOA Variables\n([\s\S]*?)(?=\ncyoAdventure\s*=\s*function\s*\()/m;
-            const generatedFnBodyRe = /cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{([\s\S]*?)\n\}\s*$/m;
+            const hasCustomCyoa = codeToAdd.includes("cyoAdventure") && codeToAdd.includes("function");
 
-            const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-            const findMatchingBrace = (text, openBraceIndex) => {
-                let depth = 0;
-                for (let i = openBraceIndex; i < text.length; i++) {
-                    const ch = text[i];
-                    if (ch === '{') depth++;
-                    else if (ch === '}') {
-                        depth--;
-                        if (depth === 0) return i;
-                    }
-                }
-                return -1;
-            };
-
-            const stripCommonIndent = (block) => {
-                const lines = block.split("\n");
-                let minIndent = null;
-                let minPositiveIndent = null;
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    const indent = line.match(/^\s*/)[0].length;
-                    minIndent = minIndent == null ? indent : Math.min(minIndent, indent);
-                    if (indent > 0) {
-                        minPositiveIndent = minPositiveIndent == null ? indent : Math.min(minPositiveIndent, indent);
-                    }
-                }
-
-                if (minIndent == null) return block;
-
-                // sometimes extraction leaves only the first line at column 0 while
-                // all other lines keep one indent level. in that case, trim the
-                // smallest positive indent from indented lines for better formatting
-                if (minIndent === 0 && minPositiveIndent != null) {
-                    return lines.map(line => {
-                        if (!line.trim()) return line;
-                        const indent = line.match(/^\s*/)[0].length;
-                        return indent >= minPositiveIndent ? line.slice(minPositiveIndent) : line;
-                    }).join("\n");
-                }
-
-                if (minIndent === 0) return block;
-                return lines.map(line => line.trim() ? line.slice(minIndent) : line).join("\n");
-            };
-
-            const splitIdx = normalizedGenerated.search(cyoaFnRe);
-            const generatedPrelude = splitIdx >= 0
-                ? normalizedGenerated.slice(0, splitIdx).trim()
-                : normalizedGenerated;
-
-            const generatedVarMatch = normalizedGenerated.match(generatedVarBlockRe);
-            const generatedVarDecls = generatedVarMatch ? generatedVarMatch[1].trim() : "";
-
-            const generatedFnBodyMatch = normalizedGenerated.match(generatedFnBodyRe);
-            let generatedEffects = "";
-            if (generatedFnBodyMatch) {
-                const fnBody = generatedFnBodyMatch[1];
-                const withoutAns = fnBody.replace(/^\s*const\s+ans\s*=.*?;\s*/m, "").trim();
-                generatedEffects = withoutAns.split(/\n\s*\/\/ Branching logic\b/m)[0].trim();
-            }
-
-            const customHasCyoaFn = cyoaFnRe.test(codeToAdd);
-            const customHasHelpers = helperSignatureRe.test(codeToAdd);
-
-            if (customHasCyoaFn) {
-                // inject helper prelude if missing
-                if (generatedPrelude && !customHasHelpers) {
-                    const match = cyoaFnRe.exec(codeToAdd);
-                    if (match) {
-                        const before = codeToAdd.slice(0, match.index).replace(/\s*$/, "");
-                        const after = codeToAdd.slice(match.index).replace(/^\s*/, "");
-                        codeToAdd = `${before ? before + "\n\n" : ""}${generatedPrelude}\n\n${after}`;
-                    }
-                }
-
-                // inject missing variable declarations before custom CYOA
-                const vars = this.getAllCyoaVariables();
-                const missingVarDecls = [];
-                for (const variable of vars) {
-                    const varName = String(variable.name || "").trim();
-                    if (!varName) continue;
-                    const declRe = new RegExp(`\\b(?:var|let|const)\\s+${escapeRegExp(varName)}\\s*=`);
-                    if (!declRe.test(codeToAdd)) {
-                        missingVarDecls.push(`var ${varName} = ${variable.defaultValue};`);
-                    }
-                }
-
-                if (missingVarDecls.length > 0) {
-                    const fnMatch = cyoaFnRe.exec(codeToAdd);
-                    if (fnMatch) {
-                        const before = codeToAdd.slice(0, fnMatch.index).replace(/\s*$/, "");
-                        const after = codeToAdd.slice(fnMatch.index).replace(/^\s*/, "");
-                        const declBlock = `// CYOA Variables\n${missingVarDecls.join("\n")}`;
-                        codeToAdd = `${before ? before + "\n\n" : ""}${declBlock}\n\n${after}`;
-                    }
-                }
-
-                // inject generated variable effects into custom CYOA body
-                if (generatedEffects) {
-                    const fnMatch = cyoaFnRe.exec(codeToAdd);
-                    if (fnMatch) {
-                        const openBraceIdx = codeToAdd.indexOf("{", fnMatch.index);
-                        const closeBraceIdx = openBraceIdx >= 0 ? findMatchingBrace(codeToAdd, openBraceIdx) : -1;
-                        if (openBraceIdx >= 0 && closeBraceIdx > openBraceIdx) {
-                            let body = codeToAdd.slice(openBraceIdx + 1, closeBraceIdx);
-
-                            const blockStart = "// [JETS_CYOA_VARIABLE_EFFECTS_START]";
-                            const blockEnd = "// [JETS_CYOA_VARIABLE_EFFECTS_END]";
-                            const existingBlockRe = /\n?\s*\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_START\][\s\S]*?\/\/ \[JETS_CYOA_VARIABLE_EFFECTS_END\]\n?/m;
-                            body = body.replace(existingBlockRe, "\n");
-
-                            const ansLineMatch = body.match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=.*?(?:;[ \t]*(?:\r?\n|$)|\r?\n)/m);
-                            const indent = ansLineMatch ? ansLineMatch[1] : "    ";
-                            const insertionPos = ansLineMatch
-                                ? (ansLineMatch.index + ansLineMatch[0].length)
-                                : 0;
-
-                            const normalizedEffects = stripCommonIndent(generatedEffects)
-                                .split("\n")
-                                .map(line => line.trim() ? `${indent}${line}` : "")
-                                .join("\n");
-
-                            const block = `\n${indent}${blockStart}\n${normalizedEffects}\n${indent}${blockEnd}\n`;
-                            body = `${body.slice(0, insertionPos)}${block}${body.slice(insertionPos)}`;
-
-                            codeToAdd = `${codeToAdd.slice(0, openBraceIdx + 1)}${body}${codeToAdd.slice(closeBraceIdx)}`;
-                        }
-                    }
-                }
+            if (!hasCustomCyoa) {
+                // if user has no existing CYOA
+                codeToAdd = `${generatedCyoaCode}\n\n${codeToAdd}`;
             } else {
-                const customTrimmed = (codeToAdd || "").trim();
-                codeToAdd = [normalizedGenerated, customTrimmed].filter(Boolean).join("\n\n");
+                // if user has existing CYOA
+
+                // declare missing variables
+                const missingVars = [];
+                for (const v of this.getAllCyoaVariables()) {
+                    const varName = (v.name || "").trim();
+                    if (varName && !new RegExp(`\\b(?:var|let|const)\\s+${varName}\\s*=`).test(codeToAdd)) {
+                        missingVars.push(`var ${varName} = ${v.defaultValue};`);
+                    }
+                }
+                const varDeclBlock = missingVars.length > 0 ? `// CYOA Variables\n${missingVars.join("\n")}\n\n` : "";
+
+                // extract the effects
+                const effectMatch = generatedCyoaCode.match(/cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{([\s\S]*?)\n\}\s*$/m);
+                let generatedEffects = "";
+                if (effectMatch) {
+                    let fnBody = effectMatch[1];
+                    fnBody = fnBody.replace(/^\s*(?:const|let|var)?\s*ans\s*=.*?;\s*/m, ""); // Strip redundant 'ans' definition
+                    generatedEffects = fnBody.split(/\n\s*\/\/ Branching logic\b/m)[0].replace(/^\n+/, "").trimEnd();
+                }
+
+                // inject effects block
+                const blockStart = "// [JETS_CYOA_VARIABLE_EFFECTS_START]";
+                const blockEnd = "// [JETS_CYOA_VARIABLE_EFFECTS_END]";
+
+                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}[\\s\\S]*?${blockEnd.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\n?`, "g");
+                codeToAdd = codeToAdd.replace(existingBlockRe, "\n");
+
+                if (generatedEffects) {
+                    const ansRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[ \t]*\r?\n)/;
+                    const ansMatch = codeToAdd.match(ansRe);
+
+                    if (ansMatch) {
+                        const insertionPoint = ansMatch.index + ansMatch[0].length;
+                        const indentMatch = ansMatch[0].match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=/);
+                        const indent = indentMatch ? indentMatch[1] : "    ";
+
+                        const formattedEffects = generatedEffects.split("\n").map(l => l.trim() ? `${indent}${l.replace(/^ {1,4}/, "")}` : "").join("\n");
+                        const block = `\n${indent}${blockStart}\n${formattedEffects}\n${indent}${blockEnd}\n`;
+
+                        codeToAdd = codeToAdd.slice(0, insertionPoint) + block + codeToAdd.slice(insertionPoint);
+                    }
+                }
+
+                // inject missing helpers
+                let prelude = "";
+                if (!codeToAdd.includes("getQuestionIndexFromPk")) {
+                    const preludeMatch = generatedCyoaCode.match(/([\s\S]*?)(?=\/\/ CYOA Variables|\ncyoAdventure\s*=)/);
+                    if (preludeMatch) prelude = preludeMatch[1].trim() + "\n\n";
+                }
+
+                codeToAdd = `${prelude}${varDeclBlock}${codeToAdd}`;
             }
         }
 
@@ -1760,65 +1672,98 @@ function getQuestionNumberFromPk(pk) {
     }
 }
 
+// helper to extract code
+class CodeExtractor {
+    constructor(rawText) {
+        this.raw = rawText;
+        this.ranges = [];
+    }
+
+    exclude(start, end) {
+        if (start !== -1 && end !== -1 && start < end) {
+            this.ranges.push({ start, end });
+        }
+    }
+
+    excludeRegex(regex) {
+        let match;
+        const flags = regex.flags.includes('g') ? regex.flags : regex.flags + 'g';
+        const globalRegex = new RegExp(regex.source, flags);
+        while ((match = globalRegex.exec(this.raw)) !== null) {
+            this.exclude(match.index, match.index + match[0].length);
+        }
+    }
+
+    getRemainingCode() {
+        if (this.ranges.length === 0) return this.raw.trim();
+
+        this.ranges.sort((a, b) => a.start - b.start);
+        const merged = [];
+        let curr = { ...this.ranges[0] };
+
+        for (let i = 1; i < this.ranges.length; i++) {
+            let next = this.ranges[i];
+            if (next.start <= curr.end) {
+                curr.end = Math.max(curr.end, next.end);
+            } else {
+                merged.push(curr);
+                curr = { ...next };
+            }
+        }
+        merged.push(curr);
+
+        let parts = [];
+        let lastEnd = 0;
+        for (const r of merged) {
+            if (r.start > lastEnd) parts.push(this.raw.substring(lastEnd, r.start));
+            lastEnd = r.end;
+        }
+        if (lastEnd < this.raw.length) parts.push(this.raw.substring(lastEnd));
+
+        let combined = parts.join("");
+
+        // clean up formatting artifacts
+        combined = combined.replace(/^[;\s]+/, "");
+        combined = combined.replace(/;\s*;/g, ";");
+        combined = combined.replace(/^[ \t]*;[ \t]*(?:\r?\n|$)/gm, "");
+        combined = combined.replace(/[ \t]+$/gm, "");
+        combined = combined.replace(/(\r\n|\r|\n){3,}/g, "\n\n");
+
+        return combined.trim();
+    }
+}
+
 function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = [], outRange = null) {
     let f = raw_file;
-    let res;
-
     let startIndex = f.indexOf(start);
     if (startIndex === -1) {
-        if (backup != null) {
-            console.log(`Start [${start}] not in file provided, trying backup ${backup}`);
-            return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback, outRange);
-        }
-        console.log(`ERROR: Start [${start}] not in file provided, returning none`);
-        if (required) {
-            console.warn(`WARNING: Your uploaded code 2 is missing the section '${start}'. Skipping it.`);
-        }
+        if (backup != null) return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback, outRange);
+        if (required) console.warn(`WARNING: Missing section '${start}'. Skipping it.`);
         return fallback;
     }
 
-    // try smart extraction for JSON.parse(...) wrappers
+    let startString = f.substring(startIndex + start.length);
     if (start.includes("JSON.parse")) {
-        let startString = f.substring(startIndex + start.length);
         let s = startString.trimStart();
-        const firstChar = s[0];
-
-        if (firstChar === '"' || firstChar === "'") {
-            const quote = firstChar;
-            let i = 1;
-            let escaped = false;
-            let literalContent = "";
+        if (s[0] === '"' || s[0] === "'") {
+            const quote = s[0];
+            let i = 1, escaped = false, literalContent = "";
             for (; i < s.length; i++) {
                 const ch = s[i];
-                if (escaped) {
-                    literalContent += "\\" + ch;
-                    escaped = false;
-                    continue;
-                }
-                if (ch === "\\") {
-                    escaped = true;
-                    continue;
-                }
-                if (ch === quote) {
-                    break;
-                }
+                if (escaped) { literalContent += "\\" + ch; escaped = false; continue; }
+                if (ch === "\\") { escaped = true; continue; }
+                if (ch === quote) break;
                 literalContent += ch;
             }
-
             if (i < s.length && s[i] === quote) {
-                const fullQuotedLiteral = quote + literalContent + quote;
                 let jsonText;
-                try {
-                    jsonText = JSON.parse(fullQuotedLiteral);
-                } catch (e) {
-                    jsonText = literalContent.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n");
-                }
+                try { jsonText = JSON.parse(quote + literalContent + quote); }
+                catch (e) { jsonText = literalContent.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n"); }
 
                 try {
-                    let candidate = jsonText;
-                    candidate = candidate.replace(/,\s*([}\]])/g, "$1");
+                    let candidate = jsonText.replace(/,\s*([}\]])/g, "$1");
                     if (end == "]") candidate = "[" + candidate + "]";
-                    res = JSON.parse(candidate);
+                    let res = JSON.parse(candidate);
 
                     if (outRange) {
                         outRange.start = startIndex;
@@ -1827,286 +1772,137 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
                         if (rest.startsWith(");")) outRange.end = f.indexOf(");", outRange.end) + 2;
                         else if (rest.startsWith(")")) outRange.end = f.indexOf(")", outRange.end) + 1;
                     }
-
-                    console.log("Found valid JSON via JSON.parse-string extraction for " + start + "!");
                     return res;
-                } catch (parseErr) {
-                    // continue to legacy probing
-                }
+                } catch (e) { }
             }
         }
     }
 
-    // legacy/array literal probing
-    let startString = f.substring(startIndex + start.length);
-    // safety check if string empty
-    if (!startString) return fallback;
-
-    let foundValidJSON = false;
-
-    // regex to match strings (group 1: double, single, or backtick), block comments (group 2), or line comments (group 3)
     const commentCleanerRegex = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:\\[\s\S]|[^`\\])*`)|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
-
-    // regex to capture comments before an object and inject them as a "_note" field
-    // matches: // comment [newline] {
     const commentPreserverRegex = /\/\/(.*)\s*[\r\n]+\s*\{/g;
-
-    // probe each candidate terminator lazily to avoid building an index array for large files
     let searchFrom = 0;
+
     while (true) {
         const endIdx = startString.indexOf(end, searchFrom);
         if (endIdx === -1) break;
 
-        let raw = startString.slice(0, endIdx);
-        let trimmedRaw = raw.trim();
-
-        // if the content is wrapped in quotes, unwrap it
-        if (trimmedRaw[0] === '"' || trimmedRaw[0] === "'") {
-            const quote = trimmedRaw[0];
-            let lastQuote = -1;
-            let escaped = false;
-            for (let j = 1; j < trimmedRaw.length; j++) {
+        let raw = startString.slice(0, endIdx).trim();
+        if (raw[0] === '"' || raw[0] === "'") {
+            const quote = raw[0];
+            let lastQuote = -1, escaped = false;
+            for (let j = 1; j < raw.length; j++) {
                 if (escaped) { escaped = false; continue; }
-                if (trimmedRaw[j] === '\\') { escaped = true; continue; }
-                if (trimmedRaw[j] === quote) { lastQuote = j; break; }
+                if (raw[j] === '\\') { escaped = true; continue; }
+                if (raw[j] === quote) { lastQuote = j; break; }
             }
-            if (lastQuote !== -1) {
-                raw = trimmedRaw.slice(1, lastQuote);
-            }
+            if (lastQuote !== -1) raw = raw.slice(1, lastQuote);
         }
 
-        // prepare raw content for JSON.parse or evaluation
         let jsonAttempt = raw;
-
-        // preserve comments by injecting them into the JSON structure ONLY if we are parsing an object (curly brace)
-        // this avoids corrupting simple strings or other types
         if (jsonAttempt.trim().startsWith("{")) {
-            jsonAttempt = jsonAttempt.replace(commentPreserverRegex, (match, comment) => {
-                const safeComment = comment.trim().replace(/"/g, '\\"'); // escape quotes
-                return `{ "_note": "${safeComment}", `;
-            });
+            jsonAttempt = jsonAttempt.replace(commentPreserverRegex, (match, comment) => `{ "_note": "${comment.trim().replace(/"/g, '\\"')}", `);
         }
-
-        // strip any remaining comments (inline or block) to ensure valid JSON
-        jsonAttempt = jsonAttempt.replace(commentCleanerRegex, (match, str, block, line) => {
-            if (str) return str; // keep strings
-            return ""; // remove comments
-        });
-
-        // remove trailing commas
-        jsonAttempt = jsonAttempt.replace(/,\s*([}\]])/g, "$1");
+        jsonAttempt = jsonAttempt.replace(commentCleanerRegex, (match, str) => str ? str : "").replace(/,\s*([}\]])/g, "$1");
 
         try {
-            let finalizedJson = jsonAttempt;
-            if (end == "]") finalizedJson = "[" + jsonAttempt + "]";
-            res = JSON.parse(finalizedJson);
-            foundValidJSON = true;
-            if (outRange) {
-                outRange.start = startIndex;
-                outRange.end = startIndex + start.length + endIdx + end.length;
-            }
-            console.log("Found valid ending for " + start + "!");
-            break;
+            let finalizedJson = end == "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
+            let res = JSON.parse(finalizedJson);
+            if (outRange) { outRange.start = startIndex; outRange.end = startIndex + start.length + endIdx + end.length; }
+            return res;
         } catch (e) {
-            // handle trailing commas or single quotes by using loose JS evaluation
             try {
-                let evalAttempt = jsonAttempt;
-                if (end == "]") evalAttempt = "[" + jsonAttempt + "]";
-                // ensure it starts with an array or object
+                let evalAttempt = end == "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
                 if (evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
-                    res = new Function("return " + evalAttempt)();
-                    foundValidJSON = true;
-                    if (outRange) {
-                        outRange.start = startIndex;
-                        outRange.end = startIndex + start.length + endIdx + end.length;
-                    }
-                    console.log("Found valid ending for " + start + " via loose evaluation!");
-                    break;
+                    let res = new Function("return " + evalAttempt)();
+                    if (outRange) { outRange.start = startIndex; outRange.end = startIndex + start.length + endIdx + end.length; }
+                    return res;
                 }
             } catch (e2) { }
-
-            // handle bad escaped characters (legacy fallback)
-            if (e instanceof SyntaxError && e.message.includes("bad escaped character")) {
-                try {
-                    const cleanRaw = jsonAttempt.replaceAll("\\'", "'");
-                    let attempt = cleanRaw;
-                    if (end == "]") attempt = "[" + cleanRaw + "]";
-                    res = JSON.parse(attempt);
-                    foundValidJSON = true;
-                    if (outRange) {
-                        outRange.start = startIndex;
-                        outRange.end = startIndex + start.length + endIdx + end.length;
-                    }
-                    console.log("Found valid ending for " + start + " after sanitizing escaped quotes!");
-                    break;
-                } catch (e2) { }
-            }
         }
-
         searchFrom = endIdx + 1;
     }
 
-    if (!foundValidJSON) {
-        console.log(`Error: Could not find a valid JSON for start ${start}`);
-        return fallback;
-    }
-
-    console.log(`found ${start}!`);
-    return res;
+    return fallback;
 }
 
-
 function loadDataFromFile(raw_json) {
+    const extractor = new CodeExtractor(raw_json);
     let highest_pk = -1;
-
-    let questions = new Map();
-    let answers = {};
-    let states = {};
-    let feedbacks = {};
-    let answer_score_globals = {};
-    let answer_score_issues = {};
-    let answer_score_states = {};
-    let state_issue_scores = {};
-    let candidate_issue_scores = {};
-    let candidate_state_multipliers = {};
-    let running_mate_issue_scores = {};
-    let issues = {};
-    let jet_data = {};
-
-    // map to track remapped IDs ( Old_Bad_ID => New_Safe_ID )
     let pkReplacements = new Map();
+    const duplicateCounters = new Map();
 
-    const rangesToExclude = [];
-    const sectionPatternCache = new Map();
+    const normalizeTextEncoding = (text) => {
+        return typeof text === 'string' ? text.replaceAll("â€™", "'").replaceAll("â€”", "—") : text;
+    };
 
-    function getSectionPattern(name) {
-        if (!sectionPatternCache.has(name)) {
-            // match: campaignTrail_temp.xxx = [ or { or JSON.parse(
-            // we use a lookahead for the assignment to avoid capturing the property name itself if possible,
-            // but here we match the whole assignment to define the exclusion range
-            const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
-            sectionPatternCache.set(name, pattern);
-        }
-        return sectionPatternCache.get(name);
-    }
-
-    function normalizeTextEncoding(text) {
-        if (typeof text !== 'string') return text;
-        return text.replaceAll("â€™", "'").replaceAll("â€”", "—");
-    }
-
-    function getSection(name, required = true, fallback = []) {
-        const range = { start: -1, end: -1 };
-        const match = raw_json.match(getSectionPattern(name));
+    const getSection = (name, required = true, fallback = []) => {
+        const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
+        const match = raw_json.match(pattern);
 
         if (match) {
-            const foundStart = match[0];
-            const innerFound = match[1].trim();
-            let endMarker = ");";
-            if (innerFound.startsWith("[")) endMarker = "]";
-            else if (innerFound.startsWith("{")) endMarker = "}";
-            else if (innerFound.startsWith("'") || innerFound.startsWith("\"")) {
-                endMarker = innerFound[0]; // matched quotes
-            }
+            let innerFound = match[1].trim();
+            let endMarker = innerFound.startsWith("[") ? "]" : innerFound.startsWith("{") ? "}" : innerFound[0];
+            if (match[1].includes("JSON.parse")) endMarker = ");";
 
-            const res = extractJSON(raw_json, foundStart, endMarker, null, null, required, fallback, range);
-            if (range.start !== -1) {
-                rangesToExclude.push(range);
-            }
+            const range = { start: -1, end: -1 };
+            const res = extractJSON(raw_json, match[0], endMarker, null, null, required, fallback, range);
+            extractor.exclude(range.start, range.end);
             return res;
         }
 
-        if (required) {
-            console.warn(`WARNING: Your uploaded code 2 is missing the section 'campaignTrail_temp.${name}'. Skipping it.`);
-        }
+        if (required) console.warn(`WARNING: Missing 'campaignTrail_temp.${name}'. Skipping it.`);
         return fallback;
-    }
+    };
 
-    // Logging helpers for duplicates
-    const duplicateCounters = new Map();
-    function _recordDuplicate(label) {
-        let c = duplicateCounters.get(label) || { total: 0 };
-        c.total += 1;
-        duplicateCounters.set(label, c);
-    }
+    const ensureUniqueAndStore = (container, obj) => {
+        if (!obj || typeof obj !== 'object') return;
+        obj.fields = obj.fields || {};
 
-    // sanitize/normalize PKs to avoid insane values (e.g. scientific-notation randoms)
-    function normalizePk(obj, container) {
-        let raw = obj.pk;
-        let pkNum = Number(raw);
-        let needsRemap = false;
+        let pkNum = Number(obj.pk);
+        let needsRemap = !Number.isFinite(pkNum) || Math.abs(pkNum) > Number.MAX_SAFE_INTEGER;
 
-        // check for non-finite or unsafe integers
-        if (!Number.isFinite(pkNum) || Math.abs(pkNum) > Number.MAX_SAFE_INTEGER) {
-            console.log(`PK ${raw} exceeds JS safety limits. Remapping...`);
+        if (!needsRemap && (container instanceof Map ? container.has(pkNum) : (pkNum in container))) {
+            const modelName = obj.model || "unknown";
+            duplicateCounters.set(modelName, (duplicateCounters.get(modelName) || 0) + 1);
             needsRemap = true;
         }
 
-        // check for duplicates only if not already needing remap
-        else {
-            let isTaken = (container instanceof Map ? container.has(pkNum) : (pkNum in container));
-            if (isTaken) {
-                _recordDuplicate(obj.model || "unknown");
-                needsRemap = true;
-            }
-        }
-
         if (needsRemap) {
-            // assign a new safe integer at the end of the list
             let newPk = ++highest_pk;
-
-            // store the mapping so we can fix foreign keys later
-            pkReplacements.set(raw, newPk);
-
-            // apply new PK
+            pkReplacements.set(obj.pk, newPk);
             obj.pk = newPk;
         } else {
-            // it's valid (even if float), keep it
             obj.pk = pkNum;
-
-            // update highest_pk logic to account for this existing ID
-            // we use Ceil to ensure the next generated ID is a clean integer above this one
-            if (pkNum > highest_pk && pkNum < Number.MAX_SAFE_INTEGER) {
-                highest_pk = Math.ceil(pkNum);
-            }
+            if (pkNum > highest_pk && pkNum < Number.MAX_SAFE_INTEGER) highest_pk = Math.ceil(pkNum);
         }
-    }
 
-    function ensureUniqueAndStore(container, obj) {
-        if (!obj || typeof obj !== 'object') return;
-        if (!obj.fields || typeof obj.fields !== 'object') obj.fields = {};
+        if (container instanceof Map) container.set(obj.pk, obj);
+        else container[obj.pk] = obj;
+    };
 
-        normalizePk(obj, container);
+    const questions = new Map(), answers = {}, states = {}, feedbacks = {}, answer_score_globals = {},
+        answer_score_issues = {}, answer_score_states = {}, state_issue_scores = {},
+        candidate_issue_scores = {}, candidate_state_multipliers = {},
+        running_mate_issue_scores = {}, issues = {};
 
-        if (container instanceof Map) {
-            container.set(obj.pk, obj);
-        } else {
-            container[obj.pk] = obj;
-        }
-    }
+    // fetch and store
+    getSection("states_json").forEach(s => ensureUniqueAndStore(states, s));
 
-    // load states (establishes baseline highest_pk)
-    getSection("states_json").forEach(state => ensureUniqueAndStore(states, state));
-
-    // load questions
     getSection("questions_json").forEach(q => {
         if (q?.fields?.description) q.fields.description = normalizeTextEncoding(q.fields.description);
         ensureUniqueAndStore(questions, q);
     });
 
-    // load answers
     getSection("answers_json").forEach(a => {
         if (a?.fields?.description) a.fields.description = normalizeTextEncoding(a.fields.description);
         ensureUniqueAndStore(answers, a);
     });
 
-    // load feedback
     getSection("answer_feedback_json").forEach(f => {
         if (f?.fields?.answer_feedback) f.fields.answer_feedback = normalizeTextEncoding(f.fields.answer_feedback);
         ensureUniqueAndStore(feedbacks, f);
     });
 
-    // load everything else
     const collections = [
         [answer_score_globals, "answer_score_global_json"],
         [answer_score_issues, "answer_score_issue_json"],
@@ -2114,202 +1910,87 @@ function loadDataFromFile(raw_json) {
         [candidate_issue_scores, "candidate_issue_score_json"],
         [candidate_state_multipliers, "candidate_state_multiplier_json"],
         [running_mate_issue_scores, "running_mate_issue_score_json"],
-        [state_issue_scores, "state_issue_score_json"]
+        [state_issue_scores, "state_issue_score_json"],
+        [issues, "issues_json"]
     ];
 
-    collections.forEach(([cont, name]) => {
-        getSection(name).forEach(x => ensureUniqueAndStore(cont, x));
-    });
+    collections.forEach(([cont, name]) => getSection(name).forEach(x => ensureUniqueAndStore(cont, x)));
 
-    const issues_json = getSection("issues_json");
-    issues_json.forEach(x => ensureUniqueAndStore(issues, x));
-
+    // patch foreign keys for remapped IDs
     if (pkReplacements.size > 0) {
         console.log(`Patching ${pkReplacements.size} ID references (duplicates/overflows)...`);
-
         const allContainers = [
-            questions, answers, states, feedbacks,
-            answer_score_globals, answer_score_issues, answer_score_states,
-            state_issue_scores, candidate_issue_scores, candidate_state_multipliers,
-            running_mate_issue_scores, issues
+            questions, answers, states, feedbacks, answer_score_globals, answer_score_issues,
+            answer_score_states, state_issue_scores, candidate_issue_scores,
+            candidate_state_multipliers, running_mate_issue_scores, issues
         ];
+        const foreignKeyFields = ["question", "answer", "candidate", "issue", "state", "affected_candidate", "running_mate"];
 
-        // fields that act as Foreign Keys
-        const foreignKeyFields = [
-            "question", "answer", "candidate", "issue", "state", "affected_candidate", "running_mate"
-        ];
-
-        for (let i = 0; i < allContainers.length; i++) {
-            const container = allContainers[i];
+        allContainers.forEach(container => {
             const values = container instanceof Map ? Array.from(container.values()) : Object.values(container);
-
-            for (let j = 0; j < values.length; j++) {
-                const item = values[j];
-                if (!item.fields) continue;
-
-                for (let k = 0; k < foreignKeyFields.length; k++) {
-                    const field = foreignKeyFields[k];
-                    const val = item.fields[field];
-                    // if the field value matches a bad ID we replaced
-                    if (val !== undefined && pkReplacements.has(val)) {
-                        item.fields[field] = pkReplacements.get(val);
+            values.forEach(item => {
+                if (!item.fields) return;
+                foreignKeyFields.forEach(field => {
+                    if (item.fields[field] !== undefined && pkReplacements.has(item.fields[field])) {
+                        item.fields[field] = pkReplacements.get(item.fields[field]);
                     }
-                }
+                });
+            });
+        });
+    }
+
+    // isolate jet_data
+    let jet_data = getSection("jet_data", false, [{}])[0] || {};
+    if (Object.keys(jet_data).length === 0) {
+        let jIdx = raw_json.indexOf("campaignTrail_temp.jet_data = [");
+        if (jIdx !== -1) {
+            let segment = raw_json.substring(jIdx + 31);
+            let lastBracket = segment.lastIndexOf("]");
+            if (lastBracket !== -1) {
+                extractor.exclude(jIdx, jIdx + 31 + lastBracket + 1);
+                let rawObj = segment.substring(0, lastBracket).replace(/("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm, (m, str) => str ? str : "");
+                try { jet_data = JSON.parse("[" + rawObj.replace(/,\s*([}\]])/g, "$1").replaceAll("\\'", "'") + "]")[0] || {}; } catch (e) { }
             }
         }
     }
 
-    jet_data = getSection("jet_data", false, [{}])[0];
-
-    // fallback extraction for jet_data
-    if (!jet_data || Object.keys(jet_data).length === 0) {
-        try {
-            let startMarker = "campaignTrail_temp.jet_data = [";
-            let jIdx = raw_json.indexOf(startMarker);
-            if (jIdx !== -1) {
-                let segment = raw_json.substring(jIdx + startMarker.length);
-                let lastBracket = segment.lastIndexOf("]");
-                if (lastBracket !== -1) {
-                    rangesToExclude.push({ start: jIdx, end: jIdx + startMarker.length + lastBracket + 1 });
-                    let rawObj = segment.substring(0, lastBracket);
-                    const commentCleanerRegex = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
-                    rawObj = rawObj.replace(commentCleanerRegex, (match, str, block, line) => str ? str : "");
-                    rawObj = rawObj.replace(/,\s*([}\]])/g, "$1").replaceAll("\\'", "'");
-                    jet_data = JSON.parse("[" + rawObj + "]")[0];
-                }
-            }
-        } catch (e) { }
-    }
-
-    jet_data = jet_data || {};
-
-    // some maps (such as those made by Oldbox) lack the map SVG in jet_data, but still have the
-    // custom map injection code in there. this is a way to add the old-school maps back in
+    // inject fallback map - if logic is outdated
     if (!jet_data.mapping_enabled && (!jet_data.mapping_data || !jet_data.mapping_data.mapSvg)) {
-        // use [\s\S] to match across newlines, and \s* around = to handle minification
         const mapInjectorMatch = raw_json.match(/_initCreateStates:function\(\)\{[^}]*?var\s+\w+\s*=\s*(\{[\s\S]+?\});/);
         if (mapInjectorMatch) {
-            try {
-                const mapObjStr = mapInjectorMatch[1];
-                // match keys that are optionally quoted, allowing spaces/dots/dashes
-                // Group 1 is quoted, Group 2 is unquoted
-                const pathRegex = /(?:["']([\w\s\.-]+)["']|([\w\s\.-]+))\s*:\s*"([^"]+)"/g;
-                let pathMatch;
-                let svgPaths = [];
-
-                while ((pathMatch = pathRegex.exec(mapObjStr)) !== null) {
-                    const stateName = pathMatch[1] || pathMatch[2];
-                    const pathData = pathMatch[3];
-                    svgPaths.push(`<path id="${stateName}" d="${pathData}" />`);
+            const pathRegex = /(?:["']([\w\s\.-]+)["']|([\w\s\.-]+))\s*:\s*"([^"]+)"/g;
+            let pathMatch, svgPaths = [];
+            while ((pathMatch = pathRegex.exec(mapInjectorMatch[1])) !== null) {
+                svgPaths.push(`<path id="${pathMatch[1] || pathMatch[2]}" d="${pathMatch[3]}" />`);
+            }
+            if (svgPaths.length > 0) {
+                let viewBox = "0 0 960 600";
+                const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
+                if (vbOffsets) {
+                    const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
+                    viewBox = `${vbOffsets[1]} ${vbOffsets[2]} ${dimsMatch ? '1100 ' + dimsMatch[2] : '1000 600'}`;
                 }
-
-                if (svgPaths.length > 0) {
-                    let viewBox = "0 0 960 600"; // default
-                    // try to extract viewBox offsets
-                    const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
-                    if (vbOffsets) {
-                        const startX = vbOffsets[1];
-                        const startY = vbOffsets[2];
-                        // estimate width/height
-                        const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
-                        if (dimsMatch) {
-                            // let's give it generous space
-                            viewBox = `${startX} ${startY} 1100 ${dimsMatch[2]}`;
-                        } else {
-                            viewBox = `${startX} ${startY} 1000 600`;
-                        }
-                    }
-
-                    jet_data.mapping_data = jet_data.mapping_data || {};
-                    jet_data.mapping_enabled = true;
-                    jet_data.mapping_data.mapSvg = `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>`;
-                    console.log("Injected custom map from code 2 injector pattern.");
-                }
-            } catch (e) {
-                console.error("Failed to parse map injector", e);
+                jet_data.mapping_data = { mapSvg: `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>` };
+                jet_data.mapping_enabled = true;
             }
         }
     }
 
-    // exclude markers and standard banners/endings to avoid duplication
+    // exclude markers
+    extractor.excludeRegex(/\/\/\s*#\s*(start|end)code/gi);
+    extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
+    extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
+    extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name)\s*=\s*".*?"\s*;/g);
+    extractor.excludeRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;/g);
 
-    // markers
-    const markers = ["//#startcode", "//#endcode", "//# startcode", "//# endcode"];
-    markers.forEach(m => {
-        let idx = raw_json.indexOf(m);
-        while (idx !== -1) {
-            rangesToExclude.push({ start: idx, end: idx + m.length });
-            idx = raw_json.indexOf(m, idx + 1);
-        }
-    });
-
-    // clear anything else that the tool manages explicitly in exportCode2
-    // also exclude the hardcoded versions
-    const bannerRegex = /campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name)\s*=\s*".*?"\s*;/g;
-    const multiEndingsRegex = /campaignTrail_temp\.multiple_endings\s*=\s*true\s*;/g;
-    const standardGeneratedRegexes = [bannerRegex, multiEndingsRegex];
-    standardGeneratedRegexes.forEach(re => {
-        let match;
-        while ((match = re.exec(raw_json)) !== null) {
-            rangesToExclude.push({ start: match.index, end: match.index + match[0].length });
-        }
-    });
-
-    // merge overlapping ranges and ensure logical order
-    rangesToExclude.sort((a, b) => a.start - b.start);
-    const mergedRanges = [];
-    if (rangesToExclude.length > 0) {
-        let current = { ...rangesToExclude[0] };
-        for (let i = 1; i < rangesToExclude.length; i++) {
-            let next = rangesToExclude[i];
-            if (next.start <= current.end) {
-                current.end = Math.max(current.end, next.end);
-            } else {
-                mergedRanges.push(current);
-                current = { ...next };
-            }
-        }
-        mergedRanges.push(current);
-    }
-
-    let extraCodeParts = [];
-    let lastEnd = 0;
-    for (const range of mergedRanges) {
-        if (range.start > lastEnd) {
-            let chunk = raw_json.substring(lastEnd, range.start);
-            extraCodeParts.push(chunk);
-        }
-        lastEnd = Math.max(lastEnd, range.end);
-    }
-    if (lastEnd < raw_json.length) {
-        let lastChunk = raw_json.substring(lastEnd);
-        extraCodeParts.push(lastChunk);
-    }
-
-    // process the extracted code
-    let combined = extraCodeParts.join("");
-
-    // clean up excessive white space or empty statements left over from replacements
-    combined = combined.replace(/^[;\s]+/, "");
-    combined = combined.replace(/;\s*;/g, ";");
-    combined = combined.replace(/[ \t]+$/gm, "");
-
-    // collapse excessive internal newlines (3+ -> 2)
-    combined = combined.replace(/(\r\n|\r|\n){3,}/g, "\n\n");
-
-    jet_data.code_to_add = combined;
-
-    // ensure required metadata structures exist
+    // ta-da!
+    jet_data.code_to_add = extractor.getRemainingCode();
     jet_data.nicknames = jet_data.nicknames || {};
     jet_data.banner_data = jet_data.banner_data || {};
     jet_data.mapping_data = jet_data.mapping_data || {};
 
-    let data = new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
+    duplicateCounters.forEach((count, label) => count > 0 && console.log(`Remapped ${count} duplicates in ${label}`));
 
-    for (const [label, c] of duplicateCounters) {
-        if (c.total > 0) console.log(`Remapped ${c.total} duplicates in ${label}`);
-    }
-
-    return data;
+    return new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
 }
 
