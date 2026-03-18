@@ -43,6 +43,11 @@ registerComponent('question', {
                 this.localDescription = newVal || '';
             }
         },
+        // if temp_answers changes (reactivity trigger after import), refresh description
+        // even if pk hasn't changed, in case the underlying question data was replaced
+        temp_answers() {
+            this.localDescription = this.description || '';
+        },
         // push edits into store and debounce autosave so typing is smooth
         localDescription(newVal) {
             const q = this.$TCT.questions.get(this.pk);
@@ -716,6 +721,8 @@ registerComponent('question', {
         },
 
         description: function () {
+            // track temp_answers for reactivity
+            this.temp_answers;
             return this.$TCT.questions.get(this.pk)?.fields.description;
         },
 

@@ -350,7 +350,16 @@ registerComponent('toolbar', {
                         // parse!
                         const parsed = loadDataFromFile(stripped);
                         window.$updateGlobalTCT(parsed);
-                        this.$globalData.question = Array.from(parsed.questions.values())[0].pk;
+                        
+                        const firstQuestionPk = Array.from(parsed.questions.values())[0].pk;
+                        
+                        // force question component to refresh even if pk is the same
+                        // useful in cases when importing mods works, but doesn't update the question you're currently in
+                        this.$globalData.question = null;
+                        this.$nextTick(() => {
+                            this.$globalData.question = firstQuestionPk;
+                        });
+                        
                         this.$globalData.state = Object.values(parsed.states)[0].pk;
                         this.$globalData.issue = Object.values(parsed.issues)[0].pk;
                         this.$globalData.candidate = getListOfCandidates()[0][0];
@@ -585,8 +594,16 @@ registerComponent('toolbar', {
                 window.$updateGlobalTCT(parsed);
 
                 // reset the interface to first items
-                this.$globalData.question = Array.from(parsed.questions.values())[0]?.pk || null;
-                this.$globalData.state = Object.values(parsed.states)[0]?.pk || null;
+                const firstQuestionPk = Array.from(parsed.questions.values())[0]?.pk || null;
+                const firstStatePk = Object.values(parsed.states)[0]?.pk || null;
+                
+                // force question component to refresh even if pk is the same
+                this.$globalData.question = null;
+                this.$nextTick(() => {
+                    this.$globalData.question = firstQuestionPk;
+                });
+                
+                this.$globalData.state = firstStatePk;
                 this.$globalData.issue = Object.values(parsed.issues)[0]?.pk || null;
                 this.$globalData.candidate = getListOfCandidates()[0]?.[0] || null;
                 this.$globalData.filename = `${preset.name}.txt`;
