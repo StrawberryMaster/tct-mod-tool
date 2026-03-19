@@ -82,6 +82,9 @@
             --brand-end: #2563eb;
             --header-contrast: #ffffff;
             --footer-bg: rgba(37, 99, 235, 0.95);
+            --map-bg: #bfe6ff;
+            --map-fill: #ff9494;
+            --map-stroke: #111827;
         }
 
         html[data-theme="dark"] {
@@ -97,6 +100,78 @@
             --brand-end: #1d4ed8;
             --header-contrast: #f9fafb;
             --footer-bg: rgba(30, 64, 175, 0.95);
+            --map-bg: #0f2237;
+            --map-fill: #73b3ff;
+            --map-stroke: #dbeafe;
+        }
+
+        #map_container svg {
+            background-color: var(--map-bg) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        #map_container svg path {
+            fill: var(--map-fill) !important;
+            stroke: var(--map-stroke) !important;
+            stroke-width: 1;
+        }
+
+        .effect-chip {
+            border: 1px solid transparent;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        html[data-theme="dark"] .effect-chip {
+            border-color: #475569;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
+        }
+
+        html[data-theme="dark"] .effect-chip--feedback {
+            background-color: #1e3a5f !important;
+            border-color: #2563eb !important;
+            color: #bfdbfe !important;
+        }
+
+        html[data-theme="dark"] .effect-chip--global {
+            background-color: #3b1363 !important;
+            border-color: #7c3aed !important;
+            color: #e9d5ff !important;
+        }
+
+        html[data-theme="dark"] .effect-chip--issues {
+            background-color: #133a28 !important;
+            border-color: #22c55e !important;
+            color: #bbf7d0 !important;
+        }
+
+        html[data-theme="dark"] .effect-chip--states {
+            background-color: #5b2d10 !important;
+            border-color: #f97316 !important;
+            color: #fed7aa !important;
+        }
+
+        html[data-theme="dark"] .effect-chip--variables {
+            background-color: #312e81 !important;
+            border-color: #6366f1 !important;
+            color: #c7d2fe !important;
+        }
+
+        html[data-theme="dark"] .answer-tab {
+            color: #9ca3af !important;
+        }
+
+        html[data-theme="dark"] .answer-tab:hover {
+            color: #e5e7eb !important;
+            border-color: #475569 !important;
+            background-color: rgba(30, 41, 59, 0.45);
+        }
+
+        html[data-theme="dark"] .answer-tab.tab-active {
+            color: #93c5fd !important;
+            border-color: #3b82f6 !important;
+            background: linear-gradient(180deg, rgba(30, 58, 95, 0.65), rgba(30, 41, 59, 0.1));
         }
 
         body {

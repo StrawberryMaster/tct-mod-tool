@@ -318,8 +318,8 @@ registerComponent('map-preview', {
 
     template: `
     <div id="map_container">
-        <svg height="400.125" version="1.1" width="722.156" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color:#BFE6FF; overflow: hidden; position: relative; left: -0.895844px; top: -0.552084px;" :viewBox="viewBox" preserveAspectRatio="xMinYMin">    
-            <path v-for="x in mapCode" :d="x[1]" :transform="x[2] || null" :id="x[0]" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);" fill="#ff9494" stroke="#000000" ></path>
+        <svg height="400.125" version="1.1" width="722.156" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" :style="svgStyle" :viewBox="viewBox" preserveAspectRatio="xMinYMin">
+            <path v-for="x in mapCode" :d="x[1]" :transform="x[2] || null" :id="x[0]" :style="pathStyle"></path>
         </svg>
     </div>
     `,
@@ -337,6 +337,25 @@ registerComponent('map-preview', {
 
         viewBox: function () {
             return `${this.dx ?? 0} ${this.dy ?? 0} ${this.x ?? 925} ${this.y ?? 595}`
+        },
+
+        svgStyle: function () {
+            return {
+                backgroundColor: 'var(--map-bg)',
+                overflow: 'hidden',
+                position: 'relative',
+                left: '-0.895844px',
+                top: '-0.552084px'
+            };
+        },
+
+        pathStyle: function () {
+            return {
+                WebkitTapHighlightColor: 'rgba(0, 0, 0, 0)',
+                fill: 'var(--map-fill)',
+                stroke: 'var(--map-stroke)',
+                strokeWidth: 1
+            };
         }
     }
 

@@ -181,11 +181,11 @@ registerComponent('question', {
                                 {{answer.fields.description}}
                             </div>
                             <div class="flex mt-2 space-x-1">
-                                <span v-if="hasGlobalScores(answer.pk)" class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Global</span>
-                                <span v-if="hasFeedback(answer.pk)" class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Feedback</span>
-                                <span v-if="hasIssueScores(answer.pk)" class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Issues</span>
-                                <span v-if="hasStateScores(answer.pk)" class="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs rounded-full">States</span>
-                                <span v-if="hasVariableEffects(answer.pk)" class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Variables</span>
+                                <span v-if="hasGlobalScores(answer.pk)" class="effect-chip effect-chip--global px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Global</span>
+                                <span v-if="hasFeedback(answer.pk)" class="effect-chip effect-chip--feedback px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Feedback</span>
+                                <span v-if="hasIssueScores(answer.pk)" class="effect-chip effect-chip--issues px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Issues</span>
+                                <span v-if="hasStateScores(answer.pk)" class="effect-chip effect-chip--states px-2 py-0.5 bg-orange-100 text-orange-800 text-xs rounded-full">States</span>
+                                <span v-if="hasVariableEffects(answer.pk)" class="effect-chip effect-chip--variables px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Variables</span>
                             </div>
                         </li>
                     </ul>
@@ -206,8 +206,8 @@ registerComponent('question', {
                         <div class="mt-4 border-b">
                             <nav class="flex -mb-px" role="tablist" aria-label="Answer settings">
                                 <button @click="activeTab = 'feedback'"
-                                    :class="{'border-blue-500 text-blue-600': activeTab === 'feedback', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'feedback'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    class="answer-tab py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    :class="{ 'border-blue-500 text-blue-600 tab-active': activeTab === 'feedback', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'feedback' }"
                                     role="tab"
                                     :aria-selected="activeTab === 'feedback' ? 'true' : 'false'">
                                     <span class="flex items-center">
@@ -216,8 +216,8 @@ registerComponent('question', {
                                     </span>
                                 </button>
                                 <button @click="activeTab = 'global'"
-                                    :class="{'border-blue-500 text-blue-600': activeTab === 'global', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'global'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    class="answer-tab py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    :class="{ 'border-blue-500 text-blue-600 tab-active': activeTab === 'global', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'global' }"
                                     role="tab"
                                     :aria-selected="activeTab === 'global' ? 'true' : 'false'">
                                     <span class="flex items-center">
@@ -226,8 +226,8 @@ registerComponent('question', {
                                     </span>
                                 </button>
                                 <button @click="activeTab = 'issues'"
-                                    :class="{'border-blue-500 text-blue-600': activeTab === 'issues', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'issues'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    class="answer-tab py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    :class="{ 'border-blue-500 text-blue-600 tab-active': activeTab === 'issues', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'issues' }"
                                     role="tab"
                                     :aria-selected="activeTab === 'issues' ? 'true' : 'false'">
                                     <span class="flex items-center">
@@ -236,8 +236,8 @@ registerComponent('question', {
                                     </span>
                                 </button>
                                 <button @click="switchToStatesTab()"
-                                    :class="{'border-blue-500 text-blue-600': activeTab === 'states', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'states'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    class="answer-tab py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    :class="{ 'border-blue-500 text-blue-600 tab-active': activeTab === 'states', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'states' }"
                                     role="tab"
                                     :aria-selected="activeTab === 'states' ? 'true' : 'false'">
                                     <span class="flex items-center">
@@ -246,8 +246,8 @@ registerComponent('question', {
                                     </span>
                                 </button>
                                 <button @click="activeTab = 'variables'"
-                                    :class="{'border-blue-500 text-blue-600': activeTab === 'variables', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'variables'}"
-                                    class="py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    class="answer-tab py-2 px-4 font-medium text-sm border-b-2 flex items-center"
+                                    :class="{ 'border-blue-500 text-blue-600 tab-active': activeTab === 'variables', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'variables' }"
                                     role="tab"
                                     :aria-selected="activeTab === 'variables' ? 'true' : 'false'">
                                     <span class="flex items-center">
@@ -1478,6 +1478,11 @@ registerComponent('integrated-state-effect-visualizer', {
                 negative: ['#FFEBEE', '#FFCDD2', '#EF9A9A', '#E57373', '#EF5350', '#F44336', '#E53935', '#D32F2F', '#C62828', '#B71C1C'],
                 neutral: '#E0E0E0'
             },
+            darkColorScale: {
+                positive: ['#1e3a5f', '#1f4d78', '#245b8f', '#2a67a1', '#3275b8', '#3b82f6', '#4f90ff', '#62a0ff', '#76b1ff', '#93c5fd'],
+                negative: ['#4b1f24', '#5a2329', '#6a272f', '#7a2b36', '#8b303d', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'],
+                neutral: '#253044'
+            },
             mapData: [],
             mapLoaded: false,
             fallbackViewBox: null,
@@ -1580,6 +1585,12 @@ registerComponent('integrated-state-effect-visualizer', {
 
         zoomLabel() {
             return `${Math.round(this.zoom * 100)}%`;
+        },
+
+        mapCanvasStyle() {
+            return {
+                backgroundColor: 'var(--map-bg)'
+            };
         }
     },
 
@@ -1844,17 +1855,20 @@ registerComponent('integrated-state-effect-visualizer', {
 
         getStateColor(statePk) {
             const value = this.stateEffects[statePk] || 0;
-            if (Math.abs(value) < 0.0001) return this.colorScale.neutral;
-            const scale = value > 0 ? this.colorScale.positive : this.colorScale.negative;
+            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
+            const palette = useDark ? this.darkColorScale : this.colorScale;
+            if (Math.abs(value) < 0.0001) return palette.neutral;
+            const scale = value > 0 ? palette.positive : palette.negative;
             const absValue = Math.abs(value);
             let index = Math.min(Math.floor(absValue * 10), 9);
             return scale[index];
         },
 
         getStateStroke(statePk) {
-            if (this.isStateSelected(statePk)) return '#000000';
-            if (this.highlightedState === statePk) return '#333333';
-            return '#666666';
+            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
+            if (this.isStateSelected(statePk)) return useDark ? '#e2e8f0' : '#000000';
+            if (this.highlightedState === statePk) return useDark ? '#cbd5e1' : '#333333';
+            return useDark ? '#94a3b8' : '#666666';
         },
 
         getStateStrokeWidth(statePk) {
@@ -1997,7 +2011,8 @@ registerComponent('integrated-state-effect-visualizer', {
                         xmlns="http://www.w3.org/2000/svg"
                         :viewBox="viewBoxString"
                         preserveAspectRatio="xMidYMid meet"
-                        class="w-full h-auto bg-slate-100 select-none"
+                        class="w-full h-auto select-none"
+                        :style="mapCanvasStyle"
                         style="touch-action: none;"
                         @pointerdown="startPan"
                         @pointermove="onPan"

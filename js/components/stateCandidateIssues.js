@@ -1045,6 +1045,11 @@ registerComponent('issue-state-map-editor', {
         },
         zoomLabel() {
             return `${Math.round(this.zoom * 100)}%`;
+        },
+        mapCanvasStyle() {
+            return {
+                backgroundColor: 'var(--map-bg)'
+            };
         }
     },
     mounted() {
@@ -1322,10 +1327,15 @@ registerComponent('issue-state-map-editor', {
 
         getStateColor(statePk) {
             const score = this.stateMetrics[statePk]?.score ?? 0;
-            if (Math.abs(score) < 0.05) return '#f3f4f6';
+            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
+            if (Math.abs(score) < 0.05) return useDark ? '#253044' : '#f3f4f6';
 
-            const reds = ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
-            const blues = ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
+            const reds = useDark
+                ? ['#4b1f24', '#6a272f', '#8b303d', '#dc2626', '#f87171']
+                : ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
+            const blues = useDark
+                ? ['#1e3a5f', '#245b8f', '#3275b8', '#3b82f6', '#93c5fd']
+                : ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
 
             const intensity = Math.min(1, Math.abs(score));
             const bucket = Math.floor(intensity * 4.99);
@@ -1359,9 +1369,10 @@ registerComponent('issue-state-map-editor', {
         },
 
         stateStroke(statePk) {
-            if (this.selectedStates[statePk]) return '#000000';
-            if (this.highlightedState == statePk) return '#666666';
-            return '#a1a1aa';
+            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
+            if (this.selectedStates[statePk]) return useDark ? '#e2e8f0' : '#000000';
+            if (this.highlightedState == statePk) return useDark ? '#cbd5e1' : '#666666';
+            return useDark ? '#94a3b8' : '#a1a1aa';
         },
 
         strokeWidth(statePk) {
@@ -1380,13 +1391,14 @@ registerComponent('issue-state-map-editor', {
     },
     template: `
     <div class="space-y-4">
-        <div v-if="mapAvailable" class="relative border rounded overflow-hidden shadow-inner bg-slate-50">
+        <div v-if="mapAvailable" class="relative border rounded overflow-hidden shadow-inner">
             <svg
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
                 :viewBox="viewBoxString"
                 preserveAspectRatio="xMidYMid meet"
                 class="w-full h-96 select-none cursor-move"
+                :style="mapCanvasStyle"
                 style="touch-action: none;"
                 @pointerdown="startPan"
                 @pointermove="onPan"
