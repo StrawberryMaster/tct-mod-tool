@@ -1980,7 +1980,7 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*#\s*(start|end)code/gi);
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
-    extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name)\s*=\s*".*?"\s*;/g);
+    extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
     extractor.excludeRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;/g);
 
     // ta-da!

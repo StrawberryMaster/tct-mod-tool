@@ -903,7 +903,7 @@ registerComponent('candidate', {
 
                 <div class="mt-4 flex items-center">
                     <input type="checkbox" :checked="isPlayerCandidate" @change="togglePlayerCandidate" id="is_player_candidate" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="is_player_candidate" class="ml-2 block text-sm text-gray-900 font-medium">Is player candidate?</label>
+                    <label for="is_player_candidate" class="ml-2 block text-sm font-medium">Is player candidate?</label>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">If checked, this candidate will be the default selected candidate when adding new scores or feedback. Recommended to avoid issues involving broken feedback & global/state scores.</p>
             </div>
