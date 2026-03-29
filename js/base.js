@@ -1733,11 +1733,11 @@ class CodeExtractor {
     }
 }
 
-function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = [], outRange = null) {
+function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = [], outRange = null, fromIndex = 0) {
     let f = raw_file;
-    let startIndex = f.indexOf(start);
+    let startIndex = f.indexOf(start, Math.max(0, Number(fromIndex) || 0));
     if (startIndex === -1) {
-        if (backup != null) return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback, outRange);
+        if (backup != null) return extractJSON(f, backup, backupEnd == null ? end : backupEnd, null, null, required, fallback, outRange, fromIndex);
         if (required) console.warn(`WARNING: Missing section '${start}'. Skipping it.`);
         return fallback;
     }
@@ -1831,27 +1831,154 @@ function loadDataFromFile(raw_json) {
     let pkReplacements = new Map();
     const duplicateCounters = new Map();
 
+    const excludeAllButLastRegex = (regex) => {
+        const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
+        const scan = new RegExp(regex.source, flags);
+        const ranges = [];
+        let m;
+
+        while ((m = scan.exec(raw_json)) !== null) {
+            ranges.push({ start: m.index, end: m.index + m[0].length });
+            if (m[0].length === 0) scan.lastIndex++;
+        }
+
+        for (let i = 0; i < ranges.length - 1; i++) {
+            extractor.exclude(ranges[i].start, ranges[i].end);
+        }
+    };
+
+    // exclude repeated arrow-function assignments like:
+    // endingPicker = (...) => { ... }
+    // while keeping the last one
+    const excludeArrowFunctionAssignmentsButKeepLast = (identifier) => {
+        const headerRe = new RegExp(`${identifier}\\s*=\\s*\\([^)]*\\)\\s*=>\\s*\\{`, "g");
+        let match;
+        const ranges = [];
+
+        while ((match = headerRe.exec(raw_json)) !== null) {
+            const header = match[0];
+            const bodyStart = match.index + header.length - 1; // points to '{'
+
+            let i = bodyStart;
+            let depth = 0;
+            let inString = false;
+            let stringChar = '';
+            let escape = false;
+            let inSingleLine = false;
+            let inMultiLine = false;
+
+            for (; i < raw_json.length; i++) {
+                const ch = raw_json[i];
+                const next = raw_json[i + 1];
+
+                if (inSingleLine) {
+                    if (ch === '\n' || ch === '\r') inSingleLine = false;
+                    continue;
+                }
+
+                if (inMultiLine) {
+                    if (ch === '*' && next === '/') {
+                        inMultiLine = false;
+                        i++;
+                    }
+                    continue;
+                }
+
+                if (inString) {
+                    if (!escape && ch === stringChar) {
+                        inString = false;
+                        stringChar = '';
+                    }
+                    escape = (!escape && ch === '\\');
+                    if (escape && ch !== '\\') escape = false;
+                    continue;
+                }
+
+                if (ch === '"' || ch === "'" || ch === '`') {
+                    inString = true;
+                    stringChar = ch;
+                    escape = false;
+                    continue;
+                }
+
+                if (ch === '/' && next === '/') {
+                    inSingleLine = true;
+                    i++;
+                    continue;
+                }
+
+                if (ch === '/' && next === '*') {
+                    inMultiLine = true;
+                    i++;
+                    continue;
+                }
+
+                if (ch === '{') {
+                    depth++;
+                    continue;
+                }
+
+                if (ch === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        let end = i + 1;
+                        while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
+                        if (raw_json[end] === ';') end++;
+                        ranges.push({ start: match.index, end });
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (let i = 0; i < ranges.length - 1; i++) {
+            extractor.exclude(ranges[i].start, ranges[i].end);
+        }
+    };
+
     const normalizeTextEncoding = (text) => {
         return typeof text === 'string' ? text.replaceAll("â€™", "'").replaceAll("â€”", "—") : text;
     };
 
     const getSection = (name, required = true, fallback = []) => {
-        const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "i");
-        const match = raw_json.match(pattern);
+        const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "ig");
+        const matches = [];
+        let match;
 
-        if (match) {
-            let innerFound = match[1].trim();
-            let endMarker = innerFound.startsWith("[") ? "]" : innerFound.startsWith("{") ? "}" : innerFound[0];
-            if (match[1].includes("JSON.parse")) endMarker = ");";
-
-            const range = { start: -1, end: -1 };
-            const res = extractJSON(raw_json, match[0], endMarker, null, null, required, fallback, range);
-            extractor.exclude(range.start, range.end);
-            return res;
+        while ((match = pattern.exec(raw_json)) !== null) {
+            matches.push({
+                full: match[0],
+                marker: match[1],
+                index: match.index
+            });
         }
 
-        if (required) console.warn(`WARNING: Missing 'campaignTrail_temp.${name}'. Skipping it.`);
-        return fallback;
+        if (matches.length === 0) {
+            if (required) console.warn(`WARNING: Missing 'campaignTrail_temp.${name}'. Skipping it.`);
+            return fallback;
+        }
+
+        if (matches.length > 1) {
+            console.warn(`Found ${matches.length} assignments for campaignTrail_temp.${name}; using the last one.`);
+        }
+
+        let resolved = fallback;
+        for (let i = 0; i < matches.length; i++) {
+            const current = matches[i];
+            const marker = (current.marker || '').trim();
+            let endMarker = marker.startsWith("[") ? "]" : marker.startsWith("{") ? "}" : marker[0];
+            if (marker.includes("JSON.parse")) endMarker = ");";
+
+            const range = { start: -1, end: -1 };
+            const parsed = extractJSON(raw_json, current.full, endMarker, null, null, false, fallback, range, current.index);
+
+            if (range.start >= 0 && range.end > range.start) {
+                extractor.exclude(range.start, range.end);
+                resolved = parsed;
+            }
+        }
+
+        return resolved;
     };
 
     const ensureUniqueAndStore = (container, obj) => {
@@ -1981,7 +2108,8 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
-    extractor.excludeRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;/g);
+    excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
+    excludeArrowFunctionAssignmentsButKeepLast("endingPicker");
 
     // ta-da!
     jet_data.code_to_add = extractor.getRemainingCode();
