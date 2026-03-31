@@ -163,7 +163,9 @@ registerComponent('cyoa', {
             jet.cyoa_data[id] = {
                 'answer': answers[0].pk,
                 'question': questions[0].pk,
-                'id': id
+                'id': id,
+                'conditions': [],
+                'conditionOperator': 'AND'
             };
             this.temp_events = [];
             this.$globalData.dataVersion++;
@@ -335,6 +337,22 @@ registerComponent('cyoa', {
 
 // create a global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
+    getConditionOperand(variableName) {
+        const key = String(variableName || '').trim().toLowerCase();
+        if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
+            return 'e.noCounter';
+        }
+        return variableName;
+    },
+
+    getConditionLabel(variableName) {
+        const key = String(variableName || '').trim().toLowerCase();
+        if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
+            return 'NoCounter';
+        }
+        return variableName;
+    },
+
     buildQuestionSwapperFunction() {
         return `
 function questionSwapper(pk1, pk2) {
@@ -421,9 +439,12 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
 
             let conditionStr = '';
             if (hasConditions) {
-                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && (c.value != null));
+                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
-                    const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
+                    const conditionParts = validConditions.map(c => {
+                        const left = this.getConditionOperand(c.variable);
+                        return `${left} ${c.comparator} ${Number(c.value)}`;
+                    });
                     const operator = rule.conditionOperator || 'AND';
                     const joinStr = operator === 'OR' ? ' || ' : ' && ';
                     conditionStr = conditionParts.join(joinStr);
@@ -473,7 +494,10 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             if (hasConditions) {
                 const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
-                    const conditionParts = validConditions.map(c => `${c.variable} ${c.comparator} ${c.value}`);
+                    const conditionParts = validConditions.map(c => {
+                        const left = this.getConditionOperand(c.variable);
+                        return `${left} ${c.comparator} ${Number(c.value)}`;
+                    });
                     const operator = rule.conditionOperator || 'AND';
                     const joinStr = operator === 'OR' ? ' || ' : ' && ';
                     conditionStr = conditionParts.join(joinStr);
@@ -572,27 +596,36 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         combinedForInsert = [questionBlock, answerBlock].filter(Boolean).join('\n\n');
         if (!combinedForInsert) return out;
 
-        // prefer to insert after the 'ans =' assignment if present
+        // prefer to insert after noCounter assignment, otherwise after 'ans ='
+        const noCounterRe = /\be\.noCounter\s*=\s*campaignTrail_temp\.player_answers\.length\s*;?/m;
         const ansRe = /\bans\s*=\s*campaignTrail_temp\.player_answers\s*\[\s*campaignTrail_temp\.player_answers\.length\s*-\s*1\s*\]\s*;?/m;
         let insertPosInBody = -1;
         let indentForInsert = '    '; // default to 4 spaces
-        const ansMatch = ansRe.exec(body);
-        if (ansMatch) {
-            insertPosInBody = ansMatch.index + ansMatch[0].length;
-            // compute indent from that line
-            const lineStart = body.lastIndexOf('\n', ansMatch.index) + 1;
-            const line = body.slice(lineStart, ansMatch.index);
+        const noCounterMatch = noCounterRe.exec(body);
+        if (noCounterMatch) {
+            insertPosInBody = noCounterMatch.index + noCounterMatch[0].length;
+            const lineStart = body.lastIndexOf('\n', noCounterMatch.index) + 1;
+            const line = body.slice(lineStart, noCounterMatch.index);
             const leadingSpaces = line.match(/^\s*/)?.[0] || '';
             indentForInsert = leadingSpaces || indentForInsert;
         } else {
-            const genericAnsRe = /\bans\s*=\s*[^;]+;/m;
-            const m2 = genericAnsRe.exec(body);
-            if (m2) {
-                insertPosInBody = m2.index + m2[0].length;
-                const lineStart = body.lastIndexOf('\n', m2.index) + 1;
-                const line = body.slice(lineStart, m2.index);
+            const ansMatch = ansRe.exec(body);
+            if (ansMatch) {
+                insertPosInBody = ansMatch.index + ansMatch[0].length;
+                const lineStart = body.lastIndexOf('\n', ansMatch.index) + 1;
+                const line = body.slice(lineStart, ansMatch.index);
                 const leadingSpaces = line.match(/^\s*/)?.[0] || '';
                 indentForInsert = leadingSpaces || indentForInsert;
+            } else {
+                const genericAnsRe = /\bans\s*=\s*[^;]+;/m;
+                const m2 = genericAnsRe.exec(body);
+                if (m2) {
+                    insertPosInBody = m2.index + m2[0].length;
+                    const lineStart = body.lastIndexOf('\n', m2.index) + 1;
+                    const line = body.slice(lineStart, m2.index);
+                    const leadingSpaces = line.match(/^\s*/)?.[0] || '';
+                    indentForInsert = leadingSpaces || indentForInsert;
+                }
             }
         }
 
@@ -719,7 +752,12 @@ registerComponent('cyoa-event', {
     data() {
         return {
             answerVal: null,
-            questionVal: null
+            questionVal: null,
+            conditionToAdd: {
+                variable: '',
+                comparator: '>=',
+                value: 0
+            }
         };
     },
 
@@ -731,6 +769,13 @@ registerComponent('cyoa-event', {
                 <div class="mt-1">
                     If player selects answer <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>,
                     then immediately jump to question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
+                    <span v-if="hasConditions">
+                        when
+                        <span v-for="(c, idx) in conditionsList" :key="'summary-c-'+idx" class="inline-flex items-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ c.value }}</span>
+                            <span v-if="idx < conditionsList.length - 1" class="mx-1 text-xs">{{ eventRow.conditionOperator }}</span>
+                        </span>
+                    </span>
                 </div>
             </div>
             <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteEvent()">Delete</button>
@@ -757,6 +802,44 @@ registerComponent('cyoa-event', {
                 </select>
             </div>
         </div>
+
+        <div class="mt-4">
+            <label class="block text-sm font-medium mb-1">Extra conditions (optional)</label>
+
+            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+                <span class="text-xs text-gray-600">Join with:</span>
+                <select :value="eventRow.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                    <option value="AND">AND (all must be true)</option>
+                    <option value="OR">OR (any can be true)</option>
+                </select>
+            </div>
+
+            <div v-if="hasConditions" class="mb-2 space-y-1">
+                <div v-for="(c, idx) in conditionsList" :key="'cond-'+idx" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
+                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
+                    <div class="text-xs">{{ c.comparator }}</div>
+                    <div class="text-xs">{{ c.value }}</div>
+                    <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 items-center">
+                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="" disabled>Target...</option>
+                    <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
+                </select>
+                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value=">=">&gt;= (greater than or equal)</option>
+                    <option value="<=">&lt;= (less than or equal)</option>
+                    <option value=">">&gt; (greater than)</option>
+                    <option value="<">&lt; (less than)</option>
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
+            </div>
+        </div>
     </div>
     `,
 
@@ -775,6 +858,64 @@ registerComponent('cyoa-event', {
             return s.length > 50 ? (s.slice(0, 50) + "...") : s;
         },
 
+        getEvent: function () {
+            if (!this.$TCT.jet_data.cyoa_data) {
+                this.$TCT.jet_data.cyoa_data = {};
+            }
+            if (!this.$TCT.jet_data.cyoa_data[this.id]) {
+                this.$TCT.jet_data.cyoa_data[this.id] = {
+                    id: this.id,
+                    answer: null,
+                    question: null,
+                    conditions: [],
+                    conditionOperator: 'AND'
+                };
+            }
+            if (!Array.isArray(this.$TCT.jet_data.cyoa_data[this.id].conditions)) {
+                this.$TCT.jet_data.cyoa_data[this.id].conditions = [];
+            }
+            if (!this.$TCT.jet_data.cyoa_data[this.id].conditionOperator) {
+                this.$TCT.jet_data.cyoa_data[this.id].conditionOperator = 'AND';
+            }
+            return this.$TCT.jet_data.cyoa_data[this.id];
+        },
+
+        addCondition() {
+            const row = this.getEvent();
+            if (!this.conditionToAdd.variable) {
+                alert('Please select a target.');
+                return;
+            }
+
+            row.conditions.push({
+                variable: this.conditionToAdd.variable,
+                comparator: this.conditionToAdd.comparator,
+                value: Number(this.conditionToAdd.value)
+            });
+
+            this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeCondition(index) {
+            const row = this.getEvent();
+            row.conditions.splice(index, 1);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        updateConditionOperator(value) {
+            const row = this.getEvent();
+            row.conditionOperator = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        displayConditionVariable(name) {
+            return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
         updateGlobal: function (field, val) {
             if (!this.$TCT.jet_data.cyoa_data[this.id]) return;
             const current = this.$TCT.jet_data.cyoa_data[this.id][field];
@@ -785,7 +926,7 @@ registerComponent('cyoa-event', {
         },
 
         syncFromGlobal: function () {
-            const row = this.$TCT.jet_data.cyoa_data[this.id] || {};
+            const row = this.getEvent();
             // fallbacks in case of missing data
             const answers = Object.values(this.$TCT.answers);
             const questions = Array.from(this.$TCT.questions.values());
@@ -819,6 +960,28 @@ registerComponent('cyoa-event', {
         currentAnswer: function () {
             const row = this.$TCT.jet_data.cyoa_data[this.id] || {};
             return row.answer;
+        },
+
+        eventRow() {
+            this.$globalData.dataVersion;
+            return this.getEvent();
+        },
+
+        conditionTargets() {
+            const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+        },
+
+        hasConditions() {
+            this.$globalData.dataVersion;
+            const row = this.getEvent();
+            return Array.isArray(row.conditions) && row.conditions.length > 0;
+        },
+
+        conditionsList() {
+            this.$globalData.dataVersion;
+            const row = this.getEvent();
+            return row.conditions || [];
         },
 
         questions: function () {
@@ -1040,6 +1203,10 @@ registerComponent('cyoa-question-swap', {
             rule.swaps[index] = newSwap;
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
+        },
+
+        displayConditionVariable(name) {
+            return window.TCTAnswerSwapHelper.getConditionLabel(name);
         }
     },
 
@@ -1053,8 +1220,9 @@ registerComponent('cyoa-question-swap', {
             return this.$globalData.dataVersion;
         },
 
-        variables() {
-            return (this.$TCT.getAllCyoaVariables?.() || []).map(v => v.name);
+        conditionTargets() {
+            const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
         },
 
         answers() {
@@ -1102,7 +1270,7 @@ registerComponent('cyoa-question-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">{{c.variable}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
                 </span>, 
             </span>
@@ -1151,7 +1319,7 @@ registerComponent('cyoa-question-swap', {
             <!-- Existing conditions list -->
             <div v-if="hasConditions" class="mb-2 space-y-1">
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
-                    <div class="text-xs font-medium">{{ c.variable }}</div>
+                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
                     <div class="text-xs">{{ c.value }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
@@ -1161,8 +1329,8 @@ registerComponent('cyoa-question-swap', {
             <!-- Add new condition -->
             <div class="grid grid-cols-4 gap-1 items-center">
                 <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value="" disabled>Variable...</option>
-                    <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
+                    <option value="" disabled>Target...</option>
+                    <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
                 <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>
@@ -1328,6 +1496,10 @@ registerComponent('cyoa-answer-swap', {
             rule.swaps[index] = newSwap;
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
+        },
+
+        displayConditionVariable(name) {
+            return window.TCTAnswerSwapHelper.getConditionLabel(name);
         }
     },
 
@@ -1341,8 +1513,9 @@ registerComponent('cyoa-answer-swap', {
             return this.$globalData.dataVersion;
         },
 
-        variables() {
-            return (this.$TCT.getAllCyoaVariables?.() || []).map(v => v.name);
+        conditionTargets() {
+            const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
         },
 
         answers() {
@@ -1386,7 +1559,7 @@ registerComponent('cyoa-answer-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">{{c.variable}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
                 </span>, 
             </span>
@@ -1435,7 +1608,7 @@ registerComponent('cyoa-answer-swap', {
             <!-- Existing conditions list -->
             <div v-if="hasConditions" class="mb-2 space-y-1">
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
-                    <div class="text-xs font-medium">{{ c.variable }}</div>
+                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
                     <div class="text-xs">{{ c.value }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
@@ -1445,8 +1618,8 @@ registerComponent('cyoa-answer-swap', {
             <!-- Add new condition -->
             <div class="grid grid-cols-4 gap-1 items-center">
                 <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value="" disabled>Variable...</option>
-                    <option v-for="v in variables" :key="v" :value="v">{{ v }}</option>
+                    <option value="" disabled>Target...</option>
+                    <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
                 <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>

@@ -1597,7 +1597,9 @@ function getQuestionNumberFromPk(pk) {
         }
 
         f += `\ncyoAdventure = function (a) {
-    const ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length - 1];\n`;
+    const ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length - 1];
+    e.noCounter = campaignTrail_temp.player_answers.length;
+`;
 
         // variable effects grouped by logic
         const variableEffects = this.getAllCyoaVariableEffects();
@@ -1630,40 +1632,59 @@ function getQuestionNumberFromPk(pk) {
             }
         }
 
-        // sort rules for consistent generation (by answer pk)
-        const events = this.getAllCyoaEvents().slice().sort((a, b) => (a.answer ?? 0) - (b.answer ?? 0));
-        if (events.length > 0) {
-            const groupedByQuestion = new Map();
-            for (const event of events) {
-                const questionPk = Number(event.question);
-                const answerPk = Number(event.answer);
-                if (!Number.isFinite(questionPk) || !Number.isFinite(answerPk)) continue;
-
-                if (!groupedByQuestion.has(questionPk)) {
-                    groupedByQuestion.set(questionPk, new Set());
-                }
-                groupedByQuestion.get(questionPk).add(answerPk);
+        const normalizeConditionOperand = (variableName) => {
+            const key = String(variableName || '').trim().toLowerCase();
+            if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
+                return 'e.noCounter';
             }
+            return variableName;
+        };
 
-            const groupedEvents = Array.from(groupedByQuestion.entries())
-                .map(([questionPk, answerSet]) => ({
-                    questionPk,
-                    answers: Array.from(answerSet).sort((a, b) => a - b)
-                }))
-                .sort((a, b) => (a.answers[0] ?? 0) - (b.answers[0] ?? 0));
+        const buildConditionExpr = (conditions, conditionOperator = 'AND') => {
+            if (!Array.isArray(conditions) || conditions.length === 0) return '';
 
-            if (groupedEvents.length > 0) {
-                f += "\n    // Branching logic\n";
-                for (let i = 0; i < groupedEvents.length; i++) {
-                    const group = groupedEvents[i];
-                    const cond = group.answers.length === 1
-                        ? `ans == ${group.answers[0]}`
-                        : `[${group.answers.join(', ')}].includes(ans)`;
+            const valid = conditions
+                .filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)))
+                .map(c => `${normalizeConditionOperand(c.variable)} ${c.comparator} ${Number(c.value)}`);
 
-                    f += `    ${i > 0 ? "else " : ""}if (${cond}) {\n`;
-                    f += `        campaignTrail_temp.question_number = getQuestionNumberFromPk(${group.questionPk});\n`;
-                    f += "    }\n";
-                }
+            if (!valid.length) return '';
+            const joinStr = conditionOperator === 'OR' ? ' || ' : ' && ';
+            const expr = valid.join(joinStr);
+            return valid.length > 1 ? `(${expr})` : expr;
+        };
+
+        // sort rules for consistent generation (by answer pk, then id)
+        const events = this.getAllCyoaEvents().slice().sort((a, b) => {
+            const ansA = Number(a?.answer ?? 0);
+            const ansB = Number(b?.answer ?? 0);
+            if (ansA !== ansB) return ansA - ansB;
+            return Number(a?.id ?? 0) - Number(b?.id ?? 0);
+        });
+
+        const compiledEvents = events
+            .map(event => {
+                const questionPk = Number(event?.question);
+                const answerPk = Number(event?.answer);
+                if (!Number.isFinite(questionPk) || !Number.isFinite(answerPk)) return null;
+
+                const answerExpr = `ans == ${answerPk}`;
+                const condExpr = buildConditionExpr(event?.conditions, event?.conditionOperator || 'AND');
+                const combinedExpr = condExpr ? `(${answerExpr}) && ${condExpr}` : answerExpr;
+
+                return {
+                    condition: combinedExpr,
+                    questionPk
+                };
+            })
+            .filter(Boolean);
+
+        if (compiledEvents.length > 0) {
+            f += "\n    // Branching logic\n";
+            for (let i = 0; i < compiledEvents.length; i++) {
+                const row = compiledEvents[i];
+                f += `    ${i > 0 ? "else " : ""}if (${row.condition}) {\n`;
+                f += `        campaignTrail_temp.question_number = getQuestionNumberFromPk(${row.questionPk});\n`;
+                f += "    }\n";
             }
         }
 
