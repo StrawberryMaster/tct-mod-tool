@@ -42,6 +42,51 @@ registerComponent('cyoa', {
                 </div>
             </details>
 
+            <!-- Campaign Data modal section -->
+            <details open class="bg-gray-50 rounded-sm border">
+                <summary class="px-3 py-2 font-medium cursor-pointer">Campaign Data modal</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Configure tracked variables and score-based flavor text for an in-game Campaign Data popup.</p>
+                <div class="p-3 space-y-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button
+                            v-if="!campaignDataEnabled"
+                            class="bg-teal-500 text-white px-3 py-2 rounded-sm hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            @click="toggleCampaignDataEnabled"
+                            :disabled="!canUseCampaignData"
+                        >
+                            Enable Campaign Data
+                        </button>
+                        <button
+                            v-else
+                            class="bg-rose-500 text-white px-3 py-2 rounded-sm hover:bg-rose-600"
+                            @click="toggleCampaignDataEnabled"
+                        >
+                            Disable Campaign Data
+                        </button>
+                        <button
+                            class="bg-cyan-600 text-white px-3 py-2 rounded-sm hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            @click="addCampaignDataStat"
+                            :disabled="!canUseCampaignData"
+                        >
+                            Add tracked variable
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="campaignDataStats.length">Tracked: {{ campaignDataStats.length }}</span>
+                    </div>
+
+                    <p v-if="!canUseCampaignData" class="text-gray-500 italic">Create at least one CYOA variable first.</p>
+                    <p v-else-if="campaignDataStats.length === 0" class="text-gray-500 italic">No tracked variables yet. Click "Add tracked variable" to configure flavor tiers.</p>
+
+                    <div v-else class="space-y-2">
+                        <cyoa-campaign-stat
+                            v-for="row in campaignDataStats"
+                            :id="row.id"
+                            :key="row.id"
+                            @deleteStat="deleteCampaignDataStat">
+                        </cyoa-campaign-stat>
+                    </div>
+                </div>
+            </details>
+
             <!-- Branching events section -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA events (tunneling)</summary>
@@ -130,6 +175,8 @@ registerComponent('cyoa', {
             if (jet.cyoa_variable_effects == null) { jet.cyoa_variable_effects = {}; changed = true; }
             if (jet.cyoa_question_swaps == null) { jet.cyoa_question_swaps = {}; changed = true; }
             if (jet.cyoa_answer_swaps == null) { jet.cyoa_answer_swaps = {}; changed = true; }
+            if (jet.cyoa_campaign_data_enabled == null) { jet.cyoa_campaign_data_enabled = false; changed = true; }
+            if (jet.cyoa_campaign_data_stats == null) { jet.cyoa_campaign_data_stats = {}; changed = true; }
 
             if (changed) {
                 this.$globalData.dataVersion++;
@@ -208,8 +255,69 @@ registerComponent('cyoa', {
                 }
             }
 
+            if (variableName && this.$TCT.jet_data.cyoa_campaign_data_stats) {
+                const stats = Object.values(this.$TCT.jet_data.cyoa_campaign_data_stats);
+                for (let stat of stats) {
+                    if (stat?.variable === variableName) {
+                        delete this.$TCT.jet_data.cyoa_campaign_data_stats[stat.id];
+                    }
+                }
+            }
+
             delete this.$TCT.jet_data.cyoa_variables[id];
 
+            if (Object.keys(this.$TCT.jet_data.cyoa_variables).length === 0) {
+                this.$TCT.jet_data.cyoa_campaign_data_enabled = false;
+            }
+
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        toggleCampaignDataEnabled() {
+            if (!this.canUseCampaignData) return;
+            this.$TCT.jet_data.cyoa_campaign_data_enabled = !this.$TCT.jet_data.cyoa_campaign_data_enabled;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        addCampaignDataStat() {
+            if (!this.canUseCampaignData) return;
+            const jet = this.$TCT.jet_data;
+            if (!jet.cyoa_campaign_data_stats) {
+                jet.cyoa_campaign_data_stats = {};
+            }
+
+            const variables = this.$TCT.getAllCyoaVariables?.() || [];
+            if (!variables.length) return;
+
+            const existing = Object.values(jet.cyoa_campaign_data_stats || {});
+            const used = new Set(existing.map(x => x.variable));
+            const chosenVariable = (variables.find(v => !used.has(v.name)) || variables[0]).name;
+
+            const id = this.generateId([jet.cyoa_campaign_data_stats]);
+            jet.cyoa_campaign_data_stats[id] = {
+                id,
+                variable: chosenVariable,
+                label: chosenVariable,
+                lowMax: 0,
+                midMax: 2,
+                lowText: `${chosenVariable} is struggling.`,
+                midText: `${chosenVariable} is steady.`,
+                highText: `${chosenVariable} is surging.`
+            };
+
+            this.$TCT.jet_data.cyoa_campaign_data_enabled = true;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        deleteCampaignDataStat(id) {
+            if (!this.$TCT.jet_data.cyoa_campaign_data_stats) return;
+            delete this.$TCT.jet_data.cyoa_campaign_data_stats[id];
+            if (Object.keys(this.$TCT.jet_data.cyoa_campaign_data_stats).length === 0) {
+                this.$TCT.jet_data.cyoa_campaign_data_enabled = false;
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -299,6 +407,22 @@ registerComponent('cyoa', {
             this.$globalData.dataVersion;
             const src = this.$TCT.jet_data.cyoa_answer_swaps || {};
             return Object.values(src).sort((a, b) => a.id - b.id);
+        },
+
+        campaignDataEnabled() {
+            this.$globalData.dataVersion;
+            return !!this.$TCT.jet_data.cyoa_campaign_data_enabled;
+        },
+
+        campaignDataStats() {
+            this.$globalData.dataVersion;
+            const src = this.$TCT.jet_data.cyoa_campaign_data_stats || {};
+            return Object.values(src).sort((a, b) => a.id - b.id);
+        },
+
+        canUseCampaignData() {
+            this.$globalData.dataVersion;
+            return (this.$TCT.getAllCyoaVariables?.() || []).length > 0;
         },
 
         buildQuestionSwapperFunction() {
@@ -741,7 +865,234 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             }
         }
 
-        return out;
+                out = this.injectCampaignDataIntoCode2(out);
+                return out;
+        },
+
+        getCampaignDataRows() {
+                const jet = window.$TCT?.jet_data;
+                if (!jet || !jet.cyoa_campaign_data_enabled) return [];
+
+                const rows = Object.values(jet.cyoa_campaign_data_stats || {});
+                return rows
+                        .map((row, index) => {
+                                if (!row || !row.variable) return null;
+
+                                const lowMax = Number(row.lowMax);
+                                const midMax = Number(row.midMax);
+                                const lowText = String(row.lowText || '').trim();
+                                const midText = String(row.midText || '').trim();
+                                const highText = String(row.highText || '').trim();
+                                if (!lowText || !midText || !highText) return null;
+                                if (!Number.isFinite(lowMax) || !Number.isFinite(midMax)) return null;
+
+                                const sortedLow = Math.min(lowMax, midMax);
+                                const sortedMid = Math.max(lowMax, midMax);
+                                const label = String(row.label || row.variable || '').trim() || row.variable;
+
+                                return {
+                                        id: Number(row.id || (Date.now() + index)),
+                                        variable: String(row.variable).trim(),
+                                        label,
+                                        tiers: [
+                                                { max: sortedLow, text: lowText, color: '#ff4d4d' },
+                                                { max: sortedMid, text: midText, color: '#e6e6e6' },
+                                                { max: 'Infinity', text: highText, color: '#4dff4d' }
+                                        ]
+                                };
+                        })
+                        .filter(Boolean)
+                        .sort((a, b) => a.id - b.id);
+        },
+
+        buildCampaignDataPopupCode() {
+                const rows = this.getCampaignDataRows();
+                if (!rows.length) return '';
+
+                const escapeTemplateText = (value) => String(value || '')
+                        .replaceAll('\\', '\\\\')
+                        .replaceAll('`', '\\`')
+                        .replaceAll('${', '\\${');
+
+                const statsRows = rows.map((row) => {
+                        const tiers = row.tiers || [];
+                        const t1 = tiers[0] || { max: 0, text: '', color: '#ff4d4d' };
+                        const t2 = tiers[1] || { max: 2, text: '', color: '#e6e6e6' };
+                        const t3 = tiers[2] || { max: 'Infinity', text: '', color: '#4dff4d' };
+                        const max1 = Number.isFinite(Number(t1.max)) ? Number(t1.max) : 0;
+                        const max2 = Number.isFinite(Number(t2.max)) ? Number(t2.max) : 2;
+                        const max3 = String(t3.max) === 'Infinity' ? 'Infinity' : (Number.isFinite(Number(t3.max)) ? Number(t3.max) : 'Infinity');
+
+                        return `    {
+            getValue: () => ${row.variable},
+            label: \`${escapeTemplateText(row.label)}\`,
+            tiers: [
+                [${max1}, \`${escapeTemplateText(t1.text)}\`, \"${t1.color}\"],
+                [${max2}, \`${escapeTemplateText(t2.text)}\`, \"${t2.color}\"],
+                [${max3}, \`${escapeTemplateText(t3.text)}\`, \"${t3.color}\"],
+            ],
+        }`;
+                }).join(',\n');
+
+                return `
+// [JETS_CYOA_CAMPAIGN_DATA_START]
+;(() => {
+    const styleEl = document.createElement("style");
+        styleEl.textContent = \`
+        #gameStatsPopup {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            background-color: #222449;
+            border: 2px solid #727C96;
+            border-radius: 2px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            z-index: 10000;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            color: #fff;
+            cursor: move;
+        }
+        #gameStatsContent { pointer-events: none; }
+        #gameStatsPopup h3 {
+            margin: 0 0 8px;
+            font-weight: bold;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+            font-size: 16px;
+        }
+        .stats-list { line-height: 1.5; }
+        #btn_game_stats { margin-left: 1.5em; }
+    \`;
+    document.head.appendChild(styleEl);
+
+    const bold = (text, color) =>
+        \`<span style="color: \${color}; font-weight: bold">\${text}</span>\`;
+
+    function matchTier(value, tiers) {
+        for (const [max, text, color] of tiers) {
+            if (value <= max) return [text, color];
+        }
+        const fallback = tiers.at(-1);
+        return [fallback?.[1] || "", fallback?.[2] || "#e6e6e6"];
+    }
+
+    const STATS = [
+${statsRows}
+    ];
+
+    function updateGameStatsPopup() {
+        const content = document.getElementById("gameStatsContent");
+        if (!content) return;
+
+        const lines = STATS.map(({ getValue, tiers, label }) => {
+            const value = Number(getValue?.());
+            const score = Number.isFinite(value) ? value : 0;
+            const [text, color] = matchTier(score, tiers);
+            return \`• \${label}: \${bold(text, color)} (\${score})\`;
+        });
+
+        content.innerHTML = \`
+            <h3>Campaign Data</h3>
+            <div class="stats-list">\${lines.join("<br>")}</div>
+        \`;
+    }
+
+    function createGameStatsPopup() {
+        if (document.getElementById("gameStatsPopup")) return;
+
+        const popup = document.createElement("div");
+        popup.id = "gameStatsPopup";
+        popup.style.display = "none";
+        popup.innerHTML = '<div id="gameStatsContent"></div>';
+        document.body.appendChild(popup);
+
+        makePopupDraggable(popup);
+        updateGameStatsPopup();
+    }
+
+    function makePopupDraggable(el) {
+        let offsetX, offsetY;
+
+        function onMouseMove(e) {
+            const maxX = window.innerWidth - el.offsetWidth;
+            const maxY = window.innerHeight - el.offsetHeight;
+            el.style.left   = \`\${Math.max(0, Math.min(e.clientX - offsetX, maxX))}px\`;
+            el.style.top    = \`\${Math.max(0, Math.min(e.clientY - offsetY, maxY))}px\`;
+            el.style.bottom = "auto";
+            el.style.right  = "auto";
+        }
+
+        function onMouseUp() {
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup", onMouseUp);
+        }
+
+        el.addEventListener("mousedown", (e) => {
+            const rect = el.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+        });
+    }
+
+    function toggleGameStatsPopup() {
+        const popup = document.getElementById("gameStatsPopup");
+        if (!popup) return;
+        const showing = popup.style.display === "none";
+        popup.style.display = showing ? "block" : "none";
+        if (showing) updateGameStatsPopup();
+    }
+
+    function injectGameStatsButton() {
+        if (document.getElementById("btn_game_stats")) return;
+        const anchor = document.getElementById("view_electoral_map");
+        if (!anchor) return;
+
+        const btn = document.createElement("button");
+        btn.id = "btn_game_stats";
+        btn.textContent = "Campaign Data";
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            toggleGameStatsPopup();
+        });
+        anchor.insertAdjacentElement("afterend", btn);
+    }
+
+    createGameStatsPopup();
+
+    const gameWindow = document.getElementById("game_window");
+    if (gameWindow) {
+        new MutationObserver(() => {
+            injectGameStatsButton();
+            updateGameStatsPopup();
+        }).observe(gameWindow, { childList: true, subtree: true });
+    }
+})();
+// [JETS_CYOA_CAMPAIGN_DATA_END]
+`.trim();
+        },
+
+        injectCampaignDataIntoCode2(code) {
+                let out = String(code || '');
+                const blockStart = '// [JETS_CYOA_CAMPAIGN_DATA_START]';
+                const blockEnd = '// [JETS_CYOA_CAMPAIGN_DATA_END]';
+                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\\[/g, '\\\\[').replace(/\\]/g, '\\\\]')}[\\s\\S]*?${blockEnd.replace(/\\[/g, '\\\\[').replace(/\\]/g, '\\\\]')}\\n?`, 'g');
+                out = out.replace(existingBlockRe, '\n').replace(/\n{3,}/g, '\n\n');
+
+                const campaignBlock = this.buildCampaignDataPopupCode();
+                if (!campaignBlock) return out;
+
+                const endMarker = '//#endcode';
+                const endIdx = out.indexOf(endMarker);
+                if (endIdx !== -1) {
+                        return out.slice(0, endIdx).replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n' + out.slice(endIdx);
+                }
+
+                return out.replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n';
     }
 };
 
@@ -1079,6 +1430,113 @@ registerComponent('cyoa-variable', {
 
     computed: {
     }
+})
+
+registerComponent('cyoa-campaign-stat', {
+    props: ['id'],
+
+    methods: {
+        getRow() {
+            if (!this.$TCT.jet_data.cyoa_campaign_data_stats) {
+                this.$TCT.jet_data.cyoa_campaign_data_stats = {};
+            }
+            if (!this.$TCT.jet_data.cyoa_campaign_data_stats[this.id]) {
+                const firstVar = (this.$TCT.getAllCyoaVariables?.() || [])[0]?.name || '';
+                this.$TCT.jet_data.cyoa_campaign_data_stats[this.id] = {
+                    id: this.id,
+                    variable: firstVar,
+                    label: firstVar,
+                    lowMax: 0,
+                    midMax: 2,
+                    lowText: `${firstVar} is struggling.`,
+                    midText: `${firstVar} is steady.`,
+                    highText: `${firstVar} is surging.`
+                };
+            }
+            return this.$TCT.jet_data.cyoa_campaign_data_stats[this.id];
+        },
+
+        updateField(field, value) {
+            const row = this.getRow();
+            row[field] = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        onVariableChanged(value) {
+            const row = this.getRow();
+            const oldVar = row.variable;
+            row.variable = value;
+            if (!row.label || row.label === oldVar) {
+                row.label = value;
+            }
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        }
+    },
+
+    computed: {
+        row() {
+            this.$globalData.dataVersion;
+            return this.getRow();
+        },
+
+        variableOptions() {
+            this.$globalData.dataVersion;
+            return this.$TCT.getAllCyoaVariables?.() || [];
+        }
+    },
+
+    template: `
+    <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-teal-400">
+        <div class="flex justify-between items-start mb-2">
+            <div class="text-sm text-gray-700">
+                <div class="font-medium">Tracked variable #{{ id }}</div>
+                <div class="text-xs text-gray-500">Flavor text is shown based on score thresholds.</div>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteStat', id)" aria-label="Delete tracked variable">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Variable</label>
+                <select :value="row.variable" @change="onVariableChanged($event.target.value)" class="w-full border rounded-sm p-2 text-sm">
+                    <option v-for="v in variableOptions" :key="v.id" :value="v.name">{{ v.name }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Display label</label>
+                <input :value="row.label" @input="updateField('label', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown in the modal">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Low tier max (<=)</label>
+                <input :value="row.lowMax" @input="updateField('lowMax', Number($event.target.value))" type="number" class="w-full border rounded-sm p-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Mid tier max (<=)</label>
+                <input :value="row.midMax" @input="updateField('midMax', Number($event.target.value))" type="number" class="w-full border rounded-sm p-2 text-sm">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Low tier flavor text</label>
+                <input :value="row.lowText" @input="updateField('lowText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is low">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Mid tier flavor text</label>
+                <input :value="row.midText" @input="updateField('midText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is mid-tier">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">High tier flavor text</label>
+                <input :value="row.highText" @input="updateField('highText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is high">
+            </div>
+        </div>
+    </div>
+    `
 })
 
 // small global helper to trigger autosave only when enabled
