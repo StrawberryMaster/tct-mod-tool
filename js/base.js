@@ -684,6 +684,62 @@ class TCTData {
             this.jet_data.ending_data = {};
         }
 
+        const normalizeEnding = (entry) => {
+            if (!entry || typeof entry !== "object") return entry;
+
+            if (entry.endingTitle == null) entry.endingTitle = "";
+            if (entry.endingSubtitle == null) entry.endingSubtitle = "";
+            if (entry.endingText == null) entry.endingText = "";
+            if (entry.endingImage == null) entry.endingImage = "";
+            if (entry.endingHideImage == null) entry.endingHideImage = false;
+            if (entry.audioTitle == null) entry.audioTitle = "";
+            if (entry.audioArtist == null) entry.audioArtist = "";
+            if (entry.audioCover == null) entry.audioCover = "";
+            if (entry.audioUrl == null) entry.audioUrl = "";
+            if (entry.variableConditionEnabled == null) entry.variableConditionEnabled = false;
+            if (entry.variableConditionName == null) entry.variableConditionName = "";
+            if (entry.variableConditionOperator == null) entry.variableConditionOperator = "==";
+            if (entry.variableConditionValue == null) entry.variableConditionValue = "";
+            if (entry.answerConditionType == null) entry.answerConditionType = "ignore";
+            if (entry.answerConditionAnswer == null) entry.answerConditionAnswer = "";
+            if (entry.answerConditionAnswers == null) entry.answerConditionAnswers = "";
+
+            if (!entry.answerConditionAnswers && entry.answerConditionAnswer != null && entry.answerConditionAnswer !== "") {
+                entry.answerConditionAnswers = String(entry.answerConditionAnswer);
+            }
+
+            // backfill advanced-only entries into simple fields so they stay editable
+            if ((!entry.endingText || !entry.endingTitle) && entry.endingSlidesJson) {
+                try {
+                    const parsed = JSON.parse(entry.endingSlidesJson);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const first = parsed[0] || {};
+                        if (!entry.endingTitle && first.title) entry.endingTitle = String(first.title);
+                        if (!entry.endingSubtitle && first.subtitle) entry.endingSubtitle = String(first.subtitle);
+                        if (!entry.endingText && first.content) entry.endingText = String(first.content);
+                        if (!entry.endingImage && first.image && first.image !== false) entry.endingImage = String(first.image);
+                        if (first.image === false) entry.endingHideImage = true;
+                        if (first.audio && typeof first.audio === "object") {
+                            if (!entry.audioTitle && first.audio.title) entry.audioTitle = String(first.audio.title);
+                            if (!entry.audioArtist && first.audio.artist) entry.audioArtist = String(first.audio.artist);
+                            if (!entry.audioCover && first.audio.cover) entry.audioCover = String(first.audio.cover);
+                            if (!entry.audioUrl && first.audio.url) entry.audioUrl = String(first.audio.url);
+                        }
+                    }
+                } catch (err) {
+                    // keep original data if JSON is malformed
+                }
+            }
+
+            if (entry.endingMode != null) {
+                entry.endingMode = "simple";
+            }
+
+            return entry;
+        };
+
+        Object.values(this.jet_data.ending_data).forEach(normalizeEnding);
+
         const data = this.jet_data.ending_data || {};
 
         // if an explicit order is present, respect it
@@ -1516,30 +1572,310 @@ class TCTData {
         const endings = this.getAllEndings();
         if (endings.length === 0) return "";
 
-        let f = "campaignTrail_temp.multiple_endings = true;\n\n";
+        const preparedEndings = endings.map((ending) => ({
+            id: ending?.id,
+            variable: Number(ending?.variable ?? 0),
+            operator: ending?.operator || ">",
+            amount: Number(ending?.amount ?? 0),
+            endingTitle: ending?.endingTitle || "",
+            endingSubtitle: ending?.endingSubtitle || "",
+            endingText: ending?.endingText || "",
+            endingImage: ending?.endingImage || "",
+            endingHideImage: !!ending?.endingHideImage,
+            endingSlidesJson: ending?.endingSlidesJson || "",
+            audioTitle: ending?.audioTitle || "",
+            audioArtist: ending?.audioArtist || "",
+            audioCover: ending?.audioCover || "",
+            audioUrl: ending?.audioUrl || "",
+            variableConditions: Array.isArray(ending?.variableConditions) ? ending.variableConditions : [],
+            variableConditionOperator: ending?.variableConditionOperator || "AND",
+            answerConditionType: ending?.answerConditionType || "ignore",
+            answerConditionAnswer: ending?.answerConditionAnswer ?? "",
+            answerConditionAnswers: ending?.answerConditionAnswers ?? ""
+        }));
 
-        f += `const setImage = (url) => {
+        let f = "// [JETS_ENDINGS_START]\n";
+        f += "campaignTrail_temp.multiple_endings = true;\n\n";
+        f += `const _tctEndingDefs = ${JSON.stringify(preparedEndings, null, 4)};\n\n`;
+        f += `const _tctOpMap = {
+    ">": (a, b) => a > b,
+    ">=": (a, b) => a >= b,
+    "==": (a, b) => a == b,
+    "<=": (a, b) => a <= b,
+    "<": (a, b) => a < b,
+    "!=": (a, b) => a != b
+};
+
+const _tctGetEndingImageEl = () => {
+    const imageContainer = document.querySelector(".person_image");
+    if (!imageContainer) return null;
+    if (imageContainer.tagName && imageContainer.tagName.toLowerCase() === "img") {
+        return imageContainer;
+    }
+    return imageContainer.querySelector("img");
+};
+
+const _tctReadVariable = (name) => {
+    if (!name || typeof name !== "string") return undefined;
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) return undefined;
+    try {
+        return Function("return (typeof " + name + " !== 'undefined') ? " + name + " : undefined;")();
+    } catch (_err) {
+        return undefined;
+    }
+};
+
+const _tctParseConditionValue = (value) => {
+    if (value == null || value === "") return "";
+    const n = Number(value);
+    if (!Number.isNaN(n)) return n;
+    return value;
+};
+
+const _tctCheckExtraConditions = (entry, playerAnswers) => {
+    // Check variable conditions (new format: array with AND/OR operator)
+    if (Array.isArray(entry.variableConditions) && entry.variableConditions.length > 0) {
+        const operator = entry.variableConditionOperator || "AND";
+        const results = entry.variableConditions.map((cond) => {
+            const left = _tctReadVariable(cond.variable);
+            const right = _tctParseConditionValue(cond.value);
+            const opFn = _tctOpMap[cond.comparator] || _tctOpMap["=="];
+            return opFn(left, right);
+        });
+
+        if (operator === "AND") {
+            if (!results.every((r) => r)) return false;
+        } else if (operator === "OR") {
+            if (!results.some((r) => r)) return false;
+        }
+    }
+
+    const answerType = entry.answerConditionType || "ignore";
+    if (answerType !== "ignore") {
+        const rawAnswers = String(entry.answerConditionAnswers || entry.answerConditionAnswer || "").trim();
+        const answerIds = rawAnswers
+            .split(/[\s,]+/)
+            .map((v) => Number(v))
+            .filter((v) => Number.isFinite(v));
+
+        if (answerIds.length === 0) return false;
+
+        const hasAny = Array.isArray(playerAnswers) && answerIds.some((id) => playerAnswers.includes(id));
+        if (answerType === "has" && !hasAny) return false;
+        if (answerType === "not_has" && hasAny) return false;
+    }
+
+    return true;
+};
+
+const playEndingSong = (title, artist, cover, url) => {
     if (!url) return;
-    const interval = setInterval(() => {
-        const img = document.querySelector(".person_image");
-        if (img) {
-            img.src = url;
-            clearInterval(interval);
+    if (typeof Playlist !== "undefined" && typeof Song !== "undefined" && typeof changePlaylist === "function") {
+        const playlist = new Playlist();
+        const song = new Song(title || "", artist || "", cover || "", url);
+        playlist.addSong(song);
+        changePlaylist(playlist);
+    }
+};
+
+const styleEndingDescription = () => {
+    const desc = document.querySelector("#final_results_description");
+    if (!desc || desc.dataset.endingStyled) return;
+
+    Object.assign(desc.style, {
+        textAlign: "left",
+        width: "72%",
+        maxHeight: "20em",
+        minHeight: "8em",
+        height: "auto",
+        display: "block",
+        margin: "0 auto",
+        overflowY: "auto",
+        overflowX: "hidden",
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
+        wordBreak: "break-word",
+        transform: "translateZ(0)"
+    });
+
+    desc.dataset.endingStyled = "1";
+};
+
+const applyEndingImage = (slide) => {
+    const imageEl = _tctGetEndingImageEl();
+    if (!imageEl || !slide) return;
+
+    if (slide.image === false) {
+        imageEl.style.display = "none";
+        imageEl.removeAttribute("src");
+        return;
+    }
+
+    if (!imageEl.dataset.endingStyled) {
+        Object.assign(imageEl.style, {
+            border: "3px solid #11299e",
+            display: "block",
+            width: "210px",
+            height: "250px",
+            objectFit: "cover"
+        });
+        imageEl.dataset.endingStyled = "1";
+    } else {
+        imageEl.style.display = "block";
+    }
+
+    if (slide.image && imageEl.getAttribute("src") !== slide.image) {
+        imageEl.src = slide.image;
+    }
+};
+
+const applyEndingButtons = () => {
+    const e = campaignTrail_temp;
+    const imageEl = _tctGetEndingImageEl();
+    if (!imageEl || !imageEl.parentNode) return;
+
+    let btnContainer = document.getElementById("ending_slide_buttons");
+    if (!btnContainer) {
+        btnContainer = document.createElement("div");
+        btnContainer.id = "ending_slide_buttons";
+        Object.assign(btnContainer.style, {
+            display: "flex",
+            gap: "20px",
+            left: "13px",
+            top: "280px",
+            position: "absolute"
+        });
+        imageEl.parentNode.insertBefore(btnContainer, imageEl.nextSibling);
+    }
+
+    let buttonsHtml = "";
+    if (e.page > 0) {
+        buttonsHtml += '<button onclick="endingConstructor(-1)">Back</button>';
+    }
+    if (e.page < e.endingSlides.length - 1) {
+        buttonsHtml += '<button onclick="endingConstructor(1)">Next</button>';
+    }
+
+    if (btnContainer.innerHTML !== buttonsHtml) {
+        btnContainer.innerHTML = buttonsHtml;
+    }
+};
+
+const syncEndingSlideDom = () => {
+    const e = campaignTrail_temp;
+    const slide = e.endingSlides?.[e.page];
+    if (!slide) return;
+
+    styleEndingDescription();
+    applyEndingImage(slide);
+    applyEndingButtons();
+
+    if (slide.audio && slide.audio.url) {
+        const key = [slide.audio.title || "", slide.audio.artist || "", slide.audio.url || ""].join("|");
+        if (e._endingAudioPlayedKey !== key) {
+            playEndingSong(slide.audio.title, slide.audio.artist, slide.audio.cover, slide.audio.url);
+            e._endingAudioPlayedKey = key;
         }
-    }, 50);
-};\n\n`;
+    }
+};
 
-        f += "endingPicker = (out, totv, aa, quickstats) => {\n";
+const syncEndingSlideDomDeferred = () => {
+    requestAnimationFrame(() => {
+        syncEndingSlideDom();
+    });
+};
 
-        for (const ending of endings) {
-            const op = ending.operator || '>';
-            f += `    if (quickstats[${ending.variable}] ${op} ${ending.amount}) {
-        setImage("${ending.endingImage}");
-        return \`${ending.endingText}\`;
-    }\n`;
+const _tctBuildSlides = (entry) => {
+    if (entry && entry.endingSlidesJson) {
+        try {
+            const parsed = JSON.parse(entry.endingSlidesJson);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.map((slide) => ({
+                    title: slide?.title || "",
+                    subtitle: slide?.subtitle || "",
+                    content: slide?.content || "",
+                    image: slide?.image,
+                    audio: slide?.audio && slide.audio.url ? {
+                        title: slide.audio.title || "",
+                        artist: slide.audio.artist || "",
+                        cover: slide.audio.cover || "",
+                        url: slide.audio.url || ""
+                    } : undefined
+                }));
+            }
+        } catch (err) {
+            console.warn("Invalid endingSlidesJson for ending", entry?.id, err);
         }
+    }
 
-        f += "}\n";
+    const fallbackSlide = {
+        title: entry?.endingTitle || "",
+        subtitle: entry?.endingSubtitle || "",
+        content: entry?.endingText || "",
+        image: entry?.endingHideImage ? false : (entry?.endingImage || undefined)
+    };
+
+    if (entry?.audioUrl) {
+        fallbackSlide.audio = {
+            title: entry.audioTitle || "",
+            artist: entry.audioArtist || "",
+            cover: entry.audioCover || "",
+            url: entry.audioUrl || ""
+        };
+    }
+
+    return [fallbackSlide];
+};
+
+const _tctConstructSlide = (direction = 1) => {
+    const e = campaignTrail_temp;
+    if (!Array.isArray(e.endingSlides) || e.endingSlides.length === 0) return "";
+
+    e.page += direction;
+    if (e.page < 0) e.page = 0;
+    if (e.page >= e.endingSlides.length) e.page = e.endingSlides.length - 1;
+
+    const currentSlide = e.endingSlides[e.page];
+    if (!currentSlide) return "";
+
+    let html = "";
+    if (currentSlide.title) html += "<h3>" + currentSlide.title + "</h3>";
+    if (currentSlide.subtitle) html += "<h4>" + currentSlide.subtitle + "</h4>";
+    html += (currentSlide.content || "") + "<br><br>";
+    return html;
+};
+
+endingConstructor = (direction = 1) => {
+    const desc = document.querySelector("#final_results_description");
+    if (!desc) return;
+    desc.innerHTML = _tctConstructSlide(direction);
+    syncEndingSlideDomDeferred();
+};
+
+endingPicker = (out, totv, aa, quickstats) => {
+    const playerAnswers = campaignTrail_temp?.player_answers || [];
+    for (const entry of _tctEndingDefs) {
+        const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
+        const left = quickstats?.[Number(entry.variable) || 0];
+        const right = Number(entry.amount) || 0;
+
+        if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+            const e = campaignTrail_temp;
+            e.multiple_endings = true;
+            e.page = -1;
+            e.endingSlides = _tctBuildSlides(entry);
+            e._endingAudioPlayedKey = "";
+
+            const html = _tctConstructSlide(1);
+            syncEndingSlideDomDeferred();
+            return html;
+        }
+    }
+
+    return "";
+};
+`;
+        f += "\n// [JETS_ENDINGS_END]\n";
         return f;
     }
 
@@ -2129,6 +2465,7 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
+    extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
     excludeArrowFunctionAssignmentsButKeepLast("endingPicker");
 
