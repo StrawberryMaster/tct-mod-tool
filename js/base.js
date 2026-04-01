@@ -1633,7 +1633,7 @@ const _tctParseConditionValue = (value) => {
 };
 
 const _tctCheckExtraConditions = (entry, playerAnswers) => {
-    // Check variable conditions (new format: array with AND/OR operator)
+    // check variable conditions
     if (Array.isArray(entry.variableConditions) && entry.variableConditions.length > 0) {
         const operator = entry.variableConditionOperator || "AND";
         const results = entry.variableConditions.map((cond) => {
@@ -1654,7 +1654,7 @@ const _tctCheckExtraConditions = (entry, playerAnswers) => {
     if (answerType !== "ignore") {
         const rawAnswers = String(entry.answerConditionAnswers || entry.answerConditionAnswer || "").trim();
         const answerIds = rawAnswers
-            .split(/[\s,]+/)
+            .split(/[\\s,]+/)
             .filter((v) => v.length > 0)
             .map((v) => Number(v))
             .filter((v) => Number.isFinite(v));
@@ -2225,6 +2225,93 @@ function loadDataFromFile(raw_json) {
     let pkReplacements = new Map();
     const duplicateCounters = new Map();
 
+    const parseStructuredLiteral = (source) => {
+        if (typeof source !== 'string') return null;
+
+        const commentCleanerRegex = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:\\[\s\S]|[^`\\])*`)|(\/\*[\s\S]*?\*\/)|(\/\/.*$)/gm;
+        const cleaned = source
+            .replace(commentCleanerRegex, (match, str) => str ? str : "")
+            .replace(/,\s*([}\]])/g, "$1");
+
+        try {
+            return JSON.parse(cleaned);
+        } catch (_jsonErr) {
+            try {
+                return new Function("return " + cleaned)();
+            } catch (_evalErr) {
+                return null;
+            }
+        }
+    };
+
+    const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) => {
+        let depth = 0;
+        let inString = false;
+        let stringChar = '';
+        let escape = false;
+        let inSingleLine = false;
+        let inMultiLine = false;
+
+        for (let i = startIndex; i < text.length; i++) {
+            const ch = text[i];
+            const next = text[i + 1];
+
+            if (inSingleLine) {
+                if (ch === '\n' || ch === '\r') inSingleLine = false;
+                continue;
+            }
+
+            if (inMultiLine) {
+                if (ch === '*' && next === '/') {
+                    inMultiLine = false;
+                    i++;
+                }
+                continue;
+            }
+
+            if (inString) {
+                if (!escape && ch === stringChar) {
+                    inString = false;
+                    stringChar = '';
+                }
+                escape = (!escape && ch === '\\');
+                if (escape && ch !== '\\') escape = false;
+                continue;
+            }
+
+            if (ch === '"' || ch === "'" || ch === '`') {
+                inString = true;
+                stringChar = ch;
+                escape = false;
+                continue;
+            }
+
+            if (ch === '/' && next === '/') {
+                inSingleLine = true;
+                i++;
+                continue;
+            }
+
+            if (ch === '/' && next === '*') {
+                inMultiLine = true;
+                i++;
+                continue;
+            }
+
+            if (ch === openChar) {
+                depth++;
+                continue;
+            }
+
+            if (ch === closeChar) {
+                depth--;
+                if (depth === 0) return i + 1;
+            }
+        }
+
+        return -1;
+    };
+
     const excludeAllButLastRegex = (regex) => {
         const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
         const scan = new RegExp(regex.source, flags);
@@ -2360,6 +2447,29 @@ function loadDataFromFile(raw_json) {
         for (let i = 0; i < matches.length; i++) {
             const current = matches[i];
             const marker = (current.marker || '').trim();
+            const markerStart = current.index + current.full.length - marker.length;
+
+            if (marker.startsWith("[") || marker.startsWith("{")) {
+                const openChar = marker[0];
+                const closeChar = openChar === "[" ? "]" : "}";
+                const literalEnd = findBalancedLiteralEnd(raw_json, markerStart, openChar, closeChar);
+
+                if (literalEnd !== -1) {
+                    const literalText = raw_json.slice(markerStart, literalEnd);
+                    const parsedLiteral = parseStructuredLiteral(literalText);
+
+                    if (parsedLiteral != null) {
+                        let sectionEnd = literalEnd;
+                        while (sectionEnd < raw_json.length && /\s/.test(raw_json[sectionEnd])) sectionEnd++;
+                        if (raw_json[sectionEnd] === ';') sectionEnd++;
+
+                        extractor.exclude(current.index, sectionEnd);
+                        resolved = parsedLiteral;
+                        continue;
+                    }
+                }
+            }
+
             let endMarker = marker.startsWith("[") ? "]" : marker.startsWith("{") ? "}" : marker[0];
             if (marker.includes("JSON.parse")) endMarker = ");";
 
