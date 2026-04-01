@@ -1655,6 +1655,7 @@ const _tctCheckExtraConditions = (entry, playerAnswers) => {
         const rawAnswers = String(entry.answerConditionAnswers || entry.answerConditionAnswer || "").trim();
         const answerIds = rawAnswers
             .split(/[\s,]+/)
+            .filter((v) => v.length > 0)
             .map((v) => Number(v))
             .filter((v) => Number.isFinite(v));
 
@@ -1790,7 +1791,10 @@ const _tctBuildSlides = (entry) => {
         try {
             const parsed = JSON.parse(entry.endingSlidesJson);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed.map((slide) => ({
+                const normalizeSlide = (slide) => ({
+                    variable: Number(slide?.variable ?? 0),
+                    operator: slide?.operator || ">",
+                    amount: Number(slide?.amount ?? 0),
                     title: slide?.title || "",
                     subtitle: slide?.subtitle || "",
                     content: slide?.content || "",
@@ -1801,7 +1805,40 @@ const _tctBuildSlides = (entry) => {
                         cover: slide.audio.cover || "",
                         url: slide.audio.url || ""
                     } : undefined
-                }));
+                });
+
+                const hasGroups = parsed.some((slide) => slide && slide.slideGroup);
+                if (!hasGroups) {
+                    return parsed.map((slide) => normalizeSlide(slide));
+                }
+
+                const groupMap = new Map();
+                const groupOrder = [];
+                for (const slide of parsed) {
+                    const groupKey = slide?.slideGroup || "main";
+                    if (!groupMap.has(groupKey)) {
+                        groupMap.set(groupKey, []);
+                        groupOrder.push(groupKey);
+                    }
+                    groupMap.get(groupKey).push(slide);
+                }
+
+                const playerAnswers = campaignTrail_temp?.player_answers || [];
+                const selectedSlides = [];
+
+                for (const groupKey of groupOrder) {
+                    const groupSlides = groupMap.get(groupKey) || [];
+                    let selected = groupSlides.find((slide) => {
+                        const opFn = _tctOpMap[slide?.operator] || _tctOpMap[">"];
+                        const left = quickstats?.[Number(slide?.variable) || 0];
+                        const right = Number(slide?.amount) || 0;
+                        return opFn(left, right) && _tctCheckExtraConditions(slide, playerAnswers);
+                    });
+                    if (!selected) selected = groupSlides[0];
+                    if (selected) selectedSlides.push(normalizeSlide(selected));
+                }
+
+                return selectedSlides;
             }
         } catch (err) {
             console.warn("Invalid endingSlidesJson for ending", entry?.id, err);
