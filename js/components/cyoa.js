@@ -1080,7 +1080,7 @@ ${statsRows}
                 let out = String(code || '');
                 const blockStart = '// [JETS_CYOA_CAMPAIGN_DATA_START]';
                 const blockEnd = '// [JETS_CYOA_CAMPAIGN_DATA_END]';
-                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\\[/g, '\\\\[').replace(/\\]/g, '\\\\]')}[\\s\\S]*?${blockEnd.replace(/\\[/g, '\\\\[').replace(/\\]/g, '\\\\]')}\\n?`, 'g');
+                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}[\\s\\S]*?${blockEnd.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\n?`, 'g');
                 out = out.replace(existingBlockRe, '\n').replace(/\n{3,}/g, '\n\n');
 
                 const campaignBlock = this.buildCampaignDataPopupCode();

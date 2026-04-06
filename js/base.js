@@ -1503,7 +1503,17 @@ class TCTData {
                         missingVars.push(`var ${varName} = ${v.defaultValue};`);
                     }
                 }
-                const varDeclBlock = missingVars.length > 0 ? `// CYOA Variables\n${missingVars.join("\n")}\n\n` : "";
+                
+                if (missingVars.length > 0) {
+                    const missingStr = missingVars.join("\n");
+                    // try to inject right after the existing comment
+                    if (codeToAdd.includes("// CYOA Variables")) {
+                        codeToAdd = codeToAdd.replace(/\/\/\s*CYOA Variables\s*\n/, "// CYOA Variables\n" + missingStr + "\n");
+                    } else {
+                        // otherwise prepend it
+                        codeToAdd = `// CYOA Variables\n${missingStr}\n\n${codeToAdd}`;
+                    }
+                }
 
                 // extract the effects
                 const effectMatch = generatedCyoaCode.match(/cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{([\s\S]*?)\n\}\s*$/m);
@@ -1511,6 +1521,7 @@ class TCTData {
                 if (effectMatch) {
                     let fnBody = effectMatch[1];
                     fnBody = fnBody.replace(/^\s*(?:const|let|var)?\s*ans\s*=.*?;\s*/m, ""); // Strip redundant 'ans' definition
+                    fnBody = fnBody.replace(/^\s*e\.noCounter\s*=\s*.*?;\s*/m, ""); // Strip redundant e.noCounter definition
                     generatedEffects = fnBody.split(/\n\s*\/\/ Branching logic\b/m)[0].replace(/^\n+/, "").trimEnd();
                 }
 
@@ -1522,14 +1533,27 @@ class TCTData {
                 codeToAdd = codeToAdd.replace(existingBlockRe, "\n");
 
                 if (generatedEffects) {
+                    const noCounterRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[\s\S]*?e\.noCounter\s*=\s*[^;]+;[ \t]*\r?\n)/;
                     const ansRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[ \t]*\r?\n)/;
-                    const ansMatch = codeToAdd.match(ansRe);
+                    
+                    let match = codeToAdd.match(noCounterRe);
+                    let insertionPoint = -1;
+                    let indent = "    ";
 
-                    if (ansMatch) {
-                        const insertionPoint = ansMatch.index + ansMatch[0].length;
-                        const indentMatch = ansMatch[0].match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=/);
-                        const indent = indentMatch ? indentMatch[1] : "    ";
+                    if (match) {
+                        insertionPoint = match.index + match[0].length;
+                        const indentMatch = match[0].match(/(?:^|\n)([ \t]*)e\.noCounter\s*=/);
+                        if (indentMatch) indent = indentMatch[1];
+                    } else {
+                        match = codeToAdd.match(ansRe);
+                        if (match) {
+                            insertionPoint = match.index + match[0].length;
+                            const indentMatch = match[0].match(/(?:^|\n)([ \t]*)(?:(?:const|let|var)\s+)?ans\s*=/);
+                            if (indentMatch) indent = indentMatch[1];
+                        }
+                    }
 
+                    if (insertionPoint !== -1) {
                         const formattedEffects = generatedEffects.split("\n").map(l => l.trim() ? `${indent}${l.replace(/^ {1,4}/, "")}` : "").join("\n");
                         const block = `\n${indent}${blockStart}\n${formattedEffects}\n${indent}${blockEnd}\n`;
 
@@ -1544,7 +1568,7 @@ class TCTData {
                     if (preludeMatch) prelude = preludeMatch[1].trim() + "\n\n";
                 }
 
-                codeToAdd = `${prelude}${varDeclBlock}${codeToAdd}`;
+                codeToAdd = `${prelude}${codeToAdd}`;
             }
         }
 
