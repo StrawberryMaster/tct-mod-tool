@@ -182,6 +182,12 @@ registerCode1Component('tct-preview', {
                         
                         <!-- Election Mode -->
                         <div v-if="previewMode === 'ELECTION'" class="inner_window_w_desc" :style="innerWindowStyle">
+                            <div class="flex gap-2 mb-4 border-b border-gray-300">
+                                <button @click="setPreviewSubMode('SCENARIO')" :class="['px-3 py-1 text-sm font-semibold rounded-t', previewSubMode === 'SCENARIO' ? 'bg-white border border-b-0 border-gray-300 text-gray-900' : 'bg-gray-100 text-gray-600']">Scenario</button>
+                                <button @click="setPreviewSubMode('RECOMMENDED_READING')" :class="['px-3 py-1 text-sm font-semibold rounded-t', previewSubMode === 'RECOMMENDED_READING' ? 'bg-white border border-b-0 border-gray-300 text-gray-900' : 'bg-gray-100 text-gray-600']">Recommended Reading</button>
+                            </div>
+
+                            <div v-if="previewSubMode === 'SCENARIO'">
                             <div id="election_year_form">
                                 <form name="election_year">
                                     <p> </p>
@@ -200,6 +206,15 @@ registerCode1Component('tct-preview', {
                             </div>
                             <p><button @click="setPreviewMode('CANDIDATE')" id="election_id_button" class="pure-button">Continue</button></p>
                             <p id="credits">This scenario was made by {{credits}}.</p>
+                            </div>
+
+                            <div v-else class="rounded border p-4 bg-white" :class="recommendedReadingEnabled ? 'border-gray-300' : 'border-gray-200 bg-gray-100 text-gray-500'">
+                                <h3 class="text-lg font-semibold mb-3">Recommended Reading</h3>
+                                <div v-if="recommendedReadingEnabled" v-html="recommendedReadingPreviewHtml"></div>
+                                <div v-else>
+                                    <p><em>Recommended reading is disabled.</em></p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Candidate Mode -->
@@ -276,6 +291,7 @@ registerCode1Component('tct-preview', {
     data() {
         return {
             previewMode: 'ELECTION',
+            previewSubMode: 'SCENARIO',
             selectedCandIdx: 0,
             selectedMateIdx: 0
         };
@@ -284,6 +300,12 @@ registerCode1Component('tct-preview', {
         jetData() { return this.$TCT1.jet_data; },
         currentElection() { return this.$TCT1.elections[0]; },
         credits() { return this.$TCT1.credits; },
+        recommendedReadingEnabled() {
+            return this.currentElection?.fields?.recommended_reading_enabled !== false;
+        },
+        recommendedReadingPreviewHtml() {
+            return this.currentElection?.fields?.recommended_reading || '<p><em>No recommended reading content.</em></p>';
+        },
         activeCandidates() {
             return this.$TCT1.candidates.filter(c => c.fields.is_active === 1 && !c.fields.running_mate);
         },
@@ -340,9 +362,15 @@ registerCode1Component('tct-preview', {
     methods: {
         setPreviewMode(mode) {
             this.previewMode = mode;
+            if (mode === 'ELECTION') {
+                this.previewSubMode = 'SCENARIO';
+            }
             if (mode === 'RUNNING_MATE') {
                 this.selectedMateIdx = 0;
             }
+        },
+        setPreviewSubMode(mode) {
+            this.previewSubMode = mode;
         },
         onCandidateSelected(e) {
             this.selectedCandIdx = parseInt(e.target.value);

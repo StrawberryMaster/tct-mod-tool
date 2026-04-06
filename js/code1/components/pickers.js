@@ -60,9 +60,16 @@ registerCode1Component('election-editor', {
                 <label class="block text-sm font-medium text-gray-700">Summary (HTML)</label>
                 <textarea v-model="election.fields.summary" @input="onInput" rows="5" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
             </div>
+            <div class="flex items-center gap-2">
+                <input id="recommended_reading_enabled" type="checkbox" v-model="election.fields.recommended_reading_enabled" @change="onInput" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                <label for="recommended_reading_enabled" class="text-sm font-medium text-gray-700">Enable Recommended Reading section</label>
+            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Recommended reading (HTML)</label>
-                <textarea v-model="election.fields.recommended_reading" @input="onInput" rows="5" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                <textarea v-model="election.fields.recommended_reading" @input="onInput" :disabled="!election.fields.recommended_reading_enabled" rows="5" :class="['mt-1 block w-full rounded border shadow-sm focus:border-blue-500 focus:ring-blue-500', election.fields.recommended_reading_enabled ? 'border-gray-300 bg-white text-black' : 'border-gray-200 bg-gray-100 text-gray-500']"></textarea>
+                <div v-if="!election.fields.recommended_reading_enabled" class="mt-2 rounded border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
+                    Recommended Reading is disabled. Enable it to display this tab's contents after finishing a playthrough.
+                </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Credits</label>

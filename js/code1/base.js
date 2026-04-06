@@ -63,6 +63,9 @@ class TCTCode1Data {
             if (!this.elections[0].fields.display_year) {
                 this.elections[0].fields.display_year = String(this.elections[0].fields.year);
             }
+            if (this.elections[0].fields.recommended_reading_enabled == null) {
+                this.elections[0].fields.recommended_reading_enabled = true;
+            }
             
             // update temp_election_list too
             this.temp_election_list = [{
@@ -120,6 +123,7 @@ class TCTCode1Data {
                     "winning_electoral_vote_number": 270,
                     "advisor_url": "123",
                     "recommended_reading": "<ul>\n<li><a href=https://www.chicagotribune.com/opinion/editorials/ct-edit-chicago-tribune-biden-endorsement-20200925-lnyxsb5qvrftnjjmj3rnzj33jy-story.html>Our Case For Joe Biden</a></li>\n</ul>",
+                    "recommended_reading_enabled": true,
                     "has_visits": 1,
                     "no_electoral_majority_image": "../static/images/2012-no-majority.jpg"
                 }
@@ -232,6 +236,10 @@ class TCTCode1Data {
         // export temp election list
         code += "campaignTrail_temp.temp_election_list = " + JSON.stringify(this.temp_election_list, null, 4) + ";\n\n";
         
+        if (this.elections[0]?.fields?.recommended_reading_enabled) {
+            code += "RecReading = true;\n\n";
+        }
+        
         // export credits
         code += "campaignTrail_temp.credits = " + JSON.stringify(this.credits) + ";\n\n";
         
@@ -319,6 +327,7 @@ applyTheme(theme);
         // Mock objects to catch the eval output
         const campaignTrail_temp = {};
         let jet_data = null;
+        let RecReading = true;
         
         try {
             // strip //@startcode and //@endcode if they exist
@@ -335,6 +344,9 @@ applyTheme(theme);
             if (campaignTrail_temp.global_parameter_json) this.global_parameters = campaignTrail_temp.global_parameter_json;
             if (campaignTrail_temp.temp_election_list) this.temp_election_list = campaignTrail_temp.temp_election_list;
             if (campaignTrail_temp.credits) this.credits = campaignTrail_temp.credits;
+            if (this.elections?.[0]?.fields) {
+                this.elections[0].fields.recommended_reading_enabled = RecReading !== false;
+            }
             
             if (jet_data) {
                 this.jet_data = Object.assign({}, this.jet_data, jet_data);
