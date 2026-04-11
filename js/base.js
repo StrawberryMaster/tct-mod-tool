@@ -2635,7 +2635,10 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*#\s*(start|end)code/gi);
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
-    extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
+    // keep manual banner assignments in custom code unless the banner module is enabled
+    if (jet_data.banner_enabled) {
+        extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
+    }
     extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
     excludeArrowFunctionAssignmentsButKeepLast("endingPicker");
