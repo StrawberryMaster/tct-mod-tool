@@ -297,7 +297,7 @@ registerComponent('ending', {
     template: `
     <div class="mx-auto p-3">
         <div class="border rounded-sm bg-gray-50 p-3 mb-3">
-            <h2 class="text-sm font-semibold text-gray-700 mb-2">Slide Colors (applies to all slides in this ending)</h2>
+            <h2 class="text-sm font-semibold text-gray-700 mb-2">Slide colors (this applies to all slides in this case)</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Accent color</label>
