@@ -1701,11 +1701,48 @@ const _tctCheckExtraConditions = (entry, playerAnswers) => {
 
 const playEndingSong = (title, artist, cover, url) => {
     if (!url) return;
-    if (typeof Playlist !== "undefined" && typeof Song !== "undefined" && typeof changePlaylist === "function") {
-        const playlist = new Playlist();
-        const song = new Song(title || "", artist || "", cover || "", url);
-        playlist.addSong(song);
-        changePlaylist(playlist);
+    const PlaylistCtor = (typeof window !== "undefined" && window.Playlist)
+        || (typeof Playlist !== "undefined" ? Playlist : null);
+    const SongCtor = (typeof window !== "undefined" && window.Song)
+        || (typeof Song !== "undefined" ? Song : null);
+    const changePlaylistFn = (typeof window !== "undefined" && window.changePlaylist)
+        || (typeof changePlaylist === "function" ? changePlaylist : null);
+
+    if (PlaylistCtor && SongCtor && typeof changePlaylistFn === "function") {
+        try {
+            const playlist = new PlaylistCtor();
+            const song = new SongCtor(title || "", artist || "", cover || "", url);
+            if (typeof playlist.addSong === "function") {
+                playlist.addSong(song);
+                changePlaylistFn(playlist);
+                return;
+            }
+        } catch (err) {
+            console.warn("Failed to route ending song:", err);
+        }
+    }
+
+    // fallback for custom players: drive the shared audio element directly
+    const audioEl = document.getElementById("audio") || document.querySelector("audio#audio, audio");
+    if (!audioEl) return;
+
+    if (audioEl.src !== url) {
+        audioEl.src = url;
+    }
+
+    const player = document.getElementById("player");
+    if (player) {
+        const titleEl = player.querySelector("#title");
+        const artistEl = player.querySelector("#artist");
+        const coverEl = player.querySelector("#cover");
+        if (titleEl) titleEl.textContent = title || "";
+        if (artistEl) artistEl.textContent = artist || "";
+        if (coverEl && cover) coverEl.src = cover;
+    }
+
+    const playPromise = audioEl.play?.();
+    if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {});
     }
 };
 
@@ -2396,7 +2433,7 @@ function loadDataFromFile(raw_json) {
     // exclude repeated arrow-function assignments like:
     // endingPicker = (...) => { ... }
     // while keeping the last one
-    const excludeArrowFunctionAssignmentsButKeepLast = (identifier) => {
+    const excludeArrowFunctionAssignments = (identifier, keepLast = true) => {
         const headerRe = new RegExp(`${identifier}\\s*=\\s*\\([^)]*\\)\\s*=>\\s*\\{`, "g");
         let match;
         const ranges = [];
@@ -2477,8 +2514,112 @@ function loadDataFromFile(raw_json) {
             }
         }
 
-        for (let i = 0; i < ranges.length - 1; i++) {
+        const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
+        for (let i = 0; i < keepFrom; i++) {
             extractor.exclude(ranges[i].start, ranges[i].end);
+        }
+    };
+
+    const excludeConstArrowFunctions = (identifier, keepLast = false) => {
+        const headerRe = new RegExp(`(?:const|let|var)\\s+${identifier}\\s*=\\s*(?:\\([^)]*\\)|[A-Za-z_$][A-Za-z0-9_$]*)\\s*=>\\s*\\{`, "g");
+        let match;
+        const ranges = [];
+
+        while ((match = headerRe.exec(raw_json)) !== null) {
+            const header = match[0];
+            const bodyStart = match.index + header.length - 1; // points to '{'
+
+            let i = bodyStart;
+            let depth = 0;
+            let inString = false;
+            let stringChar = '';
+            let escape = false;
+            let inSingleLine = false;
+            let inMultiLine = false;
+
+            for (; i < raw_json.length; i++) {
+                const ch = raw_json[i];
+                const next = raw_json[i + 1];
+
+                if (inSingleLine) {
+                    if (ch === '\n' || ch === '\r') inSingleLine = false;
+                    continue;
+                }
+
+                if (inMultiLine) {
+                    if (ch === '*' && next === '/') {
+                        inMultiLine = false;
+                        i++;
+                    }
+                    continue;
+                }
+
+                if (inString) {
+                    if (!escape && ch === stringChar) {
+                        inString = false;
+                        stringChar = '';
+                    }
+                    escape = (!escape && ch === '\\');
+                    if (escape && ch !== '\\') escape = false;
+                    continue;
+                }
+
+                if (ch === '"' || ch === "'" || ch === '`') {
+                    inString = true;
+                    stringChar = ch;
+                    escape = false;
+                    continue;
+                }
+
+                if (ch === '/' && next === '/') {
+                    inSingleLine = true;
+                    i++;
+                    continue;
+                }
+
+                if (ch === '/' && next === '*') {
+                    inMultiLine = true;
+                    i++;
+                    continue;
+                }
+
+                if (ch === '{') {
+                    depth++;
+                    continue;
+                }
+
+                if (ch === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        let end = i + 1;
+                        while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
+                        if (raw_json[end] === ';') end++;
+                        ranges.push({ start: match.index, end });
+                        break;
+                    }
+                }
+            }
+        }
+
+        const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
+        for (let i = 0; i < keepFrom; i++) {
+            extractor.exclude(ranges[i].start, ranges[i].end);
+        }
+    };
+
+    const excludeConstLiteralAssignment = (identifier, openChar, closeChar) => {
+        const headerRe = new RegExp(`(?:const|let|var)\\s+${identifier}\\s*=\\s*\\${openChar}`, "g");
+        let match;
+
+        while ((match = headerRe.exec(raw_json)) !== null) {
+            const literalStart = match.index + match[0].length - 1;
+            const literalEnd = findBalancedLiteralEnd(raw_json, literalStart, openChar, closeChar);
+            if (literalEnd === -1) continue;
+
+            let end = literalEnd;
+            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
+            if (raw_json[end] === ';') end++;
+            extractor.exclude(match.index, end);
         }
     };
 
@@ -2682,7 +2823,26 @@ function loadDataFromFile(raw_json) {
     }
     extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
-    excludeArrowFunctionAssignmentsButKeepLast("endingPicker");
+    excludeArrowFunctionAssignments("endingPicker", true);
+
+    // strip legacy generated endings helpers from //#startcode so a new export doesn't duplicate them
+    excludeConstLiteralAssignment("_tctEndingDefs", "[", "]");
+    excludeConstLiteralAssignment("_tctOpMap", "{", "}");
+    [
+        "_tctGetEndingImageEl",
+        "_tctReadVariable",
+        "_tctParseConditionValue",
+        "_tctCheckExtraConditions",
+        "playEndingSong",
+        "styleEndingDescription",
+        "applyEndingImage",
+        "applyEndingButtons",
+        "syncEndingSlideDom",
+        "syncEndingSlideDomDeferred",
+        "_tctBuildSlides",
+        "_tctConstructSlide"
+    ].forEach((name) => excludeConstArrowFunctions(name));
+    excludeArrowFunctionAssignments("endingConstructor", false);
 
     // ta-da!
     jet_data.code_to_add = extractor.getRemainingCode();
