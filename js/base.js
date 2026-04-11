@@ -1870,9 +1870,19 @@ const syncEndingSlideDom = () => {
 
     if (slide.audio && slide.audio.url) {
         const key = [slide.audio.title || "", slide.audio.artist || "", slide.audio.url || ""].join("|");
-        if (e._endingAudioPlayedKey !== key) {
+        const globalKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";
+
+        const currentAudioEl = document.getElementById("audio") || document.querySelector("audio#audio, audio");
+        const currentSrc = currentAudioEl ? (currentAudioEl.currentSrc || currentAudioEl.src || "") : "";
+        const sameSrcLoaded = !!currentSrc && currentSrc.includes(slide.audio.url);
+
+        if (e._endingAudioPlayedKey !== key && globalKey !== key && !sameSrcLoaded) {
             playEndingSong(slide.audio.title, slide.audio.artist, slide.audio.cover, slide.audio.url);
-            e._endingAudioPlayedKey = key;
+        }
+
+        e._endingAudioPlayedKey = key;
+        if (typeof window !== "undefined") {
+            window.__tctLastEndingAudioKey = key;
         }
     }
 };
@@ -2003,7 +2013,7 @@ endingPicker = (out, totv, aa, quickstats) => {
                 textColor: entry?.endingTextColor || "#000000"
             };
             e.endingSlides = _tctBuildSlides(entry);
-            e._endingAudioPlayedKey = "";
+            e._endingAudioPlayedKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";
 
             const html = _tctConstructSlide(1);
             syncEndingSlideDomDeferred();
