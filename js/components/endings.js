@@ -136,6 +136,9 @@ registerComponent('endings', {
                 'audioArtist':'',
                 'audioCover':'',
                 'audioUrl':'',
+                'endingAccentColor':'#11299e',
+                'endingBackgroundColor':'#ffffff',
+                'endingTextColor':'#000000',
                 'variableConditions':[],
                 'variableConditionOperator':'AND',
                 'answerConditionType':'ignore',
@@ -293,6 +296,24 @@ registerComponent('ending', {
 
     template: `
     <div class="mx-auto p-3">
+        <div class="border rounded-sm bg-gray-50 p-3 mb-3">
+            <h2 class="text-sm font-semibold text-gray-700 mb-2">Slide Colors (applies to all slides in this ending)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Accent color</label>
+                    <input :value="endingRow.endingAccentColor" @input="updateEndingColor('endingAccentColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Background color</label>
+                    <input :value="endingRow.endingBackgroundColor" @input="updateEndingColor('endingBackgroundColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Text color</label>
+                    <input :value="endingRow.endingTextColor" @input="updateEndingColor('endingTextColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                </div>
+            </div>
+        </div>
+
         <div class="space-y-3 mb-3">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-gray-700">Slides</h2>
@@ -926,6 +947,13 @@ registerComponent('ending', {
             return `${base}${variableSummary}${answerSummary}`;
         },
 
+        updateEndingColor: function(field, value) {
+            const row = this.getEndingRow();
+            row[field] = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
         getEndingRow: function() {
             const jet = this.$TCT.jet_data || (this.$TCT.jet_data = {});
             if (!jet.ending_data) {
@@ -943,6 +971,9 @@ registerComponent('ending', {
                     endingText: '',
                     endingImage: '',
                     endingHideImage: false,
+                    endingAccentColor: '#11299e',
+                    endingBackgroundColor: '#ffffff',
+                    endingTextColor: '#000000',
                     audioTitle: '',
                     audioArtist: '',
                     audioCover: '',
@@ -974,6 +1005,9 @@ registerComponent('ending', {
                 endingText: '',
                 endingImage: '',
                 endingHideImage: false,
+                endingAccentColor: '#11299e',
+                endingBackgroundColor: '#ffffff',
+                endingTextColor: '#000000',
                 audioTitle: '',
                 audioArtist: '',
                 audioCover: '',
@@ -1033,6 +1067,11 @@ registerComponent('ending', {
     },
 
     computed: {
+
+        endingRow: function() {
+            this.$globalData.dataVersion;
+            return this.getEndingRow();
+        },
 
         slideGroups: function() {
             this.$globalData.dataVersion;

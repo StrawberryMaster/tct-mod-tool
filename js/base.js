@@ -696,6 +696,9 @@ class TCTData {
             if (entry.audioArtist == null) entry.audioArtist = "";
             if (entry.audioCover == null) entry.audioCover = "";
             if (entry.audioUrl == null) entry.audioUrl = "";
+            if (entry.endingAccentColor == null) entry.endingAccentColor = "#11299e";
+            if (entry.endingBackgroundColor == null) entry.endingBackgroundColor = "#ffffff";
+            if (entry.endingTextColor == null) entry.endingTextColor = "#000000";
             if (entry.variableConditionEnabled == null) entry.variableConditionEnabled = false;
             if (entry.variableConditionName == null) entry.variableConditionName = "";
             if (entry.variableConditionOperator == null) entry.variableConditionOperator = "==";
@@ -1611,6 +1614,9 @@ class TCTData {
             audioArtist: ending?.audioArtist || "",
             audioCover: ending?.audioCover || "",
             audioUrl: ending?.audioUrl || "",
+            endingAccentColor: ending?.endingAccentColor || "#11299e",
+            endingBackgroundColor: ending?.endingBackgroundColor || "#ffffff",
+            endingTextColor: ending?.endingTextColor || "#000000",
             variableConditions: Array.isArray(ending?.variableConditions) ? ending.variableConditions : [],
             variableConditionOperator: ending?.variableConditionOperator || "AND",
             answerConditionType: ending?.answerConditionType || "ignore",
@@ -1705,7 +1711,13 @@ const playEndingSong = (title, artist, cover, url) => {
 
 const styleEndingDescription = () => {
     const desc = document.querySelector("#final_results_description");
-    if (!desc || desc.dataset.endingStyled) return;
+    if (!desc) return;
+
+    const e = campaignTrail_temp;
+    const theme = e._endingTheme || {};
+    const bg = theme.backgroundColor || "#ffffff";
+    const fg = theme.textColor || "#000000";
+    const border = theme.accentColor || "#11299e";
 
     Object.assign(desc.style, {
         textAlign: "left",
@@ -1720,7 +1732,12 @@ const styleEndingDescription = () => {
         whiteSpace: "normal",
         overflowWrap: "anywhere",
         wordBreak: "break-word",
-        transform: "translateZ(0)"
+        transform: "translateZ(0)",
+        backgroundColor: bg,
+        color: fg,
+        border: "2px solid " + border,
+        borderRadius: "4px",
+        padding: "10px"
     });
 
     desc.dataset.endingStyled = "1";
@@ -1737,8 +1754,11 @@ const applyEndingImage = (slide) => {
     }
 
     if (!imageEl.dataset.endingStyled) {
+        const e = campaignTrail_temp;
+        const theme = e._endingTheme || {};
+        const border = theme.accentColor || "#11299e";
         Object.assign(imageEl.style, {
-            border: "3px solid #11299e",
+            border: "3px solid " + border,
             display: "block",
             width: "210px",
             height: "250px",
@@ -1747,6 +1767,9 @@ const applyEndingImage = (slide) => {
         imageEl.dataset.endingStyled = "1";
     } else {
         imageEl.style.display = "block";
+        const e = campaignTrail_temp;
+        const theme = e._endingTheme || {};
+        imageEl.style.border = "3px solid " + (theme.accentColor || "#11299e");
     }
 
     if (slide.image && imageEl.getAttribute("src") !== slide.image) {
@@ -1756,6 +1779,7 @@ const applyEndingImage = (slide) => {
 
 const applyEndingButtons = () => {
     const e = campaignTrail_temp;
+    const theme = e._endingTheme || {};
     const imageEl = _tctGetEndingImageEl();
     if (!imageEl || !imageEl.parentNode) return;
 
@@ -1784,6 +1808,18 @@ const applyEndingButtons = () => {
     if (btnContainer.innerHTML !== buttonsHtml) {
         btnContainer.innerHTML = buttonsHtml;
     }
+
+    const buttonBg = theme.accentColor || "#11299e";
+    const buttonText = "#ffffff";
+    btnContainer.querySelectorAll("button").forEach((btn) => {
+        Object.assign(btn.style, {
+            backgroundColor: buttonBg,
+            border: "1px solid " + buttonBg,
+            color: buttonText,
+            padding: "4px 10px",
+            cursor: "pointer"
+        });
+    });
 };
 
 const syncEndingSlideDom = () => {
@@ -1924,6 +1960,11 @@ endingPicker = (out, totv, aa, quickstats) => {
             const e = campaignTrail_temp;
             e.multiple_endings = true;
             e.page = -1;
+            e._endingTheme = {
+                accentColor: entry?.endingAccentColor || "#11299e",
+                backgroundColor: entry?.endingBackgroundColor || "#ffffff",
+                textColor: entry?.endingTextColor || "#000000"
+            };
             e.endingSlides = _tctBuildSlides(entry);
             e._endingAudioPlayedKey = "";
 
