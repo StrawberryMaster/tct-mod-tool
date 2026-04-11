@@ -21,10 +21,10 @@ registerComponent('endings', {
             <button v-if="enabled" class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable custom endings</button>
 
             <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="addEnding()">Add custom ending</button>
-            <button v-if="enabled && endings.length > 1" class="bg-gray-500 text-white p-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
+            <button v-if="enabled && endings.length > 0" class="bg-gray-500 text-white p-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
                 Manage endings
             </button>
-            <button v-if="enabled && endings.length > 1" class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="autoOrder()">
+            <button v-if="enabled && endings.length > 0" class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="autoOrder()">
                 Auto order
             </button>
         </div>
@@ -101,7 +101,7 @@ registerComponent('endings', {
                                     </span>
                                 </li>
                             </ul>
-                            <div class="text-xs text-gray-500 mt-2">Tip: Auto order sorts by variable type and amount in descending order. This is to avoid most issues with broken or unobtainable endings.</div>
+                            <div class="text-xs text-gray-500 mt-2">Tip: Auto order prioritizes specific endings first (more variable or answer conditions), then falls back to variable type and amount.</div>
                         </div>
                     </div>
                 </div>
@@ -221,17 +221,27 @@ registerComponent('endings', {
         },
 
         autoOrder() {
-            // Sort endings by variable type priority and amount in descending order
+            // sort endings by specificity so narrow/special endings are evaluated first
             const priorityMap = { 0: 3, 1: 2, 2: 1 }; // EVs=3, Pop%=2, Raw=1
             const sorted = [...this.endings].sort((a, b) => {
+                const specA = this.getEndingSpecificityScore(a);
+                const specB = this.getEndingSpecificityScore(b);
+                if (specA !== specB) {
+                    return specB - specA;
+                }
+
                 const aPriority = priorityMap[a.variable] || 0;
                 const bPriority = priorityMap[b.variable] || 0;
-                // First sort by variable type priority
                 if (aPriority !== bPriority) {
                     return bPriority - aPriority;
                 }
-                // Then by amount in descending order
-                return (b.amount || 0) - (a.amount || 0);
+
+                const amountDelta = (b.amount || 0) - (a.amount || 0);
+                if (amountDelta !== 0) {
+                    return amountDelta;
+                }
+
+                return Number(a.id || 0) - Number(b.id || 0);
             });
 
             this.orderList = sorted.map(ending => ({
@@ -241,6 +251,66 @@ registerComponent('endings', {
 
             // apply the new order
             this.applyOrder();
+        },
+
+        getAnswerConditionCount(ending) {
+            const raw = String(ending?.answerConditionAnswers || ending?.answerConditionAnswer || '').trim();
+            if (!raw) return 0;
+
+            return raw
+                .split(/[\s,]+/)
+                .filter((v) => v.length > 0)
+                .map((v) => Number(v))
+                .filter((v) => Number.isFinite(v)).length;
+        },
+
+        getEndingSpecificityScore(ending) {
+            let score = 0;
+
+            const topVarConditions = Array.isArray(ending?.variableConditions) ? ending.variableConditions.length : 0;
+            score += topVarConditions * 120;
+
+            const topAnswerCount = this.getAnswerConditionCount(ending);
+            if ((ending?.answerConditionType || 'ignore') !== 'ignore' && topAnswerCount > 0) {
+                score += 80 + (topAnswerCount * 20);
+            }
+
+            const op = String(ending?.operator || '>');
+            if (op === '==' || op === '!=') score += 20;
+            else if (op === '>=' || op === '<=') score += 10;
+
+            const slidesRaw = ending?.endingSlidesJson;
+            if (slidesRaw) {
+                try {
+                    const slides = JSON.parse(slidesRaw);
+                    if (Array.isArray(slides)) {
+                        score += slides.length * 5;
+
+                        slides.forEach((slide) => {
+                            const conds = Array.isArray(slide?.variableConditions) ? slide.variableConditions.length : 0;
+                            score += conds * 35;
+
+                            const slideOp = String(slide?.operator || '>');
+                            if (slideOp === '==' || slideOp === '!=') score += 8;
+                            else if (slideOp === '>=' || slideOp === '<=') score += 4;
+
+                            const answerType = slide?.answerConditionType || 'ignore';
+                            const slideAnswerRaw = String(slide?.answerConditionAnswers || slide?.answerConditionAnswer || '').trim();
+                            const slideAnswerCount = slideAnswerRaw
+                                ? slideAnswerRaw.split(/[\s,]+/).filter((v) => v.length > 0).length
+                                : 0;
+
+                            if (answerType !== 'ignore' && slideAnswerCount > 0) {
+                                score += 30 + (slideAnswerCount * 8);
+                            }
+                        });
+                    }
+                } catch (_err) {
+                    // ignore malformed legacy slide JSON
+                }
+            }
+
+            return score;
         },
 
         endingDescription(ending) {
