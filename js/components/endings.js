@@ -386,10 +386,13 @@ registerComponent('ending', {
 
         <div class="space-y-3 mb-3">
             <div class="flex items-center justify-between gap-3">
-                <h2 class="text-sm font-semibold text-gray-700">Slides</h2>
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-700">Ending pages (slides)</h2>
+                    <p class="text-xs text-gray-500 mt-1">Each card represents a page in the ending sequence. Inside a page, you can define multiple <b>cases</b> (slides) to show different content depending on the player's performance.</p>
+                </div>
                 <div class="flex items-center gap-2">
                     <button type="button" class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addSlideGroup()">
-                        Add slide card
+                        Add new slide page
                     </button>
                     <button @click.stop="deleteEvent()" class="bg-red-500 text-white px-2 py-1 text-xs rounded-sm hover:bg-red-600 shrink-0">
                         Delete ending
@@ -398,36 +401,40 @@ registerComponent('ending', {
             </div>
 
             <details v-for="(group, groupIndex) in slideGroups" :key="'slide-group-' + group.key" class="border rounded-sm bg-gray-50" open>
-                <summary class="cursor-pointer list-none px-3 py-2 flex items-center justify-between gap-3">
+                <summary class="cursor-pointer list-none px-3 py-2 flex items-center justify-between gap-3 bg-gray-100 border-b">
                     <div class="min-w-0">
                         <div class="text-sm font-medium text-gray-700 truncate">
                             {{ group.label }}
                         </div>
                         <div class="text-xs text-gray-500 mt-1 truncate">
-                            {{ group.slides.length }} case{{ group.slides.length === 1 ? '' : 's' }}
+                            {{ group.slides.length }} case{{ group.slides.length === 1 ? '' : 's' }} inside this page
                         </div>
                     </div>
-                    <button v-if="groupIndex > 0" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideGroup(groupIndex)">Delete card</button>
+                    <button v-if="groupIndex > 0" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideGroup(groupIndex)">Delete page</button>
                 </summary>
 
                 <div class="p-3 space-y-3">
-                    <div class="flex items-center gap-2">
-                        <button type="button" class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addSlideCase(groupIndex)">
-                            Add case
-                        </button>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-xs text-gray-500 mb-2">The game checks cases starting from <b>Case 1</b> downwards. It will display the <i>first</i> case that meets its required thresholds.</p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="bg-indigo-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-indigo-600 shadow-sm" @click="addSlideCase(groupIndex)">
+                                + Add another case to this page
+                            </button>
+                        </div>
                     </div>
 
-                    <div v-if="group.slides.length === 0" class="text-xs text-gray-500 italic">No cases in this card yet.</div>
+                    <div v-if="group.slides.length === 0" class="text-xs text-gray-500 italic">No cases in this page yet.</div>
 
                     <details v-for="(slide, slideIndex) in group.slides" :key="group.key + '-case-' + slideIndex" class="bg-white border rounded-sm shadow-sm" open>
                         <summary class="cursor-pointer list-none px-3 py-2 flex items-center justify-between gap-3">
                             <div class="min-w-0">
                                 <div class="text-sm font-medium text-gray-700 truncate">
-                                    Case {{ slideIndex + 1 }}<span v-if="slide.title"> - {{ slide.title }}</span>
+                                    <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full mr-2">Case {{ slideIndex + 1 }}</span>
+                                    <span v-if="slide.title">{{ slide.title }}</span><span v-else class="italic text-gray-400">Untitled case</span>
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1 truncate">{{ slideConditionSummary(slide) }}</div>
                             </div>
-                            <button v-if="!(groupIndex === 0 && group.slides.length === 1)" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideCase(groupIndex, slideIndex)">Delete</button>
+                            <button v-if="!(groupIndex === 0 && group.slides.length === 1)" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideCase(groupIndex, slideIndex)">Delete case</button>
                         </summary>
 
                         <div class="p-3 space-y-3">
@@ -725,9 +732,9 @@ registerComponent('ending', {
         },
 
         groupLabelForIndex: function(index) {
-            if (index === 0) return 'Main slides';
-            if (index === 1) return 'Secondary slides';
-            return `Extra slides #${index + 1}`;
+            if (index === 0) return 'Slide page 1 (main slides)';
+            if (index === 1) return 'Slide page 2 (secondary slides)';
+            return `Slide page ${index + 1} (extra slides)`;
         },
 
         slidesHaveExplicitGroups: function(slides) {
@@ -768,7 +775,7 @@ registerComponent('ending', {
             if (parsed.length === 0) {
                 return [{
                     key: 'main',
-                    label: 'Main slides',
+                    label: 'Slide page 1 (main slides)',
                     slides: [this.createEmptySlide()]
                 }];
             }
@@ -806,7 +813,7 @@ registerComponent('ending', {
                     label: group.label || this.groupLabelForIndex(groupIndex),
                     slides: Array.isArray(group.slides) && group.slides.length > 0 ? group.slides : [this.createEmptySlide()]
                 }))
-                : [{ key: 'main', label: 'Main slides', slides: [this.createEmptySlide()] }];
+                : [{ key: 'main', label: 'Slide page 1 (main slides)', slides: [this.createEmptySlide()] }];
 
             const flatSlides = [];
             normalizedGroups.forEach((group, groupIndex) => {
@@ -821,6 +828,16 @@ registerComponent('ending', {
 
             const mainSlide = flatSlides.find((slide) => (slide.slideGroup || 'main') === 'main') || flatSlides[0] || this.serializeSlide(this.createEmptySlide());
             const row = this.getEndingRow();
+            
+            row.variable = mainSlide.variable;
+            row.operator = mainSlide.operator;
+            row.amount = mainSlide.amount;
+            row.variableConditions = mainSlide.variableConditions;
+            row.variableConditionOperator = mainSlide.variableConditionOperator;
+            row.answerConditionType = mainSlide.answerConditionType;
+            row.answerConditionAnswer = mainSlide.answerConditionAnswer;
+            row.answerConditionAnswers = mainSlide.answerConditionAnswers;
+
             row.endingTitle = mainSlide.title || '';
             row.endingSubtitle = mainSlide.subtitle || '';
             row.endingText = mainSlide.content || '';

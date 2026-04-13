@@ -1893,7 +1893,7 @@ const syncEndingSlideDomDeferred = () => {
     });
 };
 
-const _tctBuildSlides = (entry) => {
+const _tctBuildSlides = (entry, quickstats) => {
     if (entry && entry.endingSlidesJson) {
         try {
             const parsed = JSON.parse(entry.endingSlidesJson);
@@ -1999,11 +1999,49 @@ endingConstructor = (direction = 1) => {
 endingPicker = (out, totv, aa, quickstats) => {
     const playerAnswers = campaignTrail_temp?.player_answers || [];
     for (const entry of _tctEndingDefs) {
-        const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
-        const left = quickstats?.[Number(entry.variable) || 0];
-        const right = Number(entry.amount) || 0;
+        let isMatch = false;
 
-        if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+        try {
+            const parsed = entry.endingSlidesJson ? JSON.parse(entry.endingSlidesJson) : [];
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                const groupMap = new Map();
+                for (const slide of parsed) {
+                    const groupKey = slide?.slideGroup || "main";
+                    if (!groupMap.has(groupKey)) {
+                        groupMap.set(groupKey, []);
+                    }
+                    groupMap.get(groupKey).push(slide);
+                }
+                
+                const mainSlides = groupMap.get("main") || parsed;
+                let validMain = mainSlides.find((slide) => {
+                    const opFn = _tctOpMap[slide?.operator] || _tctOpMap[">"];
+                    const left = quickstats?.[Number(slide?.variable) || 0];
+                    const right = Number(slide?.amount) || 0;
+                    return opFn(left, right) && _tctCheckExtraConditions(slide, playerAnswers);
+                });
+                
+                if (validMain) isMatch = true;
+            } else {
+                // legacy format without json slides
+                const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
+                const left = quickstats?.[Number(entry.variable) || 0];
+                const right = Number(entry.amount) || 0;
+                if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+                    isMatch = true;
+                }
+            }
+        } catch(e) {
+            // legacy format without json slides
+            const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
+            const left = quickstats?.[Number(entry.variable) || 0];
+            const right = Number(entry.amount) || 0;
+            if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+                isMatch = true;
+            }
+        }
+
+        if (isMatch) {
             const e = campaignTrail_temp;
             e.multiple_endings = true;
             e.page = -1;
@@ -2012,7 +2050,7 @@ endingPicker = (out, totv, aa, quickstats) => {
                 backgroundColor: entry?.endingBackgroundColor || "#ffffff",
                 textColor: entry?.endingTextColor || "#000000"
             };
-            e.endingSlides = _tctBuildSlides(entry);
+            e.endingSlides = _tctBuildSlides(entry, quickstats);
             e._endingAudioPlayedKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";
 
             const html = _tctConstructSlide(1);
@@ -2833,7 +2871,14 @@ function loadDataFromFile(raw_json) {
     }
     extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
-    excludeArrowFunctionAssignments("endingPicker", true);
+    
+    if (jet_data.endings_enabled) {
+        excludeArrowFunctionAssignments("endingPicker", false);
+        excludeArrowFunctionAssignments("endingConstructor", false);
+    } else {
+        excludeArrowFunctionAssignments("endingPicker", true);
+        excludeArrowFunctionAssignments("endingConstructor", true);
+    }
 
     // strip legacy generated endings helpers from //#startcode so a new export doesn't duplicate them
     excludeConstLiteralAssignment("_tctEndingDefs", "[", "]");
@@ -2852,7 +2897,6 @@ function loadDataFromFile(raw_json) {
         "_tctBuildSlides",
         "_tctConstructSlide"
     ].forEach((name) => excludeConstArrowFunctions(name));
-    excludeArrowFunctionAssignments("endingConstructor", false);
 
     // ta-da!
     jet_data.code_to_add = extractor.getRemainingCode();
