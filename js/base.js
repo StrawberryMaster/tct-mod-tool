@@ -1649,7 +1649,7 @@ const _tctReadVariable = (name) => {
     if (!name || typeof name !== "string") return undefined;
     if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) return undefined;
     try {
-        return Function("return (typeof " + name + " !== 'undefined') ? " + name + " : undefined;")();
+        return eval("(typeof " + name + " !== 'undefined') ? " + name + " : undefined;");
     } catch (_err) {
         return undefined;
     }
