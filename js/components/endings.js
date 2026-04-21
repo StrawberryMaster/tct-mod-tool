@@ -141,6 +141,7 @@ registerComponent('endings', {
                 'endingTextColor':'#000000',
                 'variableConditions':[],
                 'variableConditionOperator':'AND',
+                'outcomeCondition':'ignore',
                 'answerConditionType':'ignore',
                 'answerConditionAnswer':'',
                 'answerConditionAnswers':''
@@ -264,6 +265,16 @@ registerComponent('endings', {
                 .filter((v) => Number.isFinite(v)).length;
         },
 
+        getOutcomeConditionLabel(value) {
+            const map = {
+                ignore: 'Use stat threshold',
+                win: 'Win, regardless of EVs',
+                loss: 'Loss, regardless of EVs',
+                tie: 'Tie/no majority obtained'
+            };
+            return map[value] || map.ignore;
+        },
+
         getEndingSpecificityScore(ending) {
             let score = 0;
 
@@ -273,6 +284,10 @@ registerComponent('endings', {
             const topAnswerCount = this.getAnswerConditionCount(ending);
             if ((ending?.answerConditionType || 'ignore') !== 'ignore' && topAnswerCount > 0) {
                 score += 80 + (topAnswerCount * 20);
+            }
+
+            if ((ending?.outcomeCondition || 'ignore') !== 'ignore') {
+                score += 70;
             }
 
             const op = String(ending?.operator || '>');
@@ -303,6 +318,10 @@ registerComponent('endings', {
                             if (answerType !== 'ignore' && slideAnswerCount > 0) {
                                 score += 30 + (slideAnswerCount * 8);
                             }
+
+                            if ((slide?.outcomeCondition || 'ignore') !== 'ignore') {
+                                score += 25;
+                            }
                         });
                     }
                 } catch (_err) {
@@ -318,6 +337,11 @@ registerComponent('endings', {
             const varName = varNames[ending.variable] || 'Unknown';
             const operator = ending.operator || '>';
             const amount = ending.amount || 0;
+            const outcomeCondition = ending.outcomeCondition || 'ignore';
+            const outcomeText = this.getOutcomeConditionLabel(outcomeCondition);
+            const thresholdText = outcomeCondition === 'ignore'
+                ? `${varName} ${operator} ${amount}`
+                : outcomeText;
             const previewSource = ending.endingTitle || ending.endingText || '[Ending]';
             const preview = previewSource.substring(0, 50) + (previewSource.length > 50 ? '...' : '');
             const varCount = Array.isArray(ending.variableConditions) ? ending.variableConditions.length : 0;
@@ -328,7 +352,7 @@ registerComponent('endings', {
             const answerGate = ending.answerConditionType && ending.answerConditionType !== 'ignore' && answerIds
                 ? ` | answer ${ending.answerConditionType} ${answerIds}`
                 : '';
-            return `${varName} ${operator} ${amount}${varGate}${answerGate} - ${preview}`;
+            return `${thresholdText}${varGate}${answerGate} - ${preview}`;
         }
 
     },
@@ -445,14 +469,23 @@ registerComponent('ending', {
                                         <span class="text-xs text-gray-500">This case becomes eligible only when the threshold is met.</span>
                                     </div>
 
+                                    <div class="grid grid-cols-1 gap-2">
+                                        <select :value="slide.outcomeCondition || 'ignore'" @change="updateSlideCaseField(groupIndex, slideIndex, 'outcomeCondition', $event.target.value)" class="border rounded-sm px-2 py-1 text-sm">
+                                            <option value="ignore">Use stat threshold</option>
+                                            <option value="win">Win, regardless of EVs</option>
+                                            <option value="loss">Loss, regardless of EVs</option>
+                                            <option value="tie">Tie/no majority obtained</option>
+                                        </select>
+                                    </div>
+
                                     <div class="grid grid-cols-3 gap-2">
-                                        <select :value="slide.variable" @change="updateSlideCaseField(groupIndex, slideIndex, 'variable', Number($event.target.value))" class="border rounded-sm px-2 py-1 text-sm">
+                                        <select :value="slide.variable" @change="updateSlideCaseField(groupIndex, slideIndex, 'variable', Number($event.target.value))" :disabled="(slide.outcomeCondition || 'ignore') !== 'ignore'" class="border rounded-sm px-2 py-1 text-sm" :class="(slide.outcomeCondition || 'ignore') !== 'ignore' ? 'bg-gray-100 text-gray-500' : ''">
                                             <option value="0">Player electoral votes (EVs)</option>
                                             <option value="1">Player popular vote (%)</option>
                                             <option value="2">Player raw vote total</option>
                                         </select>
 
-                                        <select :value="slide.operator" @change="updateSlideCaseField(groupIndex, slideIndex, 'operator', $event.target.value)" class="border rounded-sm px-2 py-1 text-sm">
+                                        <select :value="slide.operator" @change="updateSlideCaseField(groupIndex, slideIndex, 'operator', $event.target.value)" :disabled="(slide.outcomeCondition || 'ignore') !== 'ignore'" class="border rounded-sm px-2 py-1 text-sm" :class="(slide.outcomeCondition || 'ignore') !== 'ignore' ? 'bg-gray-100 text-gray-500' : ''">
                                             <option value=">">Greater than (&gt;)</option>
                                             <option value=">=">Greater than or equal (&gt;=)</option>
                                             <option value="==">Equal to (==)</option>
@@ -461,7 +494,7 @@ registerComponent('ending', {
                                             <option value="!=">Not equal to (!=)</option>
                                         </select>
 
-                                        <input :value="slide.amount" @input="updateSlideCaseField(groupIndex, slideIndex, 'amount', Number($event.target.value))" type="number" class="border rounded-sm px-2 py-1 text-sm">
+                                        <input :value="slide.amount" @input="updateSlideCaseField(groupIndex, slideIndex, 'amount', Number($event.target.value))" type="number" :disabled="(slide.outcomeCondition || 'ignore') !== 'ignore'" class="border rounded-sm px-2 py-1 text-sm" :class="(slide.outcomeCondition || 'ignore') !== 'ignore' ? 'bg-gray-100 text-gray-500' : ''">
                                     </div>
                                 </div>
 
@@ -651,6 +684,7 @@ registerComponent('ending', {
                 variable: Number(base.variable ?? 0),
                 operator: base.operator || '>',
                 amount: Number(base.amount ?? 0),
+                outcomeCondition: base.outcomeCondition || 'ignore',
                 title: base.title || '',
                 subtitle: base.subtitle || '',
                 content: base.content || '',
@@ -681,6 +715,7 @@ registerComponent('ending', {
                 variable: 0,
                 operator: '>',
                 amount: 0,
+                outcomeCondition: 'ignore',
                 title: '',
                 subtitle: '',
                 content: '',
@@ -707,6 +742,7 @@ registerComponent('ending', {
                 variable: Number(normalized.variable ?? 0),
                 operator: normalized.operator || '>',
                 amount: Number(normalized.amount ?? 0),
+                outcomeCondition: normalized.outcomeCondition || 'ignore',
                 title: normalized.title || '',
                 subtitle: normalized.subtitle || '',
                 content: normalized.content || '',
@@ -832,6 +868,7 @@ registerComponent('ending', {
             row.variable = mainSlide.variable;
             row.operator = mainSlide.operator;
             row.amount = mainSlide.amount;
+            row.outcomeCondition = mainSlide.outcomeCondition || 'ignore';
             row.variableConditions = mainSlide.variableConditions;
             row.variableConditionOperator = mainSlide.variableConditionOperator;
             row.answerConditionType = mainSlide.answerConditionType;
@@ -1018,12 +1055,25 @@ registerComponent('ending', {
             return `#${answer.pk} - ${this.answerDescription(answer)}`;
         },
 
+        getOutcomeConditionLabel: function(value) {
+            const map = {
+                ignore: 'Use stat threshold',
+                win: 'Win, regardless of EVs',
+                loss: 'Loss, regardless of EVs',
+                tie: 'Tie/no majority obtained'
+            };
+            return map[value] || map.ignore;
+        },
+
         slideConditionSummary: function(slide) {
             const count = Array.isArray(slide.variableConditions) ? slide.variableConditions.length : 0;
             const varNames = ['Electoral Votes', 'Popular Vote %', 'Raw Vote Total'];
             const varName = varNames[Number(slide.variable) || 0] || 'Unknown';
             const amount = slide.amount ?? 0;
-            const base = `Threshold: ${varName} ${slide.operator || '>'} ${amount}`;
+            const outcomeCondition = slide?.outcomeCondition || 'ignore';
+            const base = outcomeCondition === 'ignore'
+                ? `Threshold: ${varName} ${slide.operator || '>'} ${amount}`
+                : `Outcome: ${this.getOutcomeConditionLabel(outcomeCondition)}`;
             const variableSummary = count === 0
                 ? ''
                 : ` · ${count} variable condition${count === 1 ? '' : 's'} (${slide.variableConditionOperator || 'AND'})`;
@@ -1053,6 +1103,7 @@ registerComponent('ending', {
                     variable: 0,
                     operator: '>',
                     amount: 0,
+                    outcomeCondition: 'ignore',
                     endingTitle: '',
                     endingSubtitle: '',
                     endingText: '',
@@ -1087,6 +1138,7 @@ registerComponent('ending', {
                 variable: 0,
                 operator: '>',
                 amount: 0,
+                outcomeCondition: 'ignore',
                 endingTitle: '',
                 endingSubtitle: '',
                 endingText: '',

@@ -706,6 +706,7 @@ class TCTData {
             if (entry.answerConditionType == null) entry.answerConditionType = "ignore";
             if (entry.answerConditionAnswer == null) entry.answerConditionAnswer = "";
             if (entry.answerConditionAnswers == null) entry.answerConditionAnswers = "";
+            if (entry.outcomeCondition == null) entry.outcomeCondition = "ignore";
 
             if (!entry.answerConditionAnswers && entry.answerConditionAnswer != null && entry.answerConditionAnswer !== "") {
                 entry.answerConditionAnswers = String(entry.answerConditionAnswer);
@@ -727,6 +728,9 @@ class TCTData {
                             if (!entry.audioArtist && first.audio.artist) entry.audioArtist = String(first.audio.artist);
                             if (!entry.audioCover && first.audio.cover) entry.audioCover = String(first.audio.cover);
                             if (!entry.audioUrl && first.audio.url) entry.audioUrl = String(first.audio.url);
+                        }
+                        if (!entry.outcomeCondition && first.outcomeCondition) {
+                            entry.outcomeCondition = String(first.outcomeCondition);
                         }
                     }
                 } catch (err) {
@@ -1619,6 +1623,7 @@ class TCTData {
             endingTextColor: ending?.endingTextColor || "#000000",
             variableConditions: Array.isArray(ending?.variableConditions) ? ending.variableConditions : [],
             variableConditionOperator: ending?.variableConditionOperator || "AND",
+            outcomeCondition: ending?.outcomeCondition || "ignore",
             answerConditionType: ending?.answerConditionType || "ignore",
             answerConditionAnswer: ending?.answerConditionAnswer ?? "",
             answerConditionAnswers: ending?.answerConditionAnswers ?? ""
@@ -1660,6 +1665,27 @@ const _tctParseConditionValue = (value) => {
     const n = Number(value);
     if (!Number.isNaN(n)) return n;
     return value;
+};
+
+const _tctCheckOutcomeCondition = (entry, finalOutcome) => {
+    const cond = String(entry?.outcomeCondition || "ignore");
+    if (cond === "ignore") return true;
+    return cond === String(finalOutcome || "");
+};
+
+const _tctMatchesPrimaryCondition = (entry, quickstats, finalOutcome) => {
+    if (!_tctCheckOutcomeCondition(entry, finalOutcome)) return false;
+
+    const cond = String(entry?.outcomeCondition || "ignore");
+    if (cond !== "ignore") {
+        // explicit outcome match bypasses stat threshold checks
+        return true;
+    }
+
+    const opFn = _tctOpMap[entry?.operator] || _tctOpMap[">"];
+    const left = quickstats?.[Number(entry?.variable) || 0];
+    const right = Number(entry?.amount) || 0;
+    return opFn(left, right);
 };
 
 const _tctCheckExtraConditions = (entry, playerAnswers) => {
@@ -1893,7 +1919,7 @@ const syncEndingSlideDomDeferred = () => {
     });
 };
 
-const _tctBuildSlides = (entry, quickstats) => {
+const _tctBuildSlides = (entry, quickstats, finalOutcome) => {
     if (entry && entry.endingSlidesJson) {
         try {
             const parsed = JSON.parse(entry.endingSlidesJson);
@@ -1902,6 +1928,7 @@ const _tctBuildSlides = (entry, quickstats) => {
                     variable: Number(slide?.variable ?? 0),
                     operator: slide?.operator || ">",
                     amount: Number(slide?.amount ?? 0),
+                    outcomeCondition: slide?.outcomeCondition || "ignore",
                     title: slide?.title || "",
                     subtitle: slide?.subtitle || "",
                     content: slide?.content || "",
@@ -1936,10 +1963,8 @@ const _tctBuildSlides = (entry, quickstats) => {
                 for (const groupKey of groupOrder) {
                     const groupSlides = groupMap.get(groupKey) || [];
                     let selected = groupSlides.find((slide) => {
-                        const opFn = _tctOpMap[slide?.operator] || _tctOpMap[">"];
-                        const left = quickstats?.[Number(slide?.variable) || 0];
-                        const right = Number(slide?.amount) || 0;
-                        return opFn(left, right) && _tctCheckExtraConditions(slide, playerAnswers);
+                        return _tctMatchesPrimaryCondition(slide, quickstats, finalOutcome)
+                            && _tctCheckExtraConditions(slide, playerAnswers);
                     });
                     if (!selected) selected = groupSlides[0];
                     if (selected) selectedSlides.push(normalizeSlide(selected));
@@ -2015,28 +2040,20 @@ endingPicker = (out, totv, aa, quickstats) => {
                 
                 const mainSlides = groupMap.get("main") || parsed;
                 let validMain = mainSlides.find((slide) => {
-                    const opFn = _tctOpMap[slide?.operator] || _tctOpMap[">"];
-                    const left = quickstats?.[Number(slide?.variable) || 0];
-                    const right = Number(slide?.amount) || 0;
-                    return opFn(left, right) && _tctCheckExtraConditions(slide, playerAnswers);
+                    return _tctMatchesPrimaryCondition(slide, quickstats, out)
+                        && _tctCheckExtraConditions(slide, playerAnswers);
                 });
                 
                 if (validMain) isMatch = true;
             } else {
                 // legacy format without json slides
-                const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
-                const left = quickstats?.[Number(entry.variable) || 0];
-                const right = Number(entry.amount) || 0;
-                if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+                if (_tctMatchesPrimaryCondition(entry, quickstats, out) && _tctCheckExtraConditions(entry, playerAnswers)) {
                     isMatch = true;
                 }
             }
         } catch(e) {
             // legacy format without json slides
-            const opFn = _tctOpMap[entry.operator] || _tctOpMap[">"];
-            const left = quickstats?.[Number(entry.variable) || 0];
-            const right = Number(entry.amount) || 0;
-            if (opFn(left, right) && _tctCheckExtraConditions(entry, playerAnswers)) {
+            if (_tctMatchesPrimaryCondition(entry, quickstats, out) && _tctCheckExtraConditions(entry, playerAnswers)) {
                 isMatch = true;
             }
         }
@@ -2050,7 +2067,7 @@ endingPicker = (out, totv, aa, quickstats) => {
                 backgroundColor: entry?.endingBackgroundColor || "#ffffff",
                 textColor: entry?.endingTextColor || "#000000"
             };
-            e.endingSlides = _tctBuildSlides(entry, quickstats);
+            e.endingSlides = _tctBuildSlides(entry, quickstats, out);
             e._endingAudioPlayedKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";
 
             const html = _tctConstructSlide(1);
@@ -2887,6 +2904,8 @@ function loadDataFromFile(raw_json) {
         "_tctGetEndingImageEl",
         "_tctReadVariable",
         "_tctParseConditionValue",
+        "_tctCheckOutcomeCondition",
+        "_tctMatchesPrimaryCondition",
         "_tctCheckExtraConditions",
         "playEndingSong",
         "styleEndingDescription",
