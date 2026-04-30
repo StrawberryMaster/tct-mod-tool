@@ -462,7 +462,11 @@ registerComponent('question', {
                     "answer": answerPk,
                     "issue": this.$TCT.getFirstIssuePK(),
                     "issue_score": 0,
-                    "issue_importance": 0
+                    "issue_importance": 0,
+                    "affected_candidate": null,
+                    "affected_candidate_shift": 0,
+                    "affected_state": null,
+                    "affected_state_shift": 0
                 }
             };
             this.$TCT.answer_score_issue[newPk] = x;
@@ -851,7 +855,11 @@ registerComponent('answer', {
                     "answer": this.pk,
                     "issue": this.$TCT.getFirstIssuePK(),
                     "issue_score": 0,
-                    "issue_importance": 0
+                    "issue_importance": 0,
+                    "affected_candidate": null,
+                    "affected_candidate_shift": 0,
+                    "affected_state": null,
+                    "affected_state_shift": 0
                 }
             }
             this.issueScores.push(x)
@@ -1154,12 +1162,56 @@ registerComponent('issue-score-card', {
                 <div class="text-xs text-gray-500 mt-1">Higher = more important</div>
             </div>
         </div>
+
+        <div class="mt-3 pt-3 border-t border-gray-200 text-xs space-y-2">
+            <div class="text-gray-600">
+                <span class="text-gray-500">(Shift other candidate/state positions)</span><br>
+                <span class="text-gray-500">(Note this feature is currently availably on Campaign Trail Showcase only.)</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-gray-700 mb-1 font-medium">Shift candidate:</label>
+                    <select @change="onInput($event)" name="affected_candidate" :value="affectedCandidate || ''"
+                        class="p-1 text-sm block w-full border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-500">
+                        <option value="">None</option>
+                        <option v-for="c in candidateDisplays" :value="c.pk" :key="c.pk">
+                            {{c.display}}
+                        </option>
+                    </select>
+                    <input v-if="affectedCandidate" @input="onInput($event)" :value="affectedCandidateShift || 0" name="affected_candidate_shift" type="text" inputmode="decimal"
+                        placeholder="shift amount" class="p-1 mt-1 text-sm block w-full border border-gray-300 rounded focus:ring-2 focus:ring-blue-400">
+                    <div v-if="affectedCandidate" class="mt-1 text-xs text-gray-600">
+                        <div>Current: {{affectedCandidateCurrentStance !== null ? affectedCandidateCurrentStance.toFixed(2) : 'N/A'}}</div>
+                        <div>Final: {{affectedCandidateFinalStance.toFixed(2)}} {{affectedCandidateFinalStance < -1 || affectedCandidateFinalStance > 1 ? '(clamped)' : ''}}</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1 font-medium">Shift state:</label>
+                    <select @change="onInput($event)" name="affected_state" :value="affectedState || ''"
+                        class="p-1 text-sm block w-full border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-500">
+                        <option value="">None</option>
+                        <option v-for="s in stateList" :value="s.pk" :key="s.pk">
+                            {{s.fields.abbr}} - {{s.fields.name}}
+                        </option>
+                    </select>
+                    <input v-if="affectedState" @input="onInput($event)" :value="affectedStateShift || 0" name="affected_state_shift" type="text" inputmode="decimal"
+                        placeholder="shift amount" class="p-1 mt-1 text-sm block w-full border border-gray-300 rounded focus:ring-2 focus:ring-blue-400">
+                    <div v-if="affectedState" class="mt-1 text-xs text-gray-600">
+                        <div>Current: {{affectedStateCurrentStance !== null ? affectedStateCurrentStance.toFixed(2) : 'N/A'}}</div>
+                        <div>Final: {{affectedStateFinalStance !== null ? affectedStateFinalStance.toFixed(2) : 'N/A'}} {{affectedStateFinalStance !== null && (affectedStateFinalStance < -1 || affectedStateFinalStance > 1) ? '(clamped)' : ''}}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     `,
 
     methods: {
         onInput: function (evt) {
             let value = evt.target.value;
+            if (typeof value === 'string') {
+                value = value.trim().replace(',', '.');
+            }
             if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
             }
@@ -1174,6 +1226,32 @@ registerComponent('issue-score-card', {
         issues: function () {
             this.$globalData.dataVersion;
             return Object.values(this.$TCT.issues);
+        },
+
+        stateList: function () {
+            this.$globalData.dataVersion;
+            return Object.values(this.$TCT.states);
+        },
+
+        uniqueCandidatePKs: function () {
+            this.$globalData.dataVersion;
+            // extract unique candidate PKs from candidate_issue_score
+            const scores = this.$TCT.candidate_issue_score;
+            if (!scores || Object.keys(scores).length === 0) {
+                return [];
+            }
+            const allCandidates = Object.values(scores).map(c => c.fields.candidate);
+            return [...new Set(allCandidates)].sort((a, b) => Number(a) - Number(b));
+        },
+
+        candidateDisplays: function () {
+            this.$globalData.dataVersion;
+            // return candidate PKs with their display names/nicknames
+            return this.uniqueCandidatePKs.map(pk => {
+                const nickname = this.$TCT.getNicknameForCandidate(pk);
+                const display = nickname ? `${pk} (${nickname})` : `${pk}`;
+                return { pk, display };
+            });
         },
 
         issue: function () {
@@ -1191,12 +1269,74 @@ registerComponent('issue-score-card', {
             return this.$TCT.answer_score_issue[this.pk].fields.issue_importance;
         },
 
+        affectedCandidate: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.affected_candidate;
+        },
+
+        affectedCandidateShift: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.affected_candidate_shift;
+        },
+
+        affectedState: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.affected_state;
+        },
+
+        affectedStateShift: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.answer_score_issue[this.pk].fields.affected_state_shift;
+        },
+
         issueScoreDisplay: function () {
             return this.issueScore !== undefined && this.issueScore !== null ? this.issueScore : 0;
         },
 
         issueImportanceDisplay: function () {
             return this.issueImportance !== undefined && this.issueImportance !== null ? this.issueImportance : 0;
+        },
+
+        affectedCandidateCurrentStance: function () {
+            this.$globalData.dataVersion;
+            if (!this.affectedCandidate || !this.issue) return null;
+            const candidateScores = this.$TCT.getIssueScoreForCandidate(this.affectedCandidate);
+            if (!candidateScores) return null;
+            for (let score of candidateScores) {
+                if (score.fields.issue == this.issue) {
+                    return score.fields.issue_score;
+                }
+            }
+            return null;
+        },
+
+        affectedCandidateFinalStance: function () {
+            this.$globalData.dataVersion;
+            const current = this.affectedCandidateCurrentStance;
+            if (current === null) return 0;
+            const shift = this.affectedCandidateShift || 0;
+            return Math.max(-1, Math.min(1, current + shift));
+        },
+
+        affectedStateCurrentStance: function () {
+            this.$globalData.dataVersion;
+            if (!this.affectedState || !this.issue) return null;
+            const stateScores = this.$TCT.getIssueScoreForState(this.affectedState);
+            if (!stateScores) return null;
+            for (let score of stateScores) {
+                if (score.fields.issue == this.issue) {
+                    return score.fields.state_issue_score ?? null;
+                }
+            }
+            return null;
+        },
+
+        affectedStateFinalStance: function () {
+            this.$globalData.dataVersion;
+            const current = this.affectedStateCurrentStance;
+            if (current === null) return 0;
+            const shift = this.affectedStateShift || 0;
+            return Math.max(-1, Math.min(1, current + shift));
         }
     }
 });
