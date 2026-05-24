@@ -1492,6 +1492,11 @@ class TCTData {
             codeToAdd = codeToAdd.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").replace(/^\n+/, "").replace(/\n+$/, "");
         }
 
+        // banner settings should override any older banner assignments
+        if (this.jet_data.banner_enabled) {
+            codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
+        }
+
         // CYOA merging logic
         if (generatedCyoaCode) {
             const hasCustomCyoa = codeToAdd.includes("cyoAdventure") && codeToAdd.includes("function");
