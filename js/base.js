@@ -124,26 +124,36 @@ class TCTData {
     _getFromIndex(indexName, sourceData, fieldKey, lookupValue) {
         if (!this._indices[indexName]) {
             const index = new Map();
-            const values = Object.values(sourceData);
-            for (let i = 0; i < values.length; i++) {
-                const item = values[i];
+            
+            const items = sourceData instanceof Map ? sourceData.values() : Object.values(sourceData);
+
+            for (const item of items) {
+                if (!item || !item.fields) continue;
                 let key = item.fields[fieldKey];
 
-                if (typeof key === 'string' && key.trim() !== '' && !isNaN(key)) {
-                    key = Number(key);
+                if (typeof key === 'string' && key.trim() !== '') {
+                    const num = Number(key);
+                    if (!Number.isNaN(num)) {
+                        key = num;
+                    }
                 }
 
-                if (!index.has(key)) {
-                    index.set(key, []);
+                let group = index.get(key);
+                if (!group) {
+                    group = [];
+                    index.set(key, group);
                 }
-                index.get(key).push(item);
+                group.push(item);
             }
             this._indices[indexName] = index;
         }
 
         let searchKey = lookupValue;
-        if (typeof searchKey === 'string' && searchKey.trim() !== '' && !isNaN(searchKey)) {
-            searchKey = Number(searchKey);
+        if (typeof searchKey === 'string' && searchKey.trim() !== '') {
+            const num = Number(searchKey);
+            if (!Number.isNaN(num)) {
+                searchKey = num;
+            }
         }
 
         return this._indices[indexName].get(searchKey) || [];
@@ -164,32 +174,34 @@ class TCTData {
         this.clean(this.states);
     }
 
-    // guard against nulls in map values
-    cleanMap(map) {
-        for (let [key, value] of map) {
-            if (value && typeof value === 'object') {
-                this.clean(value);
+    clean(obj, visited = new Set()) {
+        if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
+        visited.add(obj);
+
+        const keys = Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const val = obj[key];
+            
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed !== '') {
+                    const num = Number(trimmed);
+                    if (!Number.isNaN(num)) {
+                        obj[key] = num;
+                    }
+                }
+            } else if (val && typeof val === 'object') {
+                this.clean(val, visited);
             }
         }
     }
 
-    // avoid converting empty strings to 0; handle nulls safely
-    clean(obj) {
-        if (!obj || typeof obj !== 'object') return;
-        for (let key in obj) {
-            const val = obj[key];
-            if (typeof val === 'string') {
-                // checks for integer, float, leading dot, trailing dot
-                if (/^-?(\d+(\.\d*)?|\.\d+)$/.test(val)) {
-                    obj[key] = Number(val);
-                } else {
-                    const trimmed = val.trim();
-                    if (trimmed !== '' && !isNaN(trimmed)) {
-                        obj[key] = Number(trimmed);
-                    }
-                }
-            } else if (val && typeof val === 'object') {
-                this.clean(val);
+    cleanMap(map) {
+        if (!(map instanceof Map)) return;
+        for (const value of map.values()) {
+            if (value && typeof value === 'object') {
+                this.clean(value);
             }
         }
     }
@@ -264,12 +276,11 @@ class TCTData {
         newPk = Number(newPk);
 
         if (oldPk === newPk) return false;
-        if (isNaN(newPk)) {
+        if (Number.isNaN(newPk)) {
             alert("Invalid PK value.");
             return false;
         }
 
-        // collections that use these IDs as PKs
         const collections = {
             'question': this.questions,
             'answer': this.answers,
@@ -287,7 +298,6 @@ class TCTData {
 
         const container = collections[type];
 
-        // Check if newPk is already taken in the target collection (if it's a primary PK change)
         if (container) {
             const isTaken = container instanceof Map ? container.has(newPk) : (container[newPk] !== undefined);
             if (isTaken) {
@@ -296,7 +306,6 @@ class TCTData {
             }
         }
 
-        // 1. Update the PK in the main collection if applicable
         if (container) {
             let obj = container instanceof Map ? container.get(oldPk) : container[oldPk];
             if (!obj) {
@@ -313,15 +322,6 @@ class TCTData {
             }
         }
 
-        // 2. Update Foreign Key references throughout all data
-        const allContainers = [
-            this.questions, this.answers, this.states, this.issues, this.answer_feedback,
-            this.state_issue_scores, this.candidate_issue_score, this.running_mate_issue_score,
-            this.candidate_state_multiplier, this.answer_score_global, this.answer_score_issue,
-            this.answer_score_state
-        ];
-
-        // Map type to common field names that act as FKs
         const fkFields = {
             'question': ['question'],
             'answer': ['answer'],
@@ -332,20 +332,29 @@ class TCTData {
 
         const targetFields = fkFields[type] || [];
 
-        allContainers.forEach(cont => {
-            const values = cont instanceof Map ? Array.from(cont.values()) : Object.values(cont);
-            values.forEach(item => {
-                if (!item || !item.fields) return;
-                targetFields.forEach(field => {
-                    const val = item.fields[field];
-                    if (val === oldPk) {
-                        item.fields[field] = newPk;
-                    }
-                });
-            });
-        });
+        if (targetFields.length > 0) {
+            const allContainers = [
+                this.questions, this.answers, this.states, this.issues, this.answer_feedback,
+                this.state_issue_scores, this.candidate_issue_score, this.running_mate_issue_score,
+                this.candidate_state_multiplier, this.answer_score_global, this.answer_score_issue,
+                this.answer_score_state
+            ];
 
-        // 3. Special case for Candidate nicknames
+            for (let c = 0; c < allContainers.length; c++) {
+                const cont = allContainers[c];
+                const items = cont instanceof Map ? cont.values() : Object.values(cont);
+                for (const item of items) {
+                    if (!item || !item.fields) continue;
+                    for (let f = 0; f < targetFields.length; f++) {
+                        const field = targetFields[f];
+                        if (item.fields[field] === oldPk) {
+                            item.fields[field] = newPk;
+                        }
+                    }
+                }
+            }
+        }
+
         if (type === 'candidate') {
             if (this.jet_data && this.jet_data.nicknames) {
                 if (this.jet_data.nicknames[oldPk] !== undefined) {
@@ -355,10 +364,8 @@ class TCTData {
             }
         }
 
-        // 4. Invalidate all indexes
         this._indices = {};
 
-        // 5. Update highest_pk if the new PK exceeds it
         if (newPk > this.highest_pk && newPk < Number.MAX_SAFE_INTEGER) {
             this.highest_pk = Math.ceil(newPk);
         }
@@ -979,18 +986,21 @@ class TCTData {
         if (!pointsRaw || typeof pointsRaw !== 'string') {
             return null;
         }
-        const nums = pointsRaw.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
-        if (!nums || nums.length < 4 || nums.length % 2 !== 0) {
+        
+        const nums = pointsRaw.match(/-?\d*\.?\d+(?:[eE][-+]?\d+)?/g);
+        if (!nums || nums.length < 4 || (nums.length & 1) !== 0) {
             return null;
         }
 
-        const coords = nums.map((x) => Number(x));
-        if (coords.some((x) => !Number.isFinite(x))) {
-            return null;
+        const len = nums.length;
+        const coords = new Float64Array(len);
+        for (let i = 0; i < len; i++) {
+            coords[i] = Number(nums[i]);
+            if (Number.isNaN(coords[i])) return null;
         }
 
         let d = `M ${coords[0]} ${coords[1]}`;
-        for (let i = 2; i < coords.length; i += 2) {
+        for (let i = 2; i < len; i += 2) {
             d += ` L ${coords[i]} ${coords[i + 1]}`;
         }
         if (shouldClose) {
