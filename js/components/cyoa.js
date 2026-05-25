@@ -159,6 +159,48 @@ registerComponent('cyoa', {
                     </div>
                 </div>
             </details>
+
+            <!-- Customizable Bunnyhop section -->
+            <details open class="bg-gray-50 rounded-sm border mt-4">
+                <summary class="px-3 py-2 font-medium cursor-pointer">Bunnyhop (Randomized Question Pools)</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Configure pools of randomized questions that overwrite structural placeholder questions when the mod loads.</p>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button
+                            v-if="!bunnyhopEnabled"
+                            class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600"
+                            @click="toggleBunnyhopEnabled"
+                        >
+                            Enable Bunnyhop
+                        </button>
+                        <button
+                            v-else
+                            class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600"
+                            @click="toggleBunnyhopEnabled"
+                        >
+                            Disable Bunnyhop
+                        </button>
+                        <button
+                            v-if="bunnyhopEnabled"
+                            class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600"
+                            @click="addBunnyhopPool"
+                        >
+                            Add Random Pool
+                        </button>
+                    </div>
+
+                    <div v-if="bunnyhopEnabled" class="space-y-4">
+                        <p v-if="bunnyhopPools.length === 0" class="text-gray-500 italic">No pools defined yet.</p>
+                        <cyoa-bunnyhop-pool
+                            v-for="(pool, idx) in bunnyhopPools"
+                            :key="pool.id"
+                            :index="idx"
+                            :pool-id="pool.id"
+                            @deletePool="deleteBunnyhopPool"
+                        ></cyoa-bunnyhop-pool>
+                    </div>
+                </div>
+            </details>
         </div>
     </div>
     `,
@@ -177,6 +219,8 @@ registerComponent('cyoa', {
             if (jet.cyoa_answer_swaps == null) { jet.cyoa_answer_swaps = {}; changed = true; }
             if (jet.cyoa_campaign_data_enabled == null) { jet.cyoa_campaign_data_enabled = false; changed = true; }
             if (jet.cyoa_campaign_data_stats == null) { jet.cyoa_campaign_data_stats = {}; changed = true; }
+            if (jet.bunnyhop_enabled == null) { jet.bunnyhop_enabled = false; changed = true; }
+            if (jet.bunnyhop_pools == null) { jet.bunnyhop_pools = []; changed = true; }
 
             if (changed) {
                 this.$globalData.dataVersion++;
@@ -187,7 +231,13 @@ registerComponent('cyoa', {
         generateId(stores = []) {
             let id = Date.now();
             // bump until free in any target store
-            while (stores.some(store => store && store[id])) id++;
+            while (stores.some(store => {
+                if (!store) return false;
+                if (Array.isArray(store)) {
+                    return store.some(item => Number(item?.id ?? item?.pk) === id);
+                }
+                return !!store[id];
+            })) id++;
             return id;
         },
 
@@ -370,6 +420,38 @@ registerComponent('cyoa', {
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
+
+        toggleBunnyhopEnabled() {
+            this.$TCT.jet_data.bunnyhop_enabled = !this.$TCT.jet_data.bunnyhop_enabled;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        addBunnyhopPool() {
+            const jet = this.$TCT.jet_data;
+            if (!jet.bunnyhop_pools) {
+                jet.bunnyhop_pools = []; 
+            }
+
+            const id = this.generateId([jet.bunnyhop_pools]);
+            jet.bunnyhop_pools.push({
+                id,
+                index: 0,
+                spots: 1,
+                spotsCond: '',
+                spotsAlt: null,
+                questions: []
+            });
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        deleteBunnyhopPool(id) {
+            const jet = this.$TCT.jet_data;
+            jet.bunnyhop_pools = (jet.bunnyhop_pools || []).filter(pool => pool.id !== id);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
     },
 
     computed: {
@@ -382,6 +464,16 @@ registerComponent('cyoa', {
         cyoaVariables: function () {
             this.$globalData.dataVersion;
             return this.$TCT.getAllCyoaVariables();
+        },
+
+        bunnyhopEnabled() {
+            this.$globalData.dataVersion;
+            return !!this.$TCT.jet_data.bunnyhop_enabled;
+        },
+
+        bunnyhopPools() {
+            this.$globalData.dataVersion;
+            return this.$TCT.jet_data.bunnyhop_pools || [];
         },
 
         enabled: function () {
@@ -458,6 +550,198 @@ registerComponent('cyoa', {
         }
     }
 })
+
+registerComponent('cyoa-bunnyhop-pool', {
+    props: ['poolId', 'index'],
+
+    data() {
+        return {
+            newQuestionPk: null,
+            newQuestionDesc: ""
+        };
+    },
+
+    template: `
+    <div class="bg-white rounded-sm shadow-sm p-4 border-l-4 border-emerald-500 border">
+        <div class="flex justify-between items-start mb-3">
+            <div>
+                <h3 class="font-bold text-sm text-emerald-800 flex items-center gap-1.5">
+                    📦 Randomized question pool #{{ index + 1 }}
+                </h3>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="deletePool">Delete pool</button>
+        </div>
+
+        <div v-if="placeholderWarning" class="bg-amber-50 p-2.5 rounded-sm border border-amber-200 text-xs text-amber-950 mb-3 font-medium">
+            ⚠️ {{ placeholderWarning }}
+        </div>
+
+        <div class="bg-emerald-50 p-2.5 rounded-sm border border-emerald-100 text-xs text-emerald-950 mb-4 space-y-1">
+            <p><strong>How this works:</strong> The game will grab a random set of questions from this pool, shuffle them, and insert them into your game starting at the <strong>Start Position</strong>.</p>
+            <p class="text-gray-600"><em>Example:</em> If you set <strong>Start Position</strong> to <strong>4</strong> and <strong>How Many to Pick</strong> to <strong>2</strong>, the game will randomly pick 2 questions from this pool to become Question 4 and Question 5.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Start Position (question #)</label>
+                <input :value="pool.index + 1" @input="updateField('index', Number($event.target.value) - 1)" type="number" min="1" class="w-full border rounded-sm p-1.5 text-sm" placeholder="e.g. 4">
+                <span class="text-[10px] text-gray-500 block mt-0.5">Which question number starts this random block?</span>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">How Many to Pick</label>
+                <input :value="pool.spots" @input="updateField('spots', Number($event.target.value))" type="number" min="1" class="w-full border rounded-sm p-1.5 text-sm" placeholder="e.g. 2">
+                <span class="text-[10px] text-gray-500 block mt-0.5">How many questions from this pool are drawn?</span>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Change count if... <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input :value="pool.spotsCond" @input="updateField('spotsCond', $event.target.value)" type="text" placeholder="e.g. qCount <= 25" class="w-full border rounded-sm p-1.5 text-sm font-mono">
+                <span class="text-[10px] text-gray-500 block mt-0.5">Condition to change count (e.g. short game).</span>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">New count picked <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input :value="pool.spotsAlt" @input="updateField('spotsAlt', $event.target.value !== '' ? Number($event.target.value) : null)" type="number" min="1" class="w-full border rounded-sm p-1.5 text-sm" placeholder="e.g. 1">
+                <span class="text-[10px] text-gray-500 block mt-0.5">How many to pick if condition above is true.</span>
+            </div>
+        </div>
+
+        <div class="border-t pt-3">
+            <h4 class="text-xs font-bold text-gray-700 mb-2">Questions inside this Pool (Total: {{ (pool.questions || []).length }})</h4>
+
+            <div class="space-y-2 mb-3">
+                <div v-for="(q, qIdx) in pool.questions" :key="qIdx" class="flex gap-2 items-center bg-gray-50 p-2 rounded-sm border">
+                    <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">PK {{ q.pk }}</span>
+                    <span class="text-xs text-gray-700 flex-1 truncate">{{ q.description }}</span>
+                    <button class="text-red-500 hover:text-red-700 text-xs" @click="removeQuestion(qIdx)">✕ Remove</button>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-3 rounded border space-y-3">
+                <span class="text-xs font-bold text-gray-700 block">➕ Add question option to pool</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 mb-0.5">1. Quick import from existing question</label>
+                        <select @change="populateFromQuestion($event.target.value)" class="w-full border rounded p-1.5 text-xs">
+                            <option value="">-- Click to choose and copy text --</option>
+                            <option v-for="q in existingQuestions" :key="q.pk" :value="q.pk">
+                                {{ q.pk }} - {{ (q.fields?.description || '').slice(0, 45) }}...
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 mb-0.5">2. Question ID (PK)</label>
+                        <input v-model.number="newQuestionPk" type="number" class="w-full border rounded p-1.5 text-xs" placeholder="e.g. 349">
+                        <span class="text-[9px] text-gray-400">Must match the PK of the answers you want to show up.</span>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-600 mb-0.5">3. Question description text</label>
+                        <input v-model="newQuestionDesc" type="text" class="w-full border rounded p-1.5 text-xs" placeholder="Enter question text...">
+                        <span class="text-[9px] text-gray-400">The actual text prompt displayed to the player.</span>
+                    </div>
+                </div>
+                <button class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded hover:bg-emerald-700 font-medium" @click="addQuestion">
+                    Add option to pool
+                </button>
+            </div>
+        </div>
+    </div>
+    `,
+
+    methods: {
+        getPool() {
+            const jet = this.$TCT.jet_data;
+            return (jet.bunnyhop_pools || []).find(p => p.id === this.poolId) || {};
+        },
+
+        updateField(field, value) {
+            const pool = this.getPool();
+            pool[field] = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        populateFromQuestion(pk) {
+            if (!pk) return;
+            const q = this.$TCT.questions.get(Number(pk));
+            if (q) {
+                this.newQuestionPk = q.pk;
+                this.newQuestionDesc = q.fields.description || "";
+            }
+        },
+
+        addQuestion() {
+            if (!this.newQuestionPk) {
+                alert("Please enter or select a valid question PK.");
+                return;
+            }
+
+            const pool = this.getPool();
+            if (!pool.questions) pool.questions = [];
+
+            pool.questions.push({
+                pk: Number(this.newQuestionPk),
+                description: this.newQuestionDesc
+            });
+
+            this.newQuestionPk = null;
+            this.newQuestionDesc = "";
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeQuestion(index) {
+            const pool = this.getPool();
+            pool.questions.splice(index, 1);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        deletePool() {
+            if (confirm("Are you sure you want to delete this randomized pool?")) {
+                this.$emit('deletePool', this.poolId);
+            }
+        }
+    },
+
+    computed: {
+        pool() {
+            this.$globalData.dataVersion;
+            return this.getPool();
+        },
+
+        existingQuestions() {
+            return Array.from(this.$TCT.questions.values());
+        },
+
+        placeholderWarning() {
+            this.$globalData.dataVersion;
+            const pool = this.getPool();
+            const index = Number(pool.index);
+            const spots = Number(pool.spots);
+
+            if (Number.isNaN(index) || Number.isNaN(spots) || spots <= 0) return null;
+
+            const questionsArray = this.existingQuestions;
+            const missingPlaceholderNumbers = [];
+
+            for (let i = 0; i < spots; i++) {
+                const targetPos = index + i;
+                const qObj = questionsArray[targetPos];
+
+                if (!qObj) {
+                    missingPlaceholderNumbers.push(targetPos + 1);
+                } else if (qObj.fields && qObj.fields.description !== "'" && qObj.fields.description !== "") {
+                    console.log(`Overwriting non-placeholder at position ${targetPos + 1}`);
+                }
+            }
+
+            if (missingPlaceholderNumbers.length > 0) {
+                return `Warning: You don't have enough question slots defined in your base mod. Please make sure you have defined questions in the base mod for position(s): ${missingPlaceholderNumbers.join(', ')}.`;
+            }
+
+            return null;
+        }
+    }
+});
 
 // create a global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {

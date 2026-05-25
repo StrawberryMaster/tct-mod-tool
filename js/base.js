@@ -103,6 +103,13 @@ class TCTData {
         this.jet_data = jet_data
         this._indices = {};
 
+        if (this.jet_data.bunnyhop_enabled == null) {
+            this.jet_data.bunnyhop_enabled = false;
+        }
+        if (this.jet_data.bunnyhop_pools == null) {
+            this.jet_data.bunnyhop_pools = [];
+        }
+
         this.cleanAllData();
     }
 
@@ -1485,6 +1492,11 @@ class TCTData {
 
         parts.push(this.getEndingCode());
 
+        const bunnyhopCode = this.getBunnyhopCode();
+        if (bunnyhopCode) {
+            parts.push("\n// Beetleslog shuffler\n", bunnyhopCode, "\n\n");
+        }
+
         let codeToAdd = (this.jet_data.code_to_add || "").trim();
 
         // normalize custom code newlines
@@ -2086,6 +2098,67 @@ endingPicker = (out, totv, aa, quickstats) => {
 `;
         f += "\n// [JETS_ENDINGS_END]\n";
         return f;
+    }
+
+    getBunnyhopCode() {
+        if (!this.jet_data.bunnyhop_enabled || !this.jet_data.bunnyhop_pools || this.jet_data.bunnyhop_pools.length === 0) {
+            return "";
+        }
+
+        const compiledPools = this.jet_data.bunnyhop_pools.map(pool => {
+            return {
+                index: Number(pool.index) || 0,
+                spots: Number(pool.spots) || 1,
+                spotsCond: pool.spotsCond || null,
+                spotsAlt: pool.spotsAlt != null ? Number(pool.spotsAlt) : null,
+                questions: (pool.questions || []).map(q => [Number(q.pk), q.description || ""])
+            };
+        });
+
+        return `
+// [JETS_BUNNYHOP_START]
+;(() => {
+    const pools = ${JSON.stringify(compiledPools, null, 4)};
+
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    const qCount = campaignTrail_temp.global_parameter_json?.[0]?.fields?.question_count ?? 0;
+
+    for (const pool of pools) {
+        let spots = pool.spots;
+        if (pool.spotsCond && pool.spotsAlt != null) {
+            try {
+                const cond = new Function("qCount", "return " + pool.spotsCond)(qCount);
+                if (cond) {
+                    spots = pool.spotsAlt;
+                }
+            } catch (e) {
+                console.warn("Beetleslog conditional evaluation failed:", e);
+            }
+        }
+
+        const shuffled = shuffle([...pool.questions]);
+        const limit = Math.min(spots, shuffled.length);
+
+        for (let q = 0; q < limit; q++) {
+            const targetIdx = pool.index + q;
+            const targetQuestion = campaignTrail_temp.questions_json?.[targetIdx];
+            if (targetQuestion) {
+                targetQuestion.fields = targetQuestion.fields || {};
+                targetQuestion.pk = shuffled[q][0];
+                targetQuestion.fields["description"] = shuffled[q][1];
+            }
+        }
+    }
+})();
+// [JETS_BUNNYHOP_END]
+`.trim();
     }
 
     getCYOACode() {
@@ -2887,6 +2960,7 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*#\s*(start|end)code/gi);
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
+    extractor.excludeRegex(/\/\/\s*\[JETS_BUNNYHOP_START\][\s\S]*?\/\/\s*\[JETS_BUNNYHOP_END\]/g);
     // keep manual banner assignments in custom code unless the banner module is enabled
     if (jet_data.banner_enabled) {
         extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
