@@ -11,16 +11,16 @@ registerCode1Component('shadow-wrapper', {
     },
     mounted() {
         const shadow = this.$refs.shadowHost.attachShadow({ mode: 'open' });
-        
+
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = 'js/code1/preview.css';
         shadow.appendChild(link);
-        
+
         const content = document.createElement('div');
         content.id = 'shadow-root-inner';
         shadow.appendChild(content);
-        
+
         this.teleportTarget = content;
     }
 });
@@ -126,7 +126,7 @@ registerCode1Component('code1-editor', {
         async loadTemplate(e) {
             const pk = e.target.value;
             if (!pk) return;
-            
+
             if (confirm("This will overwrite your current work. Continue?")) {
                 const success = await this.$TCT1.applyTemplate(pk);
                 if (success) {
@@ -279,6 +279,56 @@ registerCode1Component('tct-preview', {
                             </div>
                             <p>
                                 <button @click="setPreviewMode('CANDIDATE')" class="pure-button" id="running_mate_id_back">Back</button>
+                                <button @click="setPreviewMode('GAME_MODE')" class="pure-button" id="candidate_id_button">Continue</button>
+                            </p>
+                        </div>
+
+                        <!-- Game Mode -->
+                        <div v-else-if="previewMode === 'GAME_MODE'" class="inner_window_w_desc" :style="innerWindowStyle">
+                            <div id="game_options">
+                                <form name="game_type_selection">
+                                <p></p>
+                                <h3>Select your game mode.</h3>
+                                    <select name="game_type_id" id="game_type_id" @change="onGameModeSelected">
+                                        <option value="1">Default (Winner-Take-All)</option>
+                                        <option value="2">Proportional</option>
+                                    </select>
+                                <p></p>
+                                </form>
+                            </div>
+                            <div class="description_window_small" id="opponent_selection_description_window">
+                                <template v-if="selectedGameMode === '1'">
+                                    <p><strong>Use the default method of allocating electoral votes for each state.</strong></p>
+                                    <p>In the vast majority of cases, states use a winner-take-all method. For instance, if Candidate A defeats Candidate B in a state, worth 20 electoral votes, Candidate A will usually win all 20 votes.</p>
+                                    <p>This method tends to concentrate the election into a handful of swing states. It also makes it difficult for third-party candidates to win electoral votes. On the other hand, it is easier for a single candidate to gain an overall majority of the electoral votes.</p>
+                                </template>
+                                <template v-else-if="selectedGameMode === '2'">
+                                    <p><strong>Allocate each state's electoral votes proportionally.</strong></p>
+                                    <p>Under this method, all candidates split the electoral votes in a state, in proportion to their popular vote %.</p>
+                                    <p>There is still an advantage to winning a state -- the winner of the state will always receive a plurality of electoral votes. For instance, in a state with 4 electoral votes, if Candidate A wins 51% of the vote, they will be awarded 3 electoral votes.</p>
+                                    <p>Compared to a winner-take-all method, this method aligns the electoral vote more closely with the popular vote. It also makes it easier to third party candidates to increase their electoral vote totals. In some scenarios, this effect is highly significant on the final outcome. Some examples are 1860, 1948, 1968, and 2000. </p>
+                                </template>
+                            </div>
+                            <div id="difficulty_level">
+                                <form name="difficulty_level_selection">
+                                <p></p>
+                                <h3>Please choose your difficulty level:</h3>
+                                <select name="difficulty_level_id" id="difficulty_level_id"> 
+                                    <option value="1">Cakewalk</option>
+                                    <option value="2">Very Easy</option>
+                                    <option value="3">Easy</option>
+                                    <option value="4" selected="">Normal</option>
+                                    <option value="5">Hard</option>
+                                    <option value="6">Impossible</option>
+                                    <option value="7">Unthinkable</option>
+                                    <option value="8">Blowout</option>
+                                    <option value="9">Disaster</option>
+                                </select>
+                                <p></p>
+                                </form>
+                            </div>
+                            <p>
+                                <button @click="setPreviewMode('RUNNING_MATE')" class="pure-button" id="running_mate_id_back">Back</button>
                             </p>
                         </div>
 
@@ -293,7 +343,8 @@ registerCode1Component('tct-preview', {
             previewMode: 'ELECTION',
             previewSubMode: 'SCENARIO',
             selectedCandIdx: 0,
-            selectedMateIdx: 0
+            selectedMateIdx: 0,
+            selectedGameMode: '1'
         };
     },
     computed: {
@@ -357,7 +408,7 @@ registerCode1Component('tct-preview', {
                 backgroundColor: this.jetData.innerWindowColor || '#FFF',
                 borderColor: '#C9C9C9'
             };
-        }
+        },
     },
     methods: {
         setPreviewMode(mode) {
@@ -377,6 +428,9 @@ registerCode1Component('tct-preview', {
         },
         onRunningMateSelected(e) {
             this.selectedMateIdx = parseInt(e.target.value);
+        },
+        onGameModeSelected(e) {
+            this.selectedGameMode = e.target.value;
         }
     }
 });
