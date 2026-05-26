@@ -13,13 +13,14 @@ class TCTCode1Data {
             windowColor: "#bfe6ff",
             containerColor: "#ffffff",
             innerWindowColor: "#e8fbff",
+            descriptionWindowColor: "#f8f8f8",
             bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
             backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
             gameTitle: "THE CAMPAIGN TRAIL",
             customQuote: "",
             endingTextColor: "#000000"
         };
-        
+
         this.loadDefaultData();
         this.templates = [];
     }
@@ -34,10 +35,10 @@ class TCTCode1Data {
             }
             const data = await resp.json();
             console.log("Templates fetched successfully, count:", data.length);
-            
+
             // reversing raw data first
             data.sort((a, b) => (b.fields.year || 0) - (a.fields.year || 0));
-            
+
             // clear and push to trigger reactivity properly
             this.templates.length = 0;
             this.templates.push(...data);
@@ -66,7 +67,7 @@ class TCTCode1Data {
             if (this.elections[0].fields.recommended_reading_enabled == null) {
                 this.elections[0].fields.recommended_reading_enabled = true;
             }
-            
+
             // update temp_election_list too
             this.temp_election_list = [{
                 "id": election.pk,
@@ -76,9 +77,9 @@ class TCTCode1Data {
             }];
 
             this.candidates = allCandidates.filter(c => c.fields.election == electionPk);
-            
+
             const candPks = new Set(this.candidates.map(c => c.pk));
-            this.running_mates = allRunningMates.filter(rm => 
+            this.running_mates = allRunningMates.filter(rm =>
                 candPks.has(rm.fields.candidate) || candPks.has(rm.fields.running_mate)
             );
 
@@ -89,13 +90,14 @@ class TCTCode1Data {
             });
 
             this.credits = "Dan Bryan";
-            
+
             // reset theme to defaults for templates
             this.jet_data = {
                 headerColor: "#700016",
                 windowColor: "#bfe6ff",
                 containerColor: "#ffffff",
                 innerWindowColor: "#e8fbff",
+                descriptionWindowColor: "#f8f8f8",
                 bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
                 backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
                 gameTitle: "THE CAMPAIGN TRAIL",
@@ -227,28 +229,28 @@ class TCTCode1Data {
 
     exportCode1() {
         let code = "";
-        
+
         const electionPk = this.elections[0]?.pk || 20;
 
         // export elections
         code += "campaignTrail_temp.election_json = " + JSON.stringify(this.elections, null, 4) + ";\n\n";
-        
+
         // export temp election list
         code += "campaignTrail_temp.temp_election_list = " + JSON.stringify(this.temp_election_list, null, 4) + ";\n\n";
-        
+
         if (this.elections[0]?.fields?.recommended_reading_enabled) {
             code += "RecReading = true;\n\n";
         }
-        
+
         // export credits
         code += "campaignTrail_temp.credits = " + JSON.stringify(this.credits) + ";\n\n";
-        
+
         // export global parameters
         code += "campaignTrail_temp.global_parameter_json = " + JSON.stringify(this.global_parameters, null, 4) + ";\n\n";
-        
+
         // export candidates
         code += "campaignTrail_temp.candidate_json = " + JSON.stringify(this.candidates, null, 4) + ";\n\n";
-        
+
         // export running mates
         code += "campaignTrail_temp.running_mate_json = " + JSON.stringify(this.running_mates, null, 4) + ";\n\n";
 
@@ -259,7 +261,7 @@ class TCTCode1Data {
 
         // export jet_data (for theming)
         code += "jet_data = " + JSON.stringify(this.jet_data, null, 4) + ";\n\n";
-        
+
         // export theme injection code
         code += "//#startcode\n";
         code += this.generateThemeCode();
@@ -271,7 +273,7 @@ class TCTCode1Data {
     generateThemeCode() {
         const jd = this.jet_data;
         let quoteHtml = jd.customQuote ? `<font id="wittyquote" size="4" color="white"><em>${jd.customQuote}</em></font>` : "";
-        
+
         return `
 function applyTheme(theme) {
     const gameHeader = document.querySelector(".game_header");
@@ -304,6 +306,7 @@ function applyTheme(theme) {
     style.textContent = \`
       #results_container { color: ${jd.endingTextColor}; }
       .inner_window_w_desc { background-color: ${jd.innerWindowColor} !important; }
+      .person_description_window, .election_description_window { background-color: ${jd.descriptionWindowColor} !important; }
     \`;
     document.head.appendChild(style);
 }
@@ -328,16 +331,16 @@ applyTheme(theme);
         const campaignTrail_temp = {};
         let jet_data = null;
         let RecReading = true;
-        
+
         try {
             // strip //@startcode and //@endcode if they exist
-            if(fileContent.includes("//#startcode")) {
+            if (fileContent.includes("//#startcode")) {
                 fileContent = fileContent.split("//#startcode")[0] + fileContent.split("//#endcode")[1];
             }
-            
+
             // eval the content
             eval(fileContent);
-            
+
             if (campaignTrail_temp.election_json) this.elections = campaignTrail_temp.election_json;
             if (campaignTrail_temp.candidate_json) this.candidates = campaignTrail_temp.candidate_json;
             if (campaignTrail_temp.running_mate_json) this.running_mates = campaignTrail_temp.running_mate_json;
@@ -347,11 +350,11 @@ applyTheme(theme);
             if (this.elections?.[0]?.fields) {
                 this.elections[0].fields.recommended_reading_enabled = RecReading !== false;
             }
-            
+
             if (jet_data) {
                 this.jet_data = Object.assign({}, this.jet_data, jet_data);
             }
-            
+
             return true;
         } catch (e) {
             console.error("Error loading Code 1:", e);
@@ -364,7 +367,7 @@ window.TCTCode1Data = TCTCode1Data;
 
 // global reference for component registration
 window.TCT1ComponentQueue = [];
-window.registerCode1Component = function(name, definition) {
+window.registerCode1Component = function (name, definition) {
     if (window.TCTApp1) {
         window.TCTApp1.component(name, definition);
     } else {

@@ -197,7 +197,7 @@ registerCode1Component('tct-preview', {
                                     </select>
                                     <p></p>
                                 </form>
-                                <div class="election_description_window" id="election_description_window">
+                                <div class="election_description_window" id="election_description_window" :style="descriptionWindowStyle">
                                     <div id="election_image" class="election_image">
                                         <img :src="currentElection.fields.image_url" width="300" height="160">
                                     </div>
@@ -231,7 +231,7 @@ registerCode1Component('tct-preview', {
                                     <p></p>
                                 </form>
                             </div>
-                            <div v-if="selectedPreviewCandidate" class="person_description_window" id="candidate_description_window">
+                            <div v-if="selectedPreviewCandidate" class="person_description_window" id="candidate_description_window" :style="descriptionWindowStyle">
                                 <div class="person_image" id="candidate_image">
                                     <img :src="selectedPreviewCandidate.fields.image_url" width="210" height="250">
                                 </div>
@@ -264,7 +264,7 @@ registerCode1Component('tct-preview', {
                                     <p></p>
                                 </form>
                             </div>
-                            <div v-if="selectedPreviewRunningMate" class="person_description_window" id="running_mate_description_window">
+                            <div v-if="selectedPreviewRunningMate" class="person_description_window" id="running_mate_description_window" :style="descriptionWindowStyle">
                                 <div class="person_image" id="running_mate_image">
                                     <img :src="selectedPreviewRunningMate.fields.image_url" width="210" height="250">
                                 </div>
@@ -296,7 +296,7 @@ registerCode1Component('tct-preview', {
                                 <p></p>
                                 </form>
                             </div>
-                            <div class="description_window_small" id="opponent_selection_description_window">
+                            <div class="description_window_small" id="opponent_selection_description_window" :style="descriptionWindowStyle">
                                 <template v-if="selectedGameMode === '1'">
                                     <p><strong>Use the default method of allocating electoral votes for each state.</strong></p>
                                     <p>In the vast majority of cases, states use a winner-take-all method. For instance, if Candidate A defeats Candidate B in a state, worth 20 electoral votes, Candidate A will usually win all 20 votes.</p>
@@ -409,6 +409,11 @@ registerCode1Component('tct-preview', {
                 borderColor: '#C9C9C9'
             };
         },
+        descriptionWindowStyle() {
+            return {
+                backgroundColor: this.jetData.descriptionWindowColor || '#f8f8f8'
+            };
+        }
     },
     methods: {
         setPreviewMode(mode) {

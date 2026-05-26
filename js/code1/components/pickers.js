@@ -374,6 +374,13 @@ registerCode1Component('theme-editor', {
                     <input v-model="jetData.endingTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
                 </div>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description window color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.descriptionWindowColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.descriptionWindowColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
         </div>
     </div>
     `,
