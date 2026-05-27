@@ -10,14 +10,18 @@ class TCTCode1Data {
         this.credits = "Not Dan Bryan";
         this.jet_data = {
             headerColor: "#700016",
+            headerTextColor: "#ffffff",
             windowColor: "#bfe6ff",
             containerColor: "#ffffff",
             innerWindowColor: "#e8fbff",
+            innerWindowTextColor: "#000000",
             descriptionWindowColor: "#f8f8f8",
+            descriptionWindowTextColor: "#000000",
             bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
             backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
             gameTitle: "THE CAMPAIGN TRAIL",
             customQuote: "",
+            quoteTextColor: "#ffffff",
             endingTextColor: "#000000"
         };
 
@@ -94,14 +98,18 @@ class TCTCode1Data {
             // reset theme to defaults for templates
             this.jet_data = {
                 headerColor: "#700016",
+                headerTextColor: "#ffffff",
                 windowColor: "#bfe6ff",
                 containerColor: "#ffffff",
                 innerWindowColor: "#e8fbff",
+                innerWindowTextColor: "#000000",
                 descriptionWindowColor: "#f8f8f8",
+                descriptionWindowTextColor: "#000000",
                 bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
                 backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
                 gameTitle: "THE CAMPAIGN TRAIL",
                 customQuote: "",
+                quoteTextColor: "#ffffff",
                 endingTextColor: "#000000"
             };
 
@@ -272,7 +280,7 @@ class TCTCode1Data {
 
     generateThemeCode() {
         const jd = this.jet_data;
-        let quoteHtml = jd.customQuote ? `<font id="wittyquote" size="4" color="white"><em>${jd.customQuote}</em></font>` : "";
+        let quoteHtml = jd.customQuote ? `<font id="wittyquote" size="4"><em>${jd.customQuote}</em></font>` : "";
 
         return `
 function applyTheme(theme) {
@@ -305,8 +313,10 @@ function applyTheme(theme) {
     const style = document.createElement("style");
     style.textContent = \`
       #results_container { color: ${jd.endingTextColor}; }
-      .inner_window_w_desc { background-color: ${jd.innerWindowColor} !important; }
-      .person_description_window, .election_description_window { background-color: ${jd.descriptionWindowColor} !important; }
+      #wittyquote { color: ${jd.quoteTextColor}; }
+      .game_header h2 { color: ${jd.headerTextColor}; }
+      .inner_window_w_desc, .inner_window_front { background-color: ${jd.innerWindowColor} !important; color: ${jd.innerWindowTextColor}; }
+      .person_description_window, .election_description_window, .description_window_small { background-color: ${jd.descriptionWindowColor} !important; color: ${jd.descriptionWindowTextColor}; }
     \`;
     document.head.appendChild(style);
 }
