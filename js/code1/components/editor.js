@@ -176,8 +176,8 @@ registerCode1Component('tct-preview', {
                 <div class="content_single">
                     <div id="game_window" :style="windowStyle">
                         <div class="game_header" :style="headerStyle">
-                            <h2>{{jetData.gameTitle}}</h2>
-                            <font v-if="jetData.customQuote" id='wittyquote' size='4' color='white'><em>{{jetData.customQuote}}</em></font>
+                            <h2 :style="{ color: jetData.headerTextColor || '#ffffff' }">{{jetData.gameTitle}}</h2>
+                            <font v-if="jetData.customQuote" id='wittyquote' size='4' :style="{ color: jetData.quoteTextColor || '#ffffff' }"><em>{{jetData.customQuote}}</em></font>
                         </div>
                         
                         <!-- Election Mode -->
@@ -406,12 +406,14 @@ registerCode1Component('tct-preview', {
         innerWindowStyle() {
             return {
                 backgroundColor: this.jetData.innerWindowColor || '#FFF',
+                color: this.jetData.innerWindowTextColor || '#000000',
                 borderColor: '#C9C9C9'
             };
         },
         descriptionWindowStyle() {
             return {
-                backgroundColor: this.jetData.descriptionWindowColor || '#f8f8f8'
+                backgroundColor: this.jetData.descriptionWindowColor || '#f8f8f8',
+                color: this.jetData.descriptionWindowTextColor || '#000000'
             };
         }
     },
