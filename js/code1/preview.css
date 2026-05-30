@@ -760,7 +760,8 @@ h2.headline_pretty {
 
 #election_description_window {
 	background-color: #F8F8F8;
-	height: 74%;
+	height: 16em;
+	overflow-y: auto;
 	margin: 1em;
 	border-style: double;
 	border-color: #C9C9C9
