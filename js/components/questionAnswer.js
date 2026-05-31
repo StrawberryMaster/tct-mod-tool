@@ -1820,7 +1820,7 @@ registerComponent('integrated-state-effect-visualizer', {
             this.useListEditor = true;
             this.mapLoaded = false;
         },
-
+        
         initializeViewport(force = false) {
             const dims = this.resolveBaseDimensions();
             this.baseWidth = dims.width;
@@ -1834,7 +1834,7 @@ registerComponent('integrated-state-effect-visualizer', {
         },
 
         resolveBaseDimensions() {
-            const mapping = this.$TCT.jet_data?.mapping_data || {};
+            const mapping = this.$TCT.jet_data?.mapping_data || {}; // Corrected from get_data to jet_data
             const mapWidth = Number(mapping.x);
             const mapHeight = Number(mapping.y);
             if (mapWidth > 0 && mapHeight > 0) {
@@ -1842,7 +1842,7 @@ registerComponent('integrated-state-effect-visualizer', {
             }
             const parsed = this.parseViewBoxString(this.fallbackViewBox);
             if (parsed) return parsed;
-            return { width: 1025, height: 595 };
+            return { width: 1000, height: 600 };
         },
 
         parseViewBoxString(str) {
@@ -1856,39 +1856,48 @@ registerComponent('integrated-state-effect-visualizer', {
 
         resetViewport() {
             this.zoom = 1;
-            this.panX = 0;
-            this.panY = 0;
+            const mapping = this.$TCT.jet_data?.mapping_data || {};
+            this.panX = mapping.dx != null ? Number(mapping.dx) : 0;
+            this.panY = mapping.dy != null ? Number(mapping.dy) : 0;
             this.clampPan();
         },
 
         clampPan() {
             if (!this.viewportInitialized) return;
+            const mapping = this.$TCT.jet_data?.mapping_data || {};
+            const minX = mapping.dx != null ? Number(mapping.dx) : 0;
+            const minY = mapping.dy != null ? Number(mapping.dy) : 0;
             const viewWidth = this.baseWidth / this.zoom;
             const viewHeight = this.baseHeight / this.zoom;
-            const maxX = Math.max(0, this.baseWidth - viewWidth);
-            const maxY = Math.max(0, this.baseHeight - viewHeight);
-            this.panX = Math.min(Math.max(this.panX, 0), maxX);
-            this.panY = Math.min(Math.max(this.panY, 0), maxY);
+            const maxX = minX + Math.max(0, this.baseWidth - viewWidth);
+            const maxY = minY + Math.max(0, this.baseHeight - viewHeight);
+            this.panX = Math.min(Math.max(this.panX, minX), maxX);
+            this.panY = Math.min(Math.max(this.panY, minY), maxY);
         },
 
-        setZoom(next) {
-            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
-            if (!this.viewportInitialized) {
-                this.zoom = target;
-                this.clampPan();
-                return;
+        getStateTransform(state) {
+            const abbr = state.fields?.abbr;
+            if (abbr) {
+                let entry = this.mapData.find(item => item[0] === abbr);
+                if (entry) return entry[2] || '';
+                const normalized = abbr.replaceAll('-', '_');
+                entry = this.mapData.find(item => item[0] === normalized);
+                if (entry) return entry[2] || '';
             }
-            const prevWidth = this.baseWidth / this.zoom;
-            const prevHeight = this.baseHeight / this.zoom;
-            const centerX = this.panX + prevWidth / 2;
-            const centerY = this.panY + prevHeight / 2;
+            return state.transform || '';
+        },
 
+        setZoom(next, centerPoint = null) {
+            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
+            if (target === this.zoom) return;
+
+            const oldZoom = this.zoom;
             this.zoom = target;
 
-            const newWidth = this.baseWidth / this.zoom;
-            const newHeight = this.baseHeight / this.zoom;
-            this.panX = centerX - newWidth / 2;
-            this.panY = centerY - newHeight / 2;
+            if (centerPoint) {
+                const scaleChange = 1 / this.zoom - 1 / oldZoom;
+                this.panX += (centerPoint.x) * scaleChange * this.zoom;
+            }
             this.clampPan();
         },
 
@@ -1910,15 +1919,20 @@ registerComponent('integrated-state-effect-visualizer', {
 
         onPan(evt) {
             if (!this.isPanning || !this.svgBounds) return;
+
             const dx = evt.clientX - this.lastPointer.x;
             const dy = evt.clientY - this.lastPointer.y;
-            if (!this.dragMoved && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
+
+            if (!this.dragMoved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
                 this.dragMoved = true;
             }
+
             const scaleX = (this.baseWidth / this.zoom) / this.svgBounds.width;
             const scaleY = (this.baseHeight / this.zoom) / this.svgBounds.height;
+
             this.panX -= dx * scaleX;
             this.panY -= dy * scaleY;
+
             this.lastPointer = { x: evt.clientX, y: evt.clientY };
             this.clampPan();
         },
@@ -2167,6 +2181,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                 v-for="state in states"
                                 :key="state.pk"
                                 :d="getStatePath(state)"
+                                :transform="getStateTransform(state) || null"
                                 :style="{
                                     fill: getStateColor(state.pk),
                                     stroke: getStateStroke(state.pk),
