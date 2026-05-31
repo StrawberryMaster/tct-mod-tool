@@ -162,7 +162,7 @@ registerComponent('cyoa', {
 
             <!-- Customizable Bunnyhop section -->
             <details open class="bg-gray-50 rounded-sm border mt-4">
-                <summary class="px-3 py-2 font-medium cursor-pointer">Bunnyhop (Randomized Question Pools)</summary>
+                <summary class="px-3 py-2 font-medium cursor-pointer">Bunnyhop (randomized question pools)</summary>
                 <p class="px-3 py-2 text-sm text-gray-700 italic">Configure pools of randomized questions that overwrite structural placeholder questions when the mod loads.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
@@ -729,8 +729,6 @@ registerComponent('cyoa-bunnyhop-pool', {
 
                 if (!qObj) {
                     missingPlaceholderNumbers.push(targetPos + 1);
-                } else if (qObj.fields && qObj.fields.description !== "'" && qObj.fields.description !== "") {
-                    console.log(`Overwriting non-placeholder at position ${targetPos + 1}`);
                 }
             }
 
@@ -743,23 +741,8 @@ registerComponent('cyoa-bunnyhop-pool', {
     }
 });
 
-// create a global helper object that can be accessed from other components
+// global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
-
-    getQuestionNumber(pk) {
-        if (pk == null) return "?";
-        const questions = Array.from(window.$TCT.questions.values());
-        const idx = questions.findIndex(q => Number(q.pk) === Number(pk));
-        return idx === -1 ? "?" : idx;
-    },
-
-    getAnswerQuestionNumber(answerPk) {
-        if (answerPk == null) return "?";
-        const answer = window.$TCT.answers[answerPk];
-        if (!answer || !answer.fields) return "?";
-        return this.getQuestionNumber(answer.fields.question);
-    },
-
     getConditionOperand(variableName) {
         const key = String(variableName || '').trim().toLowerCase();
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
@@ -1087,11 +1070,9 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             return out.slice(0, bodyStart) + body + out.slice(closeIdx);
         }
 
-        // no section headers found; insert both blocks after ans assignment
         const indentedPayload = '\n' + this.indentBlock(combinedForInsert, indentForInsert) + '\n';
 
         if (insertPosInBody >= 0) {
-            // insert right after ans assignment
             const newBody = body.slice(0, insertPosInBody) + indentedPayload + body.slice(insertPosInBody);
             return out.slice(0, bodyStart) + newBody + out.slice(closeIdx);
         } else {
@@ -1164,65 +1145,65 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             }
         }
 
-                out = this.injectCampaignDataIntoCode2(out);
-                return out;
-        },
+        out = this.injectCampaignDataIntoCode2(out);
+        return out;
+    },
 
-        getCampaignDataRows() {
-                const jet = window.$TCT?.jet_data;
-                if (!jet || !jet.cyoa_campaign_data_enabled) return [];
+    getCampaignDataRows() {
+        const jet = window.$TCT?.jet_data;
+        if (!jet || !jet.cyoa_campaign_data_enabled) return [];
 
-                const rows = Object.values(jet.cyoa_campaign_data_stats || {});
-                return rows
-                        .map((row, index) => {
-                                if (!row || !row.variable) return null;
+        const rows = Object.values(jet.cyoa_campaign_data_stats || {});
+        return rows
+            .map((row, index) => {
+                if (!row || !row.variable) return null;
 
-                                const lowMax = Number(row.lowMax);
-                                const midMax = Number(row.midMax);
-                                const lowText = String(row.lowText || '').trim();
-                                const midText = String(row.midText || '').trim();
-                                const highText = String(row.highText || '').trim();
-                                if (!lowText || !midText || !highText) return null;
-                                if (!Number.isFinite(lowMax) || !Number.isFinite(midMax)) return null;
+                const lowMax = Number(row.lowMax);
+                const midMax = Number(row.midMax);
+                const lowText = String(row.lowText || '').trim();
+                const midText = String(row.midText || '').trim();
+                const highText = String(row.highText || '').trim();
+                if (!lowText || !midText || !highText) return null;
+                if (!Number.isFinite(lowMax) || !Number.isFinite(midMax)) return null;
 
-                                const sortedLow = Math.min(lowMax, midMax);
-                                const sortedMid = Math.max(lowMax, midMax);
-                                const label = String(row.label || row.variable || '').trim() || row.variable;
+                const sortedLow = Math.min(lowMax, midMax);
+                const sortedMid = Math.max(lowMax, midMax);
+                const label = String(row.label || row.variable || '').trim() || row.variable;
 
-                                return {
-                                        id: Number(row.id || (Date.now() + index)),
-                                        variable: String(row.variable).trim(),
-                                        label,
-                                        tiers: [
-                                                { max: sortedLow, text: lowText, color: '#ff4d4d' },
-                                                { max: sortedMid, text: midText, color: '#e6e6e6' },
-                                                { max: 'Infinity', text: highText, color: '#4dff4d' }
-                                        ]
-                                };
-                        })
-                        .filter(Boolean)
-                        .sort((a, b) => a.id - b.id);
-        },
+                return {
+                    id: Number(row.id || (Date.now() + index)),
+                    variable: String(row.variable).trim(),
+                    label,
+                    tiers: [
+                        { max: sortedLow, text: lowText, color: '#ff4d4d' },
+                        { max: sortedMid, text: midText, color: '#e6e6e6' },
+                        { max: 'Infinity', text: highText, color: '#4dff4d' }
+                    ]
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.id - b.id);
+    },
 
-        buildCampaignDataPopupCode() {
-                const rows = this.getCampaignDataRows();
-                if (!rows.length) return '';
+    buildCampaignDataPopupCode() {
+        const rows = this.getCampaignDataRows();
+        if (!rows.length) return '';
 
-                const escapeTemplateText = (value) => String(value || '')
-                        .replaceAll('\\', '\\\\')
-                        .replaceAll('`', '\\`')
-                        .replaceAll('${', '\\${');
+        const escapeTemplateText = (value) => String(value || '')
+            .replaceAll('\\', '\\\\')
+            .replaceAll('`', '\\`')
+            .replaceAll('${', '\\${');
 
-                const statsRows = rows.map((row) => {
-                        const tiers = row.tiers || [];
-                        const t1 = tiers[0] || { max: 0, text: '', color: '#ff4d4d' };
-                        const t2 = tiers[1] || { max: 2, text: '', color: '#e6e6e6' };
-                        const t3 = tiers[2] || { max: 'Infinity', text: '', color: '#4dff4d' };
-                        const max1 = Number.isFinite(Number(t1.max)) ? Number(t1.max) : 0;
-                        const max2 = Number.isFinite(Number(t2.max)) ? Number(t2.max) : 2;
-                        const max3 = String(t3.max) === 'Infinity' ? 'Infinity' : (Number.isFinite(Number(t3.max)) ? Number(t3.max) : 'Infinity');
+        const statsRows = rows.map((row) => {
+            const tiers = row.tiers || [];
+            const t1 = tiers[0] || { max: 0, text: '', color: '#ff4d4d' };
+            const t2 = tiers[1] || { max: 2, text: '', color: '#e6e6e6' };
+            const t3 = tiers[2] || { max: 'Infinity', text: '', color: '#4dff4d' };
+            const max1 = Number.isFinite(Number(t1.max)) ? Number(t1.max) : 0;
+            const max2 = Number.isFinite(Number(t2.max)) ? Number(t2.max) : 2;
+            const max3 = String(t3.max) === 'Infinity' ? 'Infinity' : (Number.isFinite(Number(t3.max)) ? Number(t3.max) : 'Infinity');
 
-                        return `    {
+            return `    {
             getValue: () => ${row.variable},
             label: \`${escapeTemplateText(row.label)}\`,
             tiers: [
@@ -1231,13 +1212,13 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
                 [${max3}, \`${escapeTemplateText(t3.text)}\`, \"${t3.color}\"],
             ],
         }`;
-                }).join(',\n');
+        }).join(',\n');
 
-                return `
+        return `
 // [JETS_CYOA_CAMPAIGN_DATA_START]
 ;(() => {
     const styleEl = document.createElement("style");
-        styleEl.textContent = \`
+    styleEl.textContent = \`
         #gameStatsPopup {
             position: fixed;
             bottom: 20px;
@@ -1373,25 +1354,25 @@ ${statsRows}
 })();
 // [JETS_CYOA_CAMPAIGN_DATA_END]
 `.trim();
-        },
+    },
 
-        injectCampaignDataIntoCode2(code) {
-                let out = String(code || '');
-                const blockStart = '// [JETS_CYOA_CAMPAIGN_DATA_START]';
-                const blockEnd = '// [JETS_CYOA_CAMPAIGN_DATA_END]';
-                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}[\\s\\S]*?${blockEnd.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\n?`, 'g');
-                out = out.replace(existingBlockRe, '\n').replace(/\n{3,}/g, '\n\n');
+    injectCampaignDataIntoCode2(code) {
+        let out = String(code || '');
+        const blockStart = '// [JETS_CYOA_CAMPAIGN_DATA_START]';
+        const blockEnd = '// [JETS_CYOA_CAMPAIGN_DATA_END]';
+        const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}[\\s\\S]*?${blockEnd.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\n?`, 'g');
+        out = out.replace(existingBlockRe, '\n').replace(/\n{3,}/g, '\n\n');
 
-                const campaignBlock = this.buildCampaignDataPopupCode();
-                if (!campaignBlock) return out;
+        const campaignBlock = this.buildCampaignDataPopupCode();
+        if (!campaignBlock) return out;
 
-                const endMarker = '//#endcode';
-                const endIdx = out.indexOf(endMarker);
-                if (endIdx !== -1) {
-                        return out.slice(0, endIdx).replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n' + out.slice(endIdx);
-                }
+        const endMarker = '//#endcode';
+        const endIdx = out.indexOf(endMarker);
+        if (endIdx !== -1) {
+            return out.slice(0, endIdx).replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n' + out.slice(endIdx);
+        }
 
-                return out.replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n';
+        return out.replace(/\n+$/, '') + '\n\n' + campaignBlock + '\n';
     }
 };
 
@@ -1725,9 +1706,6 @@ registerComponent('cyoa-variable', {
         defaultValueVal(val) {
             this.updateGlobal('defaultValue', val);
         }
-    },
-
-    computed: {
     }
 })
 
@@ -1964,14 +1942,6 @@ registerComponent('cyoa-question-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
-        },
-
-        getQuestionNumber(pk) {
-            return window.TCTAnswerSwapHelper.getQuestionNumber(pk);
-        },
-
-        getAnswerQuestionNumber(pk) {
-            return window.TCTAnswerSwapHelper.getAnswerQuestionNumber(pk);
         }
     },
 
@@ -2031,7 +2001,7 @@ registerComponent('cyoa-question-swap', {
         <div class="mb-3 p-2 bg-indigo-50 rounded-sm text-sm text-indigo-900 border border-indigo-100">
             <span class="font-bold mr-1">Swap summary:</span>
             <span v-if="rule.triggers.length > 0">
-                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-indigo-200 px-1 rounded mx-0.5">#{{pk}} (Q#{{ getAnswerQuestionNumber(pk) }})</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-indigo-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
@@ -2041,7 +2011,7 @@ registerComponent('cyoa-question-swap', {
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
-                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">Q#{{getQuestionNumber(s.pk1)}} ↔ Q#{{getQuestionNumber(s.pk2)}}</span>
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">Q#{{s.pk1}} ↔ Q#{{s.pk2}}</span>
                     <span v-if="idx < validSwaps.length - 1"> and </span>
                 </span>
             </span>
@@ -2055,14 +2025,14 @@ registerComponent('cyoa-question-swap', {
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
                     <option v-for="a in answers" :key="a.pk" :value="a.pk">
-                        #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,50) }}
+                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
                     </option>
                 </select>
                 <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
                 <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
-                    #{{ pk }} (Q#{{ getAnswerQuestionNumber(pk) }})
+                    #{{ pk }}
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
             </div>
@@ -2119,7 +2089,7 @@ registerComponent('cyoa-question-swap', {
                     <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select question...</option>
                         <option v-for="q in questions" :key="'pk1-'+q.pk" :value="q.pk">
-                            Q#{{ getQuestionNumber(q.pk) }} (PK {{ q.pk }}) - {{ (q.fields?.question || '...').slice(0,40) }}
+                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2128,7 +2098,7 @@ registerComponent('cyoa-question-swap', {
                     <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select question...</option>
                         <option v-for="q in questions" :key="'pk2-'+q.pk" :value="q.pk">
-                            Q#{{ getQuestionNumber(q.pk) }} (PK {{ q.pk }}) - {{ (q.fields?.question || '...').slice(0,40) }}
+                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2265,14 +2235,6 @@ registerComponent('cyoa-answer-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
-        },
-
-        getQuestionNumber(pk) {
-            return window.TCTAnswerSwapHelper.getQuestionNumber(pk);
-        },
-
-        getAnswerQuestionNumber(pk) {
-            return window.TCTAnswerSwapHelper.getAnswerQuestionNumber(pk);
         }
     },
 
@@ -2328,7 +2290,7 @@ registerComponent('cyoa-answer-swap', {
         <div class="mb-3 p-2 bg-purple-50 rounded-sm text-sm text-purple-900 border border-purple-100">
             <span class="font-bold mr-1">Swap summary:</span>
             <span v-if="rule.triggers.length > 0">
-                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-purple-200 px-1 rounded mx-0.5">#{{pk}} (Q#{{ getAnswerQuestionNumber(pk) }})</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-purple-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
@@ -2338,7 +2300,7 @@ registerComponent('cyoa-answer-swap', {
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
-                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">A#{{s.pk1}} (Q#{{getAnswerQuestionNumber(s.pk1)}}) ↔ A#{{s.pk2}} (Q#{{getAnswerQuestionNumber(s.pk2)}})</span>
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">A#{{s.pk1}} ↔ A#{{s.pk2}}</span>
                     <span v-if="idx < validSwaps.length - 1"> and </span>
                 </span>
             </span>
@@ -2352,14 +2314,14 @@ registerComponent('cyoa-answer-swap', {
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
                     <option v-for="a in answers" :key="a.pk" :value="a.pk">
-                        #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,50) }}
+                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
                     </option>
                 </select>
                 <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
                 <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
-                    #{{ pk }} (Q#{{ getAnswerQuestionNumber(pk) }})
+                    #{{ pk }}
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
             </div>
@@ -2416,7 +2378,7 @@ registerComponent('cyoa-answer-swap', {
                     <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk1-'+a.pk" :value="a.pk">
-                            #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,40) }}
+                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2425,7 +2387,7 @@ registerComponent('cyoa-answer-swap', {
                     <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk2-'+a.pk" :value="a.pk">
-                            #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,40) }}
+                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2442,4 +2404,3 @@ registerComponent('cyoa-answer-swap', {
     </div>
     `
 })
-
