@@ -745,6 +745,21 @@ registerComponent('cyoa-bunnyhop-pool', {
 
 // create a global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
+
+    getQuestionNumber(pk) {
+        if (pk == null) return "?";
+        const questions = Array.from(window.$TCT.questions.values());
+        const idx = questions.findIndex(q => Number(q.pk) === Number(pk));
+        return idx === -1 ? "?" : idx;
+    },
+
+    getAnswerQuestionNumber(answerPk) {
+        if (answerPk == null) return "?";
+        const answer = window.$TCT.answers[answerPk];
+        if (!answer || !answer.fields) return "?";
+        return this.getQuestionNumber(answer.fields.question);
+    },
+
     getConditionOperand(variableName) {
         const key = String(variableName || '').trim().toLowerCase();
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
@@ -1949,6 +1964,14 @@ registerComponent('cyoa-question-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        getQuestionNumber(pk) {
+            return window.TCTAnswerSwapHelper.getQuestionNumber(pk);
+        },
+
+        getAnswerQuestionNumber(pk) {
+            return window.TCTAnswerSwapHelper.getAnswerQuestionNumber(pk);
         }
     },
 
@@ -2008,7 +2031,7 @@ registerComponent('cyoa-question-swap', {
         <div class="mb-3 p-2 bg-indigo-50 rounded-sm text-sm text-indigo-900 border border-indigo-100">
             <span class="font-bold mr-1">Swap summary:</span>
             <span v-if="rule.triggers.length > 0">
-                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-indigo-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-indigo-200 px-1 rounded mx-0.5">#{{pk}} (Q#{{ getAnswerQuestionNumber(pk) }})</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
@@ -2018,7 +2041,7 @@ registerComponent('cyoa-question-swap', {
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
-                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">Q#{{s.pk1}} ↔ Q#{{s.pk2}}</span>
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">Q#{{getQuestionNumber(s.pk1)}} ↔ Q#{{getQuestionNumber(s.pk2)}}</span>
                     <span v-if="idx < validSwaps.length - 1"> and </span>
                 </span>
             </span>
@@ -2032,14 +2055,14 @@ registerComponent('cyoa-question-swap', {
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
                     <option v-for="a in answers" :key="a.pk" :value="a.pk">
-                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
+                        #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,50) }}
                     </option>
                 </select>
                 <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
                 <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
-                    #{{ pk }}
+                    #{{ pk }} (Q#{{ getAnswerQuestionNumber(pk) }})
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
             </div>
@@ -2096,7 +2119,7 @@ registerComponent('cyoa-question-swap', {
                     <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select question...</option>
                         <option v-for="q in questions" :key="'pk1-'+q.pk" :value="q.pk">
-                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
+                            Q#{{ getQuestionNumber(q.pk) }} (PK {{ q.pk }}) - {{ (q.fields?.question || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2105,7 +2128,7 @@ registerComponent('cyoa-question-swap', {
                     <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select question...</option>
                         <option v-for="q in questions" :key="'pk2-'+q.pk" :value="q.pk">
-                            {{ q.pk }} - {{ (q.fields?.question || '...').slice(0,40) }}
+                            Q#{{ getQuestionNumber(q.pk) }} (PK {{ q.pk }}) - {{ (q.fields?.question || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2242,6 +2265,14 @@ registerComponent('cyoa-answer-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        getQuestionNumber(pk) {
+            return window.TCTAnswerSwapHelper.getQuestionNumber(pk);
+        },
+
+        getAnswerQuestionNumber(pk) {
+            return window.TCTAnswerSwapHelper.getAnswerQuestionNumber(pk);
         }
     },
 
@@ -2297,7 +2328,7 @@ registerComponent('cyoa-answer-swap', {
         <div class="mb-3 p-2 bg-purple-50 rounded-sm text-sm text-purple-900 border border-purple-100">
             <span class="font-bold mr-1">Swap summary:</span>
             <span v-if="rule.triggers.length > 0">
-                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-purple-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-purple-200 px-1 rounded mx-0.5">#{{pk}} (Q#{{ getAnswerQuestionNumber(pk) }})</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
@@ -2307,7 +2338,7 @@ registerComponent('cyoa-answer-swap', {
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
-                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">A#{{s.pk1}} ↔ A#{{s.pk2}}</span>
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">A#{{s.pk1}} (Q#{{getAnswerQuestionNumber(s.pk1)}}) ↔ A#{{s.pk2}} (Q#{{getAnswerQuestionNumber(s.pk2)}})</span>
                     <span v-if="idx < validSwaps.length - 1"> and </span>
                 </span>
             </span>
@@ -2321,14 +2352,14 @@ registerComponent('cyoa-answer-swap', {
                 <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
                     <option :value="null" disabled>Select answer...</option>
                     <option v-for="a in answers" :key="a.pk" :value="a.pk">
-                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
+                        #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,50) }}
                     </option>
                 </select>
                 <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
                 <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
-                    #{{ pk }}
+                    #{{ pk }} (Q#{{ getAnswerQuestionNumber(pk) }})
                     <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                 </span>
             </div>
@@ -2385,7 +2416,7 @@ registerComponent('cyoa-answer-swap', {
                     <select :value="s.pk1" @change="updateSwap(idx,'pk1',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk1-'+a.pk" :value="a.pk">
-                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
+                            #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
@@ -2394,7 +2425,7 @@ registerComponent('cyoa-answer-swap', {
                     <select :value="s.pk2" @change="updateSwap(idx,'pk2',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
                         <option :value="null" disabled>Select answer...</option>
                         <option v-for="a in answers" :key="'pk2-'+a.pk" :value="a.pk">
-                            {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,40) }}
+                            #{{ a.pk }} [Q#{{ getAnswerQuestionNumber(a.pk) }}] - {{ (a.fields?.description || '...').slice(0,40) }}
                         </option>
                     </select>
                 </div>
