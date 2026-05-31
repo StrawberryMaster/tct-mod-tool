@@ -17,6 +17,7 @@ class TCTCode1Data {
             innerWindowTextColor: "#000000",
             descriptionWindowColor: "#f8f8f8",
             descriptionWindowTextColor: "#000000",
+            startButtonColor: "#ffa0a0",
             bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
             backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
             gameTitle: "THE CAMPAIGN TRAIL",
@@ -105,6 +106,7 @@ class TCTCode1Data {
                 innerWindowTextColor: "#000000",
                 descriptionWindowColor: "#f8f8f8",
                 descriptionWindowTextColor: "#000000",
+                startButtonColor: "#e8e8e8",
                 bannerImageUrl: "https://www.newcampaigntrail.com/static/images/banner_classic.png",
                 backgroundImageUrl: "https://www.jetsimon.com/public/static/images/background.jpg",
                 gameTitle: "THE CAMPAIGN TRAIL",
@@ -315,8 +317,9 @@ function applyTheme(theme) {
       #results_container { color: ${jd.endingTextColor}; }
       #wittyquote { color: ${jd.quoteTextColor}; }
       .game_header h2 { color: ${jd.headerTextColor}; }
-      .inner_window_w_desc, .inner_window_front { background-color: ${jd.innerWindowColor} !important; color: ${jd.innerWindowTextColor}; }
-      .person_description_window, .election_description_window, .description_window_small { background-color: ${jd.descriptionWindowColor} !important; color: ${jd.descriptionWindowTextColor}; }
+      .inner_window_w_desc { background-color: ${jd.innerWindowColor} !important; color: ${jd.innerWindowTextColor}; }
+      .inner_window_front, .person_description_window, .election_description_window, .description_window_small { background-color: ${jd.descriptionWindowColor} !important; color: ${jd.descriptionWindowTextColor}; }
+      .campaign_trail_start_emphasis { background-color: ${jd.startButtonColor} !important; }
     \`;
     document.head.appendChild(style);
 }

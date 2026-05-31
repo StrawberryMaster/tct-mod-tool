@@ -179,9 +179,36 @@ registerCode1Component('tct-preview', {
                             <h2 :style="{ color: jetData.headerTextColor || '#ffffff' }">{{jetData.gameTitle}}</h2>
                             <font v-if="jetData.customQuote" id='wittyquote' size='4' :style="{ color: jetData.quoteTextColor || '#ffffff' }"><em>{{jetData.customQuote}}</em></font>
                         </div>
-                        
+
+                        <!-- Start Mode -->
+                        <template v-if="previewMode === 'START'">
+                            <div class="below_header" id="below_header">
+                                <div class="inner_window_front" id="inner_window_1" :style="descriptionWindowStyle">
+                                    <h3>Do you have what it takes to win a Presidential Election?</h3>
+                                    <ul>
+                                        <li>Select a year and a candidate to find out.</li>
+                                        <li>You will answer questions about your platform and positions, and also about your campaign strategy.</li>
+                                        <li>The answers will affect your popularity for better or worse, both nationally and in individual states.</li>
+                                        <li>Walk the fine line between appealing to your base and winning a majority of the votes.</li>
+                                        <li>Additionally, the game has been modified to support unofficial, community-made custom scenarios. (or, mods.)</li>
+                                        <li>To load a mod, scroll down below to view the mod selection, select a mod, click submit, and then press "Click Here to Begin!".</li>
+                                        <li>Alternatively, click the 'Custom Mod Loader' button to load a mod by copying and pasting the codes, or even save them!</li>
+                                    </ul>
+                                    <span class="campaign_trail_start_emphasis" :style="startButtonStyle">
+                                        <button id="game_start">
+                                            <strong>Click here to begin!</strong>
+                                        </button>
+                                    </span>
+                                    <span style="font-weight: bolder;position:absolute;right:10px;top:10px;"></span>
+                                </div>
+                                <p>
+                                    <button @click="setPreviewMode('ELECTION')" id="election_id_button" class="pure-button">Continue</button>
+                                </p>
+                            </div>
+                        </template>
+
                         <!-- Election Mode -->
-                        <div v-if="previewMode === 'ELECTION'" class="inner_window_w_desc" :style="innerWindowStyle">
+                        <div v-else-if="previewMode === 'ELECTION'" class="inner_window_w_desc" :style="innerWindowStyle">
                             <div class="flex gap-2 mb-4 border-b border-gray-300">
                                 <button @click="setPreviewSubMode('SCENARIO')" :class="['px-3 py-1 text-sm font-semibold rounded-t', previewSubMode === 'SCENARIO' ? 'bg-white border border-b-0 border-gray-300 text-gray-900' : 'bg-gray-100 text-gray-600']">Scenario</button>
                                 <button @click="setPreviewSubMode('RECOMMENDED_READING')" :class="['px-3 py-1 text-sm font-semibold rounded-t', previewSubMode === 'RECOMMENDED_READING' ? 'bg-white border border-b-0 border-gray-300 text-gray-900' : 'bg-gray-100 text-gray-600']">Recommended Reading</button>
@@ -204,7 +231,10 @@ registerCode1Component('tct-preview', {
                                     <div v-html="currentElection.fields.summary" id="election_summary"></div>
                                 </div>
                             </div>
-                            <p><button @click="setPreviewMode('CANDIDATE')" id="election_id_button" class="pure-button">Continue</button></p>
+                            <p>
+                                <button @click="setPreviewMode('START')" id="election_id_button" class="pure-button">Back</button>
+                                <button @click="setPreviewMode('CANDIDATE')" id="election_id_button" class="pure-button">Continue</button>
+                            </p>
                             <p id="credits">This scenario was made by {{credits}}.</p>
                             </div>
 
@@ -340,7 +370,7 @@ registerCode1Component('tct-preview', {
     `,
     data() {
         return {
-            previewMode: 'ELECTION',
+            previewMode: 'START',
             previewSubMode: 'SCENARIO',
             selectedCandIdx: 0,
             selectedMateIdx: 0,
@@ -415,6 +445,9 @@ registerCode1Component('tct-preview', {
                 backgroundColor: this.jetData.descriptionWindowColor || '#f8f8f8',
                 color: this.jetData.descriptionWindowTextColor || '#000000'
             };
+        },
+        startButtonStyle() {
+            return { backgroundColor: this.jetData.startButtonColor || '#e8e8e8' };
         }
     },
     methods: {
