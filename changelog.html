@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         async function addLog() {
-            const response = await fetch('../changelog.md');
+            const response = await fetch('changelog.md');
             const text = await response.text();
             document.getElementById('content').innerHTML =
             marked.parse(text);
