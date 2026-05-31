@@ -347,6 +347,13 @@ registerCode1Component('theme-editor', {
                 </div>
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700">Header text color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.headerTextColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.headerTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Container color</label>
                 <div class="flex gap-2">
                     <input v-model="jetData.containerColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
@@ -368,10 +375,38 @@ registerCode1Component('theme-editor', {
                 </div>
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700">Inner window text color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.innerWindowTextColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.innerWindowTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Ending text color</label>
                 <div class="flex gap-2">
                     <input v-model="jetData.endingTextColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
                     <input v-model="jetData.endingTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description window color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.descriptionWindowColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.descriptionWindowColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description window text color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.descriptionWindowTextColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.descriptionWindowTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quote text color</label>
+                <div class="flex gap-2">
+                    <input v-model="jetData.quoteTextColor" @input="onInput" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="jetData.quoteTextColor" @input="onInput" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
                 </div>
             </div>
         </div>
