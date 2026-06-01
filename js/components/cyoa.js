@@ -1110,12 +1110,35 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         }
     },
 
+    stripLegacyAnswerSwapCode(out) {
+        out = String(out || '');
+
+        const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const removeExactBlock = (src, block) => {
+            const trimmed = String(block || '').trim();
+            if (!trimmed) return src;
+            const pattern = new RegExp(`\\n?\\s*${escapeRegExp(trimmed)}\\s*\\n?`, 'm');
+            return src.replace(pattern, '\n');
+        };
+
+        out = removeExactBlock(out, this.buildQuestionSwapperFunction());
+        out = removeExactBlock(out, this.buildAnswerSwapperFunction());
+
+        out = out.replace(/^\s*\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?^\s*\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/gm, '');
+        out = out.replace(/^\s*\/\/\s*question swap CYOA here\s*\n(?:[ \t]*if\s*\([\s\S]*?\n[ \t]*\}\s*\n?)*/gm, '');
+        out = out.replace(/^\s*\/\/\s*answer swap CYOA here\s*\n(?:[ \t]*if\s*\([\s\S]*?\n[ \t]*\}\s*\n?)*/gm, '');
+
+        return out;
+    },
+
     injectAnswerSwapIntoCode2(code) {
         let out = String(code || '');
 
         if (!window.$TCT || !window.$TCT.jet_data) {
             return out;
         }
+
+        out = this.stripLegacyAnswerSwapCode(out);
 
         if (window.$TCT.jet_data.cyoa_enabled) {
             const questionBlocks = this.buildQuestionSwapBlocks();
