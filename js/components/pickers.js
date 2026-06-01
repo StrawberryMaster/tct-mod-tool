@@ -738,7 +738,7 @@ registerComponent('unified-tools-picker', {
     template: `
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Header -->
-        <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+        <div class="theme-panel-header p-3 rounded-t-lg">
             <h3 class="font-semibold text-sm">Additional tools</h3>
         </div>
         
@@ -840,7 +840,7 @@ registerComponent('unified-data-picker', {
     template: `
     <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
         <!-- Header -->
-        <div class="p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+        <div class="theme-panel-header p-3 rounded-t-lg">
             <h3 class="font-semibold text-sm">Data management</h3>
         </div>
         
