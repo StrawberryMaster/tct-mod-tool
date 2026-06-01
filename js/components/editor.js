@@ -42,20 +42,28 @@ registerComponent('toolbar', {
         
         <!-- Collapsible content -->
         <div v-show="!isMinimized" class="p-4">
-            <div class="flex flex-wrap gap-2">
+            <div class="space-y-3">
                 <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="clipboardCode2()">{{ clipboardText }}</button>
-                <button class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600 text-sm transition-colors" v-on:click="toggleModPresets()">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                    </svg>
-                    Mod presets
-                </button>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
-                <button class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleThemeMode()">{{ currentTheme === 'dark' ? 'Light theme' : 'Dark theme' }}</button>
-                <a href="./code1.html" class="bg-gray-300 p-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
+                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
+                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="clipboardCode2()">{{ clipboardText }}</button>
+                </div>
+
+                <div class="grid gap-2 lg:grid-cols-3">
+                    <button class="w-full bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600 text-sm transition-colors" v-on:click="toggleModPresets()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                        </svg>
+                        Mod presets
+                    </button>
+                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
+                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors text-left" v-on:click="toggleThemeMode()">
+                        <span class="block text-[11px] uppercase tracking-wide text-gray-700">Theme</span>
+                        <span class="block font-medium leading-tight">{{ currentTheme === 'light' ? 'Light' : currentTheme === 'sepia' ? 'Sepia' : 'Dark' }}</span>
+                    </button>
+                </div>
+                <a href="./code1.html" class="inline-flex w-full justify-center bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
             </div>
         </div>
         
@@ -190,6 +198,13 @@ registerComponent('toolbar', {
 
         syncThemeState: function () {
             this.currentTheme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
+        },
+
+        setThemeMode: function (theme) {
+            if (window.setTheme) {
+                window.setTheme(theme);
+            }
+            this.syncThemeState();
         },
 
         toggleThemeMode: function () {

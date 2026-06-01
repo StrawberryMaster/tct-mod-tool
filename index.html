@@ -87,6 +87,24 @@
             --map-stroke: #111827;
         }
 
+        html[data-theme="sepia"] {
+            --app-bg: #f4eadb;
+            --app-panel-bg: #eadac4;
+            --app-editor-bg: #f8efe3;
+            --app-text: #2f2518;
+            --card-bg: rgba(255, 248, 236, 0.78);
+            --muted-surface: #efe1cd;
+            --input-bg: #fffaf2;
+            --border-color: #d3c0a7;
+            --brand-start: #5f3d1d;
+            --brand-end: #c28539;
+            --header-contrast: #fff8ed;
+            --footer-bg: rgba(181, 122, 54, 0.95);
+            --map-bg: #f0dcc2;
+            --map-fill: #c97e58;
+            --map-stroke: #4d3b2d;
+        }
+
         html[data-theme="dark"] {
             --app-bg: #0b1220;
             --app-panel-bg: #111827;
@@ -103,6 +121,57 @@
             --map-bg: #0f2237;
             --map-fill: #73b3ff;
             --map-stroke: #dbeafe;
+        }
+
+        html[data-theme="sepia"] .effect-chip {
+            border-color: #c8b59d;
+            box-shadow: inset 0 0 0 1px rgba(101, 67, 33, 0.08);
+        }
+
+        html[data-theme="sepia"] .effect-chip--feedback {
+            background-color: #f0dbc0 !important;
+            border-color: #c0842d !important;
+            color: #6b3f19 !important;
+        }
+
+        html[data-theme="sepia"] .effect-chip--global {
+            background-color: #e9d3ef !important;
+            border-color: #a855f7 !important;
+            color: #5b2c83 !important;
+        }
+
+        html[data-theme="sepia"] .effect-chip--issues {
+            background-color: #dcebcf !important;
+            border-color: #65a30d !important;
+            color: #46621f !important;
+        }
+
+        html[data-theme="sepia"] .effect-chip--states {
+            background-color: #f2d4bb !important;
+            border-color: #ea580c !important;
+            color: #8a4d18 !important;
+        }
+
+        html[data-theme="sepia"] .effect-chip--variables {
+            background-color: #dde1f7 !important;
+            border-color: #6366f1 !important;
+            color: #3840a0 !important;
+        }
+
+        html[data-theme="sepia"] .answer-tab {
+            color: #7c6a57 !important;
+        }
+
+        html[data-theme="sepia"] .answer-tab:hover {
+            color: #4a3927 !important;
+            border-color: #b99d80 !important;
+            background-color: rgba(221, 200, 171, 0.45);
+        }
+
+        html[data-theme="sepia"] .answer-tab.tab-active {
+            color: #b45309 !important;
+            border-color: #d97706 !important;
+            background: linear-gradient(180deg, rgba(240, 220, 193, 0.95), rgba(220, 192, 157, 0.55));
         }
 
         #map_container svg {
@@ -220,6 +289,117 @@
         html[data-theme="dark"] .bg-blue-50 {
             background-color: #1e3a5f !important;
             color: #e5e7eb !important;
+        }
+
+        html[data-theme="sepia"] .bg-white {
+            background-color: #f7f0e5 !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-white\/90 {
+            background-color: rgba(248, 241, 229, 0.92) !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-gray-50 {
+            background-color: #f4eadb !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-gray-100 {
+            background-color: #efe1cd !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-gray-200 {
+            background-color: #e4d0b8 !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-gray-300 {
+            background-color: #d7c0a6 !important;
+            color: #2f2518;
+        }
+
+        html[data-theme="sepia"] .bg-blue-50 {
+            background-color: #f1dcc0 !important;
+            color: #2f2518 !important;
+        }
+
+        html[data-theme="sepia"] .hover\:bg-gray-50:hover {
+            background-color: #e9d8c1 !important;
+        }
+
+        html[data-theme="sepia"] .hover\:bg-gray-100:hover {
+            background-color: #e4d0b8 !important;
+        }
+
+        html[data-theme="sepia"] .hover\:bg-gray-300:hover,
+        html[data-theme="sepia"] .hover\:bg-gray-400:hover,
+        html[data-theme="sepia"] .hover\:bg-gray-500:hover,
+        html[data-theme="sepia"] .hover\:bg-gray-600:hover {
+            background-color: #cdb495 !important;
+        }
+
+        html[data-theme="sepia"] .text-gray-500,
+        html[data-theme="sepia"] .text-gray-400,
+        html[data-theme="sepia"] .text-gray-600,
+        html[data-theme="sepia"] .text-gray-700,
+        html[data-theme="sepia"] .text-gray-800,
+        html[data-theme="sepia"] .text-gray-900,
+        html[data-theme="sepia"] .text-black {
+            color: #4a3927 !important;
+        }
+
+        html[data-theme="sepia"] .hover\:text-black:hover {
+            color: #2f2518 !important;
+        }
+
+        html[data-theme="sepia"] .hover\:text-gray-700:hover,
+        html[data-theme="sepia"] .hover\:text-gray-800:hover,
+        html[data-theme="sepia"] .hover\:text-gray-900:hover {
+            color: #2f2518 !important;
+        }
+
+        html[data-theme="sepia"] .bg-indigo-200,
+        html[data-theme="sepia"] .bg-purple-200 {
+            background-color: #ddd1f7 !important;
+            color: #4f3a90 !important;
+            border: 1px solid #8b5cf6;
+        }
+
+        html[data-theme="sepia"] .border,
+        html[data-theme="sepia"] .border-gray-200,
+        html[data-theme="sepia"] .border-gray-300,
+        html[data-theme="sepia"] .border-gray-400 {
+            border-color: #c8b59d !important;
+        }
+
+        html[data-theme="sepia"] input,
+        html[data-theme="sepia"] textarea,
+        html[data-theme="sepia"] select {
+            background-color: #fffaf2;
+            color: #2f2518;
+            border-color: #c8b59d;
+        }
+
+        html[data-theme="sepia"] input::placeholder,
+        html[data-theme="sepia"] textarea::placeholder {
+            color: #8a7762;
+        }
+
+        html[data-theme="sepia"] input:focus,
+        html[data-theme="sepia"] textarea:focus,
+        html[data-theme="sepia"] select:focus {
+            outline-color: #d97706;
+        }
+
+        html[data-theme="sepia"] .shadow,
+        html[data-theme="sepia"] .shadow-sm,
+        html[data-theme="sepia"] .shadow-lg,
+        html[data-theme="sepia"] .shadow-xl,
+        html[data-theme="sepia"] .shadow-xs {
+            box-shadow: 0 1px 3px rgba(101, 67, 33, 0.14) !important;
         }
 
         html[data-theme="dark"] .hover\:bg-gray-50:hover {

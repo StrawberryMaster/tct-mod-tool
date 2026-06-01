@@ -12,10 +12,20 @@ window.registerComponent = function (name, definition) {
 
 (function () {
     const THEME_KEY = 'tct-theme';
+    const THEME_ORDER = ['light', 'sepia', 'dark'];
+    const THEME_COLORS = {
+        light: '#2563eb',
+        sepia: '#b7791f',
+        dark: '#020617'
+    };
+
+    function normalizeTheme(theme) {
+        return THEME_ORDER.includes(theme) ? theme : 'light';
+    }
 
     function resolvePreferredTheme() {
         const saved = localStorage.getItem(THEME_KEY);
-        if (saved === 'light' || saved === 'dark') {
+        if (THEME_ORDER.includes(saved)) {
             return saved;
         }
 
@@ -27,17 +37,23 @@ window.registerComponent = function (name, definition) {
     }
 
     function applyTheme(theme) {
-        const nextTheme = theme === 'dark' ? 'dark' : 'light';
+        const nextTheme = normalizeTheme(theme);
         const root = document.documentElement;
         root.setAttribute('data-theme', nextTheme);
-        root.style.colorScheme = nextTheme;
+        root.style.colorScheme = nextTheme === 'dark' ? 'dark' : 'light';
         localStorage.setItem(THEME_KEY, nextTheme);
+
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+            themeColorMeta.setAttribute('content', THEME_COLORS[nextTheme] || THEME_COLORS.light);
+        }
+
         return nextTheme;
     }
 
     window.getCurrentTheme = function () {
         const current = document.documentElement.getAttribute('data-theme');
-        return current === 'dark' ? 'dark' : 'light';
+        return normalizeTheme(current);
     };
 
     window.setTheme = function (theme) {
@@ -46,7 +62,8 @@ window.registerComponent = function (name, definition) {
 
     window.toggleTheme = function () {
         const current = window.getCurrentTheme();
-        const next = current === 'dark' ? 'light' : 'dark';
+        const index = THEME_ORDER.indexOf(current);
+        const next = THEME_ORDER[(index + 1) % THEME_ORDER.length] || 'light';
         return applyTheme(next);
     };
 

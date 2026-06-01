@@ -1623,6 +1623,11 @@ registerComponent('integrated-state-effect-visualizer', {
                 negative: ['#4b1f24', '#5a2329', '#6a272f', '#7a2b36', '#8b303d', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'],
                 neutral: '#253044'
             },
+            sepiaColorScale: {
+                positive: ['#f3e7d3', '#ead6b9', '#e0c69f', '#d6b681', '#cca665', '#c18f4d', '#b57b3f', '#9f6836', '#87552f', '#6f4328'],
+                negative: ['#f6e2da', '#ecc9bd', '#e1b09f', '#d69682', '#c97a67', '#b95d54', '#a5494b', '#8d3b42', '#742f39', '#5c2430'],
+                neutral: '#e6d6c1'
+            },
             mapData: [],
             mapLoaded: false,
             fallbackViewBox: null,
@@ -2009,8 +2014,10 @@ registerComponent('integrated-state-effect-visualizer', {
 
         getStateColor(statePk) {
             const value = this.stateEffects[statePk] || 0;
-            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
-            const palette = useDark ? this.darkColorScale : this.colorScale;
+            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
+            const palette = theme === 'dark'
+                ? this.darkColorScale
+                : (theme === 'sepia' ? this.sepiaColorScale : this.colorScale);
             if (Math.abs(value) < 0.0001) return palette.neutral;
             const scale = value > 0 ? palette.positive : palette.negative;
             const absValue = Math.abs(value);
@@ -2019,10 +2026,22 @@ registerComponent('integrated-state-effect-visualizer', {
         },
 
         getStateStroke(statePk) {
-            const useDark = (window.getCurrentTheme && window.getCurrentTheme() === 'dark');
-            if (this.isStateSelected(statePk)) return useDark ? '#e2e8f0' : '#000000';
-            if (this.highlightedState === statePk) return useDark ? '#cbd5e1' : '#333333';
-            return useDark ? '#94a3b8' : '#666666';
+            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
+            if (theme === 'dark') {
+                if (this.isStateSelected(statePk)) return '#e2e8f0';
+                if (this.highlightedState === statePk) return '#cbd5e1';
+                return '#94a3b8';
+            }
+
+            if (theme === 'sepia') {
+                if (this.isStateSelected(statePk)) return '#4b3a2a';
+                if (this.highlightedState === statePk) return '#6d5843';
+                return '#8a735c';
+            }
+
+            if (this.isStateSelected(statePk)) return '#000000';
+            if (this.highlightedState === statePk) return '#333333';
+            return '#666666';
         },
 
         getStateStrokeWidth(statePk) {
