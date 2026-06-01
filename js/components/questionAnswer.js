@@ -1613,21 +1613,6 @@ registerComponent('integrated-state-effect-visualizer', {
             stateEffects: {},
             highlightedState: null,
             editValue: 0,
-            colorScale: {
-                positive: ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'],
-                negative: ['#FFEBEE', '#FFCDD2', '#EF9A9A', '#E57373', '#EF5350', '#F44336', '#E53935', '#D32F2F', '#C62828', '#B71C1C'],
-                neutral: '#E0E0E0'
-            },
-            darkColorScale: {
-                positive: ['#1e3a5f', '#1f4d78', '#245b8f', '#2a67a1', '#3275b8', '#3b82f6', '#4f90ff', '#62a0ff', '#76b1ff', '#93c5fd'],
-                negative: ['#4b1f24', '#5a2329', '#6a272f', '#7a2b36', '#8b303d', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'],
-                neutral: '#253044'
-            },
-            sepiaColorScale: {
-                positive: ['#f3e7d3', '#ead6b9', '#e0c69f', '#d6b681', '#cca665', '#c18f4d', '#b57b3f', '#9f6836', '#87552f', '#6f4328'],
-                negative: ['#f6e2da', '#ecc9bd', '#e1b09f', '#d69682', '#c97a67', '#b95d54', '#a5494b', '#8d3b42', '#742f39', '#5c2430'],
-                neutral: '#e6d6c1'
-            },
             mapData: [],
             mapLoaded: false,
             fallbackViewBox: null,
@@ -2014,10 +1999,11 @@ registerComponent('integrated-state-effect-visualizer', {
 
         getStateColor(statePk) {
             const value = this.stateEffects[statePk] || 0;
-            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
-            const palette = theme === 'dark'
-                ? this.darkColorScale
-                : (theme === 'sepia' ? this.sepiaColorScale : this.colorScale);
+            const palette = (window.getThemeConfig && window.getThemeConfig())?.mapPalette || {
+                positive: ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'],
+                negative: ['#FFEBEE', '#FFCDD2', '#EF9A9A', '#E57373', '#EF5350', '#F44336', '#E53935', '#D32F2F', '#C62828', '#B71C1C'],
+                neutral: '#E0E0E0'
+            };
             if (Math.abs(value) < 0.0001) return palette.neutral;
             const scale = value > 0 ? palette.positive : palette.negative;
             const absValue = Math.abs(value);
@@ -2026,22 +2012,14 @@ registerComponent('integrated-state-effect-visualizer', {
         },
 
         getStateStroke(statePk) {
-            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
-            if (theme === 'dark') {
-                if (this.isStateSelected(statePk)) return '#e2e8f0';
-                if (this.highlightedState === statePk) return '#cbd5e1';
-                return '#94a3b8';
-            }
-
-            if (theme === 'sepia') {
-                if (this.isStateSelected(statePk)) return '#4b3a2a';
-                if (this.highlightedState === statePk) return '#6d5843';
-                return '#8a735c';
-            }
-
-            if (this.isStateSelected(statePk)) return '#000000';
-            if (this.highlightedState === statePk) return '#333333';
-            return '#666666';
+            const palette = (window.getThemeConfig && window.getThemeConfig())?.stateStroke || {
+                selected: '#000000',
+                highlighted: '#333333',
+                normal: '#666666'
+            };
+            if (this.isStateSelected(statePk)) return palette.selected;
+            if (this.highlightedState === statePk) return palette.highlighted;
+            return palette.normal;
         },
 
         getStateStrokeWidth(statePk) {

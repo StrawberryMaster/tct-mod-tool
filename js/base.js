@@ -13,14 +13,245 @@ window.registerComponent = function (name, definition) {
 (function () {
     const THEME_KEY = 'tct-theme';
     const THEME_ORDER = ['light', 'sepia', 'dark'];
-    const THEME_COLORS = {
-        light: '#2563eb',
-        sepia: '#b7791f',
-        dark: '#020617'
+    const THEME_CONFIGS = {
+        light: {
+            themeColor: '#2563eb',
+            cssVars: {
+                '--app-bg': '#f3f4f6',
+                '--app-panel-bg': '#e5e7eb',
+                '--app-editor-bg': '#f3f4f6',
+                '--app-text': '#111827',
+                '--card-bg': 'rgba(255, 255, 255, 0.65)',
+                '--muted-surface': '#e9e9ed',
+                '--input-bg': '#ffffff',
+                '--border-color': '#d1d5db',
+                '--brand-start': '#0f172a',
+                '--brand-end': '#2563eb',
+                '--header-contrast': '#ffffff',
+                '--footer-bg': 'rgba(37, 99, 235, 0.95)',
+                '--toolbar-header-start': '#0f172a',
+                '--toolbar-header-end': '#2563eb',
+                '--toolbar-header-text': '#ffffff',
+                '--toolbar-panel-bg': '#ffffff',
+                '--toolbar-panel-border': '#d1d5db',
+                '--control-bg': '#d1d5db',
+                '--control-bg-hover': '#6b7280',
+                '--control-text': '#111827',
+                '--control-primary-bg': '#2563eb',
+                '--control-primary-text': '#ffffff',
+                '--control-primary-hover': '#1d4ed8',
+                '--control-accent-bg': '#2563eb',
+                '--control-accent-text': '#ffffff',
+                '--utility-bg-white': '#ffffff',
+                '--utility-bg-white-90': 'rgba(255, 255, 255, 0.9)',
+                '--utility-bg-gray-50': '#f9fafb',
+                '--utility-bg-gray-100': '#f3f4f6',
+                '--utility-bg-gray-200': '#e5e7eb',
+                '--utility-bg-gray-300': '#d1d5db',
+                '--utility-bg-blue-50': '#eff6ff',
+                '--utility-bg-indigo-200': '#c7d2fe',
+                '--utility-bg-purple-200': '#e9d5ff',
+                '--utility-hover-gray-50': '#f3f4f6',
+                '--utility-hover-gray-100': '#e5e7eb',
+                '--utility-hover-gray-300': '#d1d5db',
+                '--utility-hover-gray-400': '#9ca3af',
+                '--utility-hover-gray-500': '#6b7280',
+                '--utility-hover-gray-600': '#4b5563',
+                '--utility-text-gray': '#374151',
+                '--utility-text-black': '#111827',
+                '--utility-hover-text-black': '#000000',
+                '--utility-hover-text-gray': '#1f2937',
+                '--utility-border': '#d1d5db',
+                '--utility-input-bg': '#ffffff',
+                '--utility-input-text': '#111827',
+                '--utility-input-border': '#d1d5db',
+                '--utility-input-placeholder': '#6b7280',
+                '--utility-input-focus': '#60a5fa',
+                '--utility-shadow': '0 1px 3px rgba(0, 0, 0, 0.12)',
+                '--map-bg': '#bfe6ff',
+                '--map-fill': '#ff9494',
+                '--map-stroke': '#111827'
+            },
+            mapPalette: {
+                positive: ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'],
+                negative: ['#FFEBEE', '#FFCDD2', '#EF9A9A', '#E57373', '#EF5350', '#F44336', '#E53935', '#D32F2F', '#C62828', '#B71C1C'],
+                neutral: '#E0E0E0'
+            },
+            stateMetricPalette: {
+                positive: ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'],
+                negative: ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'],
+                neutral: '#f3f4f6'
+            },
+            stateStroke: {
+                selected: '#000000',
+                highlighted: '#333333',
+                normal: '#666666'
+            }
+        },
+        sepia: {
+            themeColor: '#b7791f',
+            cssVars: {
+                '--app-bg': '#f4eadb',
+                '--app-panel-bg': '#eadac4',
+                '--app-editor-bg': '#f8efe3',
+                '--app-text': '#2f2518',
+                '--card-bg': 'rgba(255, 248, 236, 0.78)',
+                '--muted-surface': '#efe1cd',
+                '--input-bg': '#fffaf2',
+                '--border-color': '#d3c0a7',
+                '--brand-start': '#5f3d1d',
+                '--brand-end': '#c28539',
+                '--header-contrast': '#fff8ed',
+                '--footer-bg': 'rgba(181, 122, 54, 0.95)',
+                '--toolbar-header-start': '#5f3d1d',
+                '--toolbar-header-end': '#c28539',
+                '--toolbar-header-text': '#fff8ed',
+                '--toolbar-panel-bg': '#f7f0e5',
+                '--toolbar-panel-border': '#d3c0a7',
+                '--control-bg': '#d7c0a6',
+                '--control-bg-hover': '#b99d80',
+                '--control-text': '#2f2518',
+                '--control-primary-bg': '#c28539',
+                '--control-primary-text': '#fff8ed',
+                '--control-primary-hover': '#a86a1c',
+                '--control-accent-bg': '#c28539',
+                '--control-accent-text': '#fff8ed',
+                '--utility-bg-white': '#f7f0e5',
+                '--utility-bg-white-90': 'rgba(248, 241, 229, 0.92)',
+                '--utility-bg-gray-50': '#f4eadb',
+                '--utility-bg-gray-100': '#efe1cd',
+                '--utility-bg-gray-200': '#e4d0b8',
+                '--utility-bg-gray-300': '#d7c0a6',
+                '--utility-bg-blue-50': '#f1dcc0',
+                '--utility-bg-indigo-200': '#ddd1f7',
+                '--utility-bg-purple-200': '#ddd1f7',
+                '--utility-hover-gray-50': '#e9d8c1',
+                '--utility-hover-gray-100': '#e4d0b8',
+                '--utility-hover-gray-300': '#cdb495',
+                '--utility-hover-gray-400': '#cdb495',
+                '--utility-hover-gray-500': '#cdb495',
+                '--utility-hover-gray-600': '#cdb495',
+                '--utility-text-gray': '#4a3927',
+                '--utility-text-black': '#4a3927',
+                '--utility-hover-text-black': '#2f2518',
+                '--utility-hover-text-gray': '#2f2518',
+                '--utility-border': '#c8b59d',
+                '--utility-input-bg': '#fffaf2',
+                '--utility-input-text': '#2f2518',
+                '--utility-input-border': '#c8b59d',
+                '--utility-input-placeholder': '#8a7762',
+                '--utility-input-focus': '#d97706',
+                '--utility-shadow': '0 1px 3px rgba(101, 67, 33, 0.14)',
+                '--map-bg': '#f0dcc2',
+                '--map-fill': '#c97e58',
+                '--map-stroke': '#4d3b2d'
+            },
+            mapPalette: {
+                positive: ['#f3e7d3', '#ead6b9', '#e0c69f', '#d6b681', '#cca665', '#c18f4d', '#b57b3f', '#9f6836', '#87552f', '#6f4328'],
+                negative: ['#f6e2da', '#ecc9bd', '#e1b09f', '#d69682', '#c97a67', '#b95d54', '#a5494b', '#8d3b42', '#742f39', '#5c2430'],
+                neutral: '#e6d6c1'
+            },
+            stateMetricPalette: {
+                positive: ['#efe0c7', '#e1c89b', '#d2ad74', '#c08f4f', '#9f6f35'],
+                negative: ['#f2ddd5', '#e6c1b4', '#d7a28f', '#c47f67', '#a95649'],
+                neutral: '#e8dac7'
+            },
+            stateStroke: {
+                selected: '#5a4632',
+                highlighted: '#7b6451',
+                normal: '#9a8470'
+            }
+        },
+        dark: {
+            themeColor: '#020617',
+            cssVars: {
+                '--app-bg': '#0b1220',
+                '--app-panel-bg': '#111827',
+                '--app-editor-bg': '#0f172a',
+                '--app-text': '#e5e7eb',
+                '--card-bg': 'rgba(31, 41, 55, 0.85)',
+                '--muted-surface': '#374151',
+                '--input-bg': '#111827',
+                '--border-color': '#4b5563',
+                '--brand-start': '#020617',
+                '--brand-end': '#1d4ed8',
+                '--header-contrast': '#f9fafb',
+                '--footer-bg': 'rgba(30, 64, 175, 0.95)',
+                '--toolbar-header-start': '#020617',
+                '--toolbar-header-end': '#1d4ed8',
+                '--toolbar-header-text': '#f9fafb',
+                '--toolbar-panel-bg': '#1f2937',
+                '--toolbar-panel-border': '#4b5563',
+                '--control-bg': '#374151',
+                '--control-bg-hover': '#4b5563',
+                '--control-text': '#e5e7eb',
+                '--control-primary-bg': '#2563eb',
+                '--control-primary-text': '#ffffff',
+                '--control-primary-hover': '#1d4ed8',
+                '--control-accent-bg': '#0f172a',
+                '--control-accent-text': '#ffffff',
+                '--utility-bg-white': '#1f2937',
+                '--utility-bg-white-90': 'rgba(17, 24, 39, 0.9)',
+                '--utility-bg-gray-50': '#243244',
+                '--utility-bg-gray-100': '#1a2535',
+                '--utility-bg-gray-200': '#1f2937',
+                '--utility-bg-gray-300': '#374151',
+                '--utility-bg-blue-50': '#1e3a5f',
+                '--utility-bg-indigo-200': '#312e81',
+                '--utility-bg-purple-200': '#312e81',
+                '--utility-hover-gray-50': '#374151',
+                '--utility-hover-gray-100': '#374151',
+                '--utility-hover-gray-300': '#4b5563',
+                '--utility-hover-gray-400': '#4b5563',
+                '--utility-hover-gray-500': '#4b5563',
+                '--utility-hover-gray-600': '#4b5563',
+                '--utility-text-gray': '#d1d5db',
+                '--utility-text-black': '#d1d5db',
+                '--utility-hover-text-black': '#f9fafb',
+                '--utility-hover-text-gray': '#f3f4f6',
+                '--utility-border': '#4b5563',
+                '--utility-input-bg': '#111827',
+                '--utility-input-text': '#e5e7eb',
+                '--utility-input-border': '#4b5563',
+                '--utility-input-placeholder': '#9ca3af',
+                '--utility-input-focus': '#60a5fa',
+                '--utility-shadow': '0 1px 3px rgba(0, 0, 0, 0.45)',
+                '--map-bg': '#0f2237',
+                '--map-fill': '#73b3ff',
+                '--map-stroke': '#dbeafe'
+            },
+            mapPalette: {
+                positive: ['#1e3a5f', '#1f4d78', '#245b8f', '#2a67a1', '#3275b8', '#3b82f6', '#4f90ff', '#62a0ff', '#76b1ff', '#93c5fd'],
+                negative: ['#4b1f24', '#5a2329', '#6a272f', '#7a2b36', '#8b303d', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'],
+                neutral: '#253044'
+            },
+            stateMetricPalette: {
+                positive: ['#1e3a5f', '#245b8f', '#3275b8', '#3b82f6', '#93c5fd'],
+                negative: ['#4b1f24', '#6a272f', '#8b303d', '#dc2626', '#f87171'],
+                neutral: '#253044'
+            },
+            stateStroke: {
+                selected: '#e2e8f0',
+                highlighted: '#cbd5e1',
+                normal: '#94a3b8'
+            }
+        }
     };
 
     function normalizeTheme(theme) {
         return THEME_ORDER.includes(theme) ? theme : 'light';
+    }
+
+    function getThemeConfig(theme = window.getCurrentTheme ? window.getCurrentTheme() : 'light') {
+        return THEME_CONFIGS[normalizeTheme(theme)] || THEME_CONFIGS.light;
+    }
+
+    function applyThemeVars(themeConfig) {
+        const root = document.documentElement;
+        const vars = themeConfig?.cssVars || {};
+        for (const [key, value] of Object.entries(vars)) {
+            root.style.setProperty(key, value);
+        }
     }
 
     function resolvePreferredTheme() {
@@ -43,9 +274,12 @@ window.registerComponent = function (name, definition) {
         root.style.colorScheme = nextTheme === 'dark' ? 'dark' : 'light';
         localStorage.setItem(THEME_KEY, nextTheme);
 
+        const config = getThemeConfig(nextTheme);
+        applyThemeVars(config);
+
         const themeColorMeta = document.querySelector('meta[name="theme-color"]');
         if (themeColorMeta) {
-            themeColorMeta.setAttribute('content', THEME_COLORS[nextTheme] || THEME_COLORS.light);
+            themeColorMeta.setAttribute('content', config.themeColor || THEME_CONFIGS.light.themeColor);
         }
 
         return nextTheme;
@@ -59,6 +293,12 @@ window.registerComponent = function (name, definition) {
     window.setTheme = function (theme) {
         return applyTheme(theme);
     };
+
+    window.getThemeConfig = function (theme) {
+        return getThemeConfig(theme);
+    };
+
+    window.TCTThemeConfig = THEME_CONFIGS;
 
     window.toggleTheme = function () {
         const current = window.getCurrentTheme();

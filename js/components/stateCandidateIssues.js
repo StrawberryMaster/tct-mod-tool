@@ -1327,28 +1327,20 @@ registerComponent('issue-state-map-editor', {
 
         getStateColor(statePk) {
             const score = this.stateMetrics[statePk]?.score ?? 0;
-            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
+            const themeConfig = (window.getThemeConfig && window.getThemeConfig()) || {};
+            const palette = themeConfig.stateMetricPalette || {
+                positive: ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'],
+                negative: ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'],
+                neutral: '#f3f4f6'
+            };
             if (Math.abs(score) < 0.05) {
-                if (theme === 'dark') return '#253044';
-                if (theme === 'sepia') return '#e8dac7';
-                return '#f3f4f6';
+                return palette.neutral;
             }
-
-            const reds = theme === 'dark'
-                ? ['#4b1f24', '#6a272f', '#8b303d', '#dc2626', '#f87171']
-                : theme === 'sepia'
-                    ? ['#f2ddd5', '#e6c1b4', '#d7a28f', '#c47f67', '#a95649']
-                    : ['#fee2e2', '#fca5a5', '#f87171', '#ef4444', '#b91c1c'];
-            const blues = theme === 'dark'
-                ? ['#1e3a5f', '#245b8f', '#3275b8', '#3b82f6', '#93c5fd']
-                : theme === 'sepia'
-                    ? ['#efe0c7', '#e1c89b', '#d2ad74', '#c08f4f', '#9f6f35']
-                    : ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
 
             const intensity = Math.min(1, Math.abs(score));
             const bucket = Math.floor(intensity * 4.99);
 
-            return score > 0 ? blues[bucket] : reds[bucket];
+            return score > 0 ? palette.positive[bucket] : palette.negative[bucket];
         },
 
         getStatePath(state) {
@@ -1377,22 +1369,14 @@ registerComponent('issue-state-map-editor', {
         },
 
         stateStroke(statePk) {
-            const theme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light';
-            if (theme === 'dark') {
-                if (this.selectedStates[statePk]) return '#e2e8f0';
-                if (this.highlightedState == statePk) return '#cbd5e1';
-                return '#94a3b8';
-            }
-
-            if (theme === 'sepia') {
-                if (this.selectedStates[statePk]) return '#5a4632';
-                if (this.highlightedState == statePk) return '#7b6451';
-                return '#9a8470';
-            }
-
-            if (this.selectedStates[statePk]) return '#000000';
-            if (this.highlightedState == statePk) return '#666666';
-            return '#a1a1aa';
+            const palette = (window.getThemeConfig && window.getThemeConfig())?.stateStroke || {
+                selected: '#000000',
+                highlighted: '#666666',
+                normal: '#a1a1aa'
+            };
+            if (this.selectedStates[statePk]) return palette.selected;
+            if (this.highlightedState == statePk) return palette.highlighted;
+            return palette.normal;
         },
 
         strokeWidth(statePk) {

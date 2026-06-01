@@ -25,12 +25,12 @@ registerComponent('toolbar', {
     },
 
     template: `
-    <div class="bg-white shadow-lg rounded-lg mx-4 mb-4 border border-gray-200">
+    <div class="theme-panel shadow-lg rounded-lg mx-4 mb-4 border">
         <!-- Toolbar header with toggle -->
-        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-slate-800 to-blue-600 text-white rounded-t-lg">
+        <div class="theme-panel-header p-3 rounded-t-lg">
             <h3 class="font-semibold text-sm">Mod tools</h3>
             <button @click="isMinimized = !isMinimized" 
-                    class="text-white hover:text-gray-200 transition-colors"
+                    class="text-white/90 hover:text-white transition-colors"
                     :aria-label="isMinimized ? 'Expand toolbar' : 'Minimize toolbar'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" 
                      :class="isMinimized ? 'rotate-180' : ''" 
@@ -45,25 +45,25 @@ registerComponent('toolbar', {
             <div class="space-y-3">
                 <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
                 <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
-                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
-                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="clipboardCode2()">{{ clipboardText }}</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="clipboardCode2()">{{ clipboardText }}</button>
                 </div>
 
                 <div class="grid gap-2 lg:grid-cols-3">
-                    <button class="w-full bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600 text-sm transition-colors" v-on:click="toggleModPresets()">
+                    <button class="theme-control theme-control--primary w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="toggleModPresets()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
                         </svg>
                         Mod presets
                     </button>
-                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
-                    <button class="w-full bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors text-left" v-on:click="toggleThemeMode()">
-                        <span class="block text-[11px] uppercase tracking-wide text-gray-700">Theme</span>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors text-left" v-on:click="toggleThemeMode()">
+                        <span class="block text-[11px] uppercase tracking-wide opacity-80">Theme</span>
                         <span class="block font-medium leading-tight">{{ currentTheme === 'light' ? 'Light' : currentTheme === 'sepia' ? 'Sepia' : 'Dark' }}</span>
                     </button>
                 </div>
-                <a href="./code1.html" class="inline-flex w-full justify-center bg-gray-300 px-3 py-2 rounded-sm hover:bg-gray-500 text-sm transition-colors">Code 1 Tool Here</a>
+                <a href="./code1.html" class="theme-control inline-flex w-full justify-center px-3 py-2 rounded-sm text-sm transition-colors">Code 1 Tool Here</a>
             </div>
         </div>
         
@@ -71,10 +71,10 @@ registerComponent('toolbar', {
         <div v-if="showModPresets" class="fixed inset-0 z-50">
             <div class="absolute inset-0 bg-black/50" @click="closeModPresets()" aria-hidden="true"></div>
             <div class="absolute inset-0 flex items-center justify-center p-4">
-                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 flex flex-col" role="dialog" aria-modal="true" aria-label="Mod presets">
-                    <div class="p-4 border-b flex justify-between items-center">
+                <div class="theme-panel rounded-lg shadow-xl max-w-2xl w-full max-h-96 flex flex-col" role="dialog" aria-modal="true" aria-label="Mod presets">
+                    <div class="theme-panel-header p-4 border-b flex justify-between items-center rounded-t-lg">
                         <h2 class="text-lg font-semibold">Mod presets</h2>
-                        <button class="text-gray-600 hover:text-black text-xl leading-none" @click="closeModPresets()" aria-label="Close">✕</button>
+                        <button class="text-white/90 hover:text-white text-xl leading-none" @click="closeModPresets()" aria-label="Close">✕</button>
                     </div>
                     
                     <div class="p-4 flex-1 overflow-y-auto">
@@ -83,7 +83,7 @@ registerComponent('toolbar', {
                             <div class="flex justify-between items-center mb-2">
                                 <h3 class="font-medium">Save current mod</h3>
                                 <button @click="showAddPreset = !showAddPreset" 
-                                        class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                                        class="theme-control theme-control--accent px-3 py-1 rounded hover:bg-gray-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                     </svg>
@@ -92,7 +92,7 @@ registerComponent('toolbar', {
                             </div>
                             
                             <!-- Add New Preset Form -->
-                            <div v-if="showAddPreset" class="mb-4 p-3 bg-gray-50 rounded border">
+                            <div v-if="showAddPreset" class="mb-4 p-3 rounded border" style="background: var(--muted-surface);">
                                 <div class="space-y-2">
                                     <input v-model="newPresetName" 
                                            placeholder="Enter preset name..." 
@@ -106,11 +106,11 @@ registerComponent('toolbar', {
                                               maxlength="200"></textarea>
                                     <div class="flex gap-2">
                                         <button @click="saveCurrentAsPreset" 
-                                                class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                                                class="theme-control theme-control--primary px-3 py-1 rounded hover:bg-gray-600">
                                             Save Preset
                                         </button>
                                         <button @click="cancelAddPreset" 
-                                                class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">
+                                                class="theme-control px-3 py-1 rounded hover:bg-gray-600">
                                             Cancel
                                         </button>
                                     </div>
@@ -175,11 +175,11 @@ registerComponent('toolbar', {
                                                   maxlength="200"></textarea>
                                         <div class="flex gap-2">
                                             <button @click="savePresetEdit" 
-                                                    class="bg-green-500 text-white px-2 py-1 text-sm rounded hover:bg-green-600">
+                                                    class="theme-control theme-control--primary px-2 py-1 text-sm rounded hover:bg-gray-600">
                                                 Save
                                             </button>
                                             <button @click="cancelEditPreset" 
-                                                    class="bg-gray-500 text-white px-2 py-1 text-sm rounded hover:bg-gray-600">
+                                                    class="theme-control px-2 py-1 text-sm rounded hover:bg-gray-600">
                                                 Cancel
                                             </button>
                                         </div>
