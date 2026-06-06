@@ -346,13 +346,152 @@ applyTheme(theme);
         let RecReading = true;
 
         try {
-            // strip //@startcode and //@endcode if they exist
-            if (fileContent.includes("//#startcode")) {
-                fileContent = fileContent.split("//#startcode")[0] + fileContent.split("//#endcode")[1];
+            const source = typeof fileContent === 'string' ? fileContent.replace(/\r\n/g, '\n') : '';
+
+            const skipWhitespace = (text, index) => {
+                let i = index;
+                while (i < text.length && /\s/.test(text[i])) i++;
+                return i;
+            };
+
+            const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) => {
+                let depth = 0;
+                let inString = false;
+                let stringChar = '';
+                let escape = false;
+                let inSingleLine = false;
+                let inMultiLine = false;
+
+                for (let i = startIndex; i < text.length; i++) {
+                    const ch = text[i];
+                    const next = text[i + 1];
+
+                    if (inSingleLine) {
+                        if (ch === '\n' || ch === '\r') inSingleLine = false;
+                        continue;
+                    }
+
+                    if (inMultiLine) {
+                        if (ch === '*' && next === '/') {
+                            inMultiLine = false;
+                            i++;
+                        }
+                        continue;
+                    }
+
+                    if (inString) {
+                        if (!escape && ch === stringChar) {
+                            inString = false;
+                            stringChar = '';
+                        }
+                        escape = (!escape && ch === '\\');
+                        continue;
+                    }
+
+                    if (ch === '"' || ch === '\'' || ch === '`') {
+                        inString = true;
+                        stringChar = ch;
+                        escape = false;
+                        continue;
+                    }
+
+                    if (ch === '/' && next === '/') {
+                        inSingleLine = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (ch === '/' && next === '*') {
+                        inMultiLine = true;
+                        i++;
+                        continue;
+                    }
+
+                    if (ch === openChar) {
+                        depth++;
+                        continue;
+                    }
+
+                    if (ch === closeChar) {
+                        depth--;
+                        if (depth === 0) return i + 1;
+                    }
+                }
+
+                return -1;
+            };
+
+            const parseLiteral = (literalText) => {
+                try {
+                    return new Function(`return (${literalText});`)();
+                } catch (_e) {
+                    return null;
+                }
+            };
+
+            const readAssignedLiteral = (identifier, openChars = ['{', '[', '"', '\'', '`']) => {
+                const assignmentRe = new RegExp(`${identifier}\\s*=`, 'g');
+                let match;
+                let resolved = null;
+
+                while ((match = assignmentRe.exec(source)) !== null) {
+                    const literalStart = skipWhitespace(source, match.index + match[0].length);
+                    const startChar = source[literalStart];
+                    if (!openChars.includes(startChar)) continue;
+
+                    let literalEnd = -1;
+                    if (startChar === '{' || startChar === '[') {
+                        literalEnd = findBalancedLiteralEnd(source, literalStart, startChar, startChar === '{' ? '}' : ']');
+                    } else {
+                        let i = literalStart + 1;
+                        let escape = false;
+                        for (; i < source.length; i++) {
+                            const ch = source[i];
+                            if (!escape && ch === startChar) {
+                                i++;
+                                break;
+                            }
+                            escape = (!escape && ch === '\\');
+                        }
+                        literalEnd = i;
+                    }
+
+                    if (literalEnd === -1) continue;
+
+                    let end = literalEnd;
+                    while (end < source.length && /\s/.test(source[end])) end++;
+                    if (source[end] === ';') end++;
+
+                    const literalText = source.slice(literalStart, literalEnd);
+                    const parsed = parseLiteral(literalText);
+                    if (parsed !== null && parsed !== undefined) {
+                        resolved = parsed;
+                    }
+                }
+
+                return resolved;
+            };
+
+            const recReadingMatch = source.match(/\bRecReading\s*=\s*(true|false)\s*;/i);
+            if (recReadingMatch) {
+                RecReading = recReadingMatch[1].toLowerCase() === 'true';
             }
 
-            // eval the content
-            eval(fileContent);
+            const electionJson = readAssignedLiteral('campaignTrail_temp\\.election_json');
+            const candidateJson = readAssignedLiteral('campaignTrail_temp\\.candidate_json');
+            const runningMateJson = readAssignedLiteral('campaignTrail_temp\\.running_mate_json');
+            const globalParameterJson = readAssignedLiteral('campaignTrail_temp\\.global_parameter_json');
+            const tempElectionList = readAssignedLiteral('campaignTrail_temp\\.temp_election_list');
+            const credits = readAssignedLiteral('campaignTrail_temp\\.credits', ['"', '\'', '`']);
+            const jetData = readAssignedLiteral('jet_data');
+
+            if (electionJson) campaignTrail_temp.election_json = electionJson;
+            if (candidateJson) campaignTrail_temp.candidate_json = candidateJson;
+            if (runningMateJson) campaignTrail_temp.running_mate_json = runningMateJson;
+            if (globalParameterJson) campaignTrail_temp.global_parameter_json = globalParameterJson;
+            if (tempElectionList) campaignTrail_temp.temp_election_list = tempElectionList;
+            if (credits !== null && credits !== undefined) campaignTrail_temp.credits = credits;
+            if (jetData) jet_data = jetData;
 
             if (campaignTrail_temp.election_json) this.elections = campaignTrail_temp.election_json;
             if (campaignTrail_temp.candidate_json) this.candidates = campaignTrail_temp.candidate_json;

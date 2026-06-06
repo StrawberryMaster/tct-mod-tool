@@ -28,6 +28,7 @@ registerCode1Component('shadow-wrapper', {
 registerCode1Component('code1-editor', {
     template: `
     <div class="flex flex-col h-full bg-gray-100 p-4 overflow-y-auto">
+        <input ref="code1ImportFile" type="file" accept=".txt,.js,.json,.html,text/plain,application/javascript" class="hidden" @change="fileUploaded($event)">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-bold">Code 1 Maker</h1>
             <div class="flex gap-2 items-center">
@@ -93,6 +94,10 @@ registerCode1Component('code1-editor', {
         <div v-if="showImportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl">
                 <h2 class="text-xl font-bold mb-4">Import Code 1</h2>
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-sm text-gray-600">Paste code below, or pick a file to import directly.</p>
+                    <button @click="openImportFilePicker" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">Choose file</button>
+                </div>
                 <textarea v-model="importText" class="w-full h-64 p-2 border rounded mb-4 font-mono text-sm" placeholder="Paste your Code 1 here..."></textarea>
                 <div class="flex justify-end gap-2">
                     <button @click="showImportModal = false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
@@ -112,6 +117,13 @@ registerCode1Component('code1-editor', {
     methods: {
         toggleWide() {
             this.wideMode = !this.wideMode;
+        },
+        openImportFilePicker() {
+            const input = this.$refs.code1ImportFile;
+            if (input) {
+                input.value = '';
+                input.click();
+            }
         },
         async copyCode() {
             const code = this.$TCT1.exportCode1();
@@ -150,6 +162,33 @@ registerCode1Component('code1-editor', {
         openImport() {
             this.showImportModal = true;
             this.importText = '';
+        },
+        fileUploaded(evt) {
+            const file = evt?.target?.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (loadEvt) => {
+                const text = loadEvt?.target?.result;
+                if (typeof text !== 'string') {
+                    alert('Error reading uploaded file!');
+                    return;
+                }
+
+                this.importText = text;
+                if (this.$TCT1.loadCode1(text)) {
+                    this.showImportModal = false;
+                    this.$globalData1.dataVersion++;
+                    alert('Import successful!');
+                } else {
+                    alert('Import failed. Check the console for details.');
+                }
+            };
+            reader.onerror = () => {
+                alert('Error reading uploaded file!');
+            };
+
+            reader.readAsText(file, 'UTF-8');
         },
         doImport() {
             if (this.$TCT1.loadCode1(this.importText)) {
