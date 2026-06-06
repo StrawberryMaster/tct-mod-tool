@@ -340,178 +340,252 @@ applyTheme(theme);
     }
 
     loadCode1(fileContent) {
-        // Mock objects to catch the eval output
-        const campaignTrail_temp = {};
-        let jet_data = null;
+        // initialize empty schema variables
+        const campaignTrail_temp = {
+            election_json: null,
+            candidate_json: null,
+            running_mate_json: null,
+            global_parameter_json: null,
+            temp_election_list: null,
+            credits: null,
+            modBoxTheme: null
+        };
+
+        const mockTheme = {};
+        const nct_stuff = {
+            themes: {
+                classic: mockTheme
+            },
+            selectedTheme: "classic"
+        };
+
         let RecReading = true;
+        let corrr = "";
+
+        const elementStyles = {};
+        const elementAttributes = {};
+
+        // helper mock element generator
+        const createMockElement = (id) => {
+            if (!elementStyles[id]) elementStyles[id] = {};
+            if (!elementAttributes[id]) elementAttributes[id] = {};
+            return {
+                style: new Proxy(elementStyles[id], {
+                    set(target, prop, value) {
+                        target[prop] = value;
+                        return true;
+                    }
+                }),
+                get src() { return elementAttributes[id].src || ""; },
+                set src(val) { elementAttributes[id].src = val; },
+                get background() { return elementAttributes[id].background || ""; },
+                set background(val) { elementAttributes[id].background = val; },
+                setAttribute(attr, val) { elementAttributes[id][attr] = val; },
+                appendChild() {},
+                removeChild() {},
+                querySelector() { return createMockElement('generic-child'); },
+                querySelectorAll() { return [createMockElement('generic-child')]; }
+            };
+        };
+
+        const mockDocument = {
+            querySelector(sel) { return createMockElement(sel); },
+            querySelectorAll(sel) { return [createMockElement(sel)]; },
+            getElementById(id) { return createMockElement(id); },
+            getElementsByClassName(cls) { return [createMockElement(cls)]; },
+            createElement(tag) { return createMockElement(tag); },
+            createTextNode() { return createMockElement('text'); },
+            head: createMockElement('head'),
+            body: createMockElement('body'),
+            addEventListener() {}
+        };
+
+        const mockWindow = {
+            setInterval() {},
+            setTimeout() {},
+            addEventListener() {},
+            document: mockDocument
+        };
+
+        const mockJQuery = function(sel) {
+            return [createMockElement(sel)];
+        };
+        mockJQuery.fn = {};
 
         try {
-            const source = typeof fileContent === 'string' ? fileContent.replace(/\r\n/g, '\n') : '';
-
-            const skipWhitespace = (text, index) => {
-                let i = index;
-                while (i < text.length && /\s/.test(text[i])) i++;
-                return i;
-            };
-
-            const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) => {
-                let depth = 0;
-                let inString = false;
-                let stringChar = '';
-                let escape = false;
-                let inSingleLine = false;
-                let inMultiLine = false;
-
-                for (let i = startIndex; i < text.length; i++) {
-                    const ch = text[i];
-                    const next = text[i + 1];
-
-                    if (inSingleLine) {
-                        if (ch === '\n' || ch === '\r') inSingleLine = false;
-                        continue;
-                    }
-
-                    if (inMultiLine) {
-                        if (ch === '*' && next === '/') {
-                            inMultiLine = false;
-                            i++;
-                        }
-                        continue;
-                    }
-
-                    if (inString) {
-                        if (!escape && ch === stringChar) {
-                            inString = false;
-                            stringChar = '';
-                        }
-                        escape = (!escape && ch === '\\');
-                        continue;
-                    }
-
-                    if (ch === '"' || ch === '\'' || ch === '`') {
-                        inString = true;
-                        stringChar = ch;
-                        escape = false;
-                        continue;
-                    }
-
-                    if (ch === '/' && next === '/') {
-                        inSingleLine = true;
-                        i++;
-                        continue;
-                    }
-
-                    if (ch === '/' && next === '*') {
-                        inMultiLine = true;
-                        i++;
-                        continue;
-                    }
-
-                    if (ch === openChar) {
-                        depth++;
-                        continue;
-                    }
-
-                    if (ch === closeChar) {
-                        depth--;
-                        if (depth === 0) return i + 1;
-                    }
-                }
-
-                return -1;
-            };
-
-            const parseLiteral = (literalText) => {
+            const runSandbox = new Function(
+                'campaignTrail_temp', 'nct_stuff', 'document', 'window', '$', 'jQuery',
+                `
+                let e = campaignTrail_temp;
+                let RecReading = true;
+                let corrr = "";
+                let selectedTheme = nct_stuff.themes[nct_stuff.selectedTheme];
+                
                 try {
-                    return new Function(`return (${literalText});`)();
-                } catch (_e) {
-                    return null;
+                    ${fileContent}
+                } catch(err) {
+                    console.warn("Caught runtime exception during sandbox parse, continuing...", err);
                 }
-            };
+                
+                return { campaignTrail_temp, nct_stuff, RecReading, corrr };
+                `
+            );
 
-            const readAssignedLiteral = (identifier, openChars = ['{', '[', '"', '\'', '`']) => {
-                const assignmentRe = new RegExp(`${identifier}\\s*=`, 'g');
-                let match;
-                let resolved = null;
+            const result = runSandbox(
+                campaignTrail_temp, nct_stuff, mockDocument, mockWindow, mockJQuery, mockJQuery
+            );
 
-                while ((match = assignmentRe.exec(source)) !== null) {
-                    const literalStart = skipWhitespace(source, match.index + match[0].length);
-                    const startChar = source[literalStart];
-                    if (!openChars.includes(startChar)) continue;
+            const ct = result.campaignTrail_temp;
 
-                    let literalEnd = -1;
-                    if (startChar === '{' || startChar === '[') {
-                        literalEnd = findBalancedLiteralEnd(source, literalStart, startChar, startChar === '{' ? '}' : ']');
-                    } else {
-                        let i = literalStart + 1;
-                        let escape = false;
-                        for (; i < source.length; i++) {
-                            const ch = source[i];
-                            if (!escape && ch === startChar) {
-                                i++;
-                                break;
-                            }
-                            escape = (!escape && ch === '\\');
-                        }
-                        literalEnd = i;
-                    }
+            // harvest the standard data sets
+            if (ct.election_json) this.elections = ct.election_json;
+            if (ct.candidate_json) this.candidates = ct.candidate_json;
+            if (ct.running_mate_json) this.running_mates = ct.running_mate_json;
+            if (ct.global_parameter_json) this.global_parameters = ct.global_parameter_json;
+            if (ct.temp_election_list) this.temp_election_list = ct.temp_election_list;
+            if (ct.credits) this.credits = ct.credits;
 
-                    if (literalEnd === -1) continue;
-
-                    let end = literalEnd;
-                    while (end < source.length && /\s/.test(source[end])) end++;
-                    if (source[end] === ';') end++;
-
-                    const literalText = source.slice(literalStart, literalEnd);
-                    const parsed = parseLiteral(literalText);
-                    if (parsed !== null && parsed !== undefined) {
-                        resolved = parsed;
-                    }
-                }
-
-                return resolved;
-            };
-
-            const recReadingMatch = source.match(/\bRecReading\s*=\s*(true|false)\s*;/i);
-            if (recReadingMatch) {
-                RecReading = recReadingMatch[1].toLowerCase() === 'true';
-            }
-
-            const electionJson = readAssignedLiteral('campaignTrail_temp\\.election_json');
-            const candidateJson = readAssignedLiteral('campaignTrail_temp\\.candidate_json');
-            const runningMateJson = readAssignedLiteral('campaignTrail_temp\\.running_mate_json');
-            const globalParameterJson = readAssignedLiteral('campaignTrail_temp\\.global_parameter_json');
-            const tempElectionList = readAssignedLiteral('campaignTrail_temp\\.temp_election_list');
-            const credits = readAssignedLiteral('campaignTrail_temp\\.credits', ['"', '\'', '`']);
-            const jetData = readAssignedLiteral('jet_data');
-
-            if (electionJson) campaignTrail_temp.election_json = electionJson;
-            if (candidateJson) campaignTrail_temp.candidate_json = candidateJson;
-            if (runningMateJson) campaignTrail_temp.running_mate_json = runningMateJson;
-            if (globalParameterJson) campaignTrail_temp.global_parameter_json = globalParameterJson;
-            if (tempElectionList) campaignTrail_temp.temp_election_list = tempElectionList;
-            if (credits !== null && credits !== undefined) campaignTrail_temp.credits = credits;
-            if (jetData) jet_data = jetData;
-
-            if (campaignTrail_temp.election_json) this.elections = campaignTrail_temp.election_json;
-            if (campaignTrail_temp.candidate_json) this.candidates = campaignTrail_temp.candidate_json;
-            if (campaignTrail_temp.running_mate_json) this.running_mates = campaignTrail_temp.running_mate_json;
-            if (campaignTrail_temp.global_parameter_json) this.global_parameters = campaignTrail_temp.global_parameter_json;
-            if (campaignTrail_temp.temp_election_list) this.temp_election_list = campaignTrail_temp.temp_election_list;
-            if (campaignTrail_temp.credits) this.credits = campaignTrail_temp.credits;
             if (this.elections?.[0]?.fields) {
-                this.elections[0].fields.recommended_reading_enabled = RecReading !== false;
+                this.elections[0].fields.recommended_reading_enabled = result.RecReading !== false;
+                if (result.RecReading && typeof result.RecReading === 'string') {
+                    this.elections[0].fields.recommended_reading = result.RecReading;
+                }
             }
 
-            if (jet_data) {
-                this.jet_data = Object.assign({}, this.jet_data, jet_data);
+            // extract theming from modBoxTheme if present
+            if (ct.modBoxTheme) {
+                const mb = ct.modBoxTheme;
+                if (mb.header_color) this.jet_data.headerColor = mb.header_color;
+                if (mb.header_text_color) this.jet_data.headerTextColor = mb.header_text_color;
+                if (mb.header_image_url) this.jet_data.bannerImageUrl = mb.header_image_url;
+                if (mb.description_background_color) {
+                    this.jet_data.descriptionWindowColor = mb.description_background_color;
+                    this.jet_data.innerWindowColor = mb.description_background_color;
+                }
+                if (mb.description_text_color) {
+                    this.jet_data.descriptionWindowTextColor = mb.description_text_color;
+                    this.jet_data.innerWindowTextColor = mb.description_text_color;
+                }
+                if (mb.main_color) this.jet_data.containerColor = mb.main_color;
+                if (mb.secondary_color) this.jet_data.windowColor = mb.secondary_color;
             }
 
-            return true;
-        } catch (e) {
-            console.error("Error loading Code 1:", e);
-            return false;
+            // extract theming from nct_stuff overrides
+            const finalTheme = result.nct_stuff.themes[result.nct_stuff.selectedTheme] || {};
+            if (finalTheme.coloring_title) this.jet_data.headerColor = finalTheme.coloring_title;
+            if (finalTheme.coloring_window) this.jet_data.windowColor = finalTheme.coloring_window;
+            if (finalTheme.coloring_container) this.jet_data.containerColor = finalTheme.coloring_container;
+            if (finalTheme.header_image) this.jet_data.bannerImageUrl = finalTheme.header_image;
+            if (finalTheme.body_background) this.jet_data.backgroundImageUrl = finalTheme.body_background;
+
+            // extract theming from captured DOM/jQuery manipulations
+            if (elementStyles['.container']?.backgroundColor) {
+                this.jet_data.containerColor = elementStyles['.container'].backgroundColor;
+            }
+            if (elementStyles['#game_window']?.backgroundColor) {
+                this.jet_data.windowColor = elementStyles['#game_window'].backgroundColor;
+            }
+            if (elementStyles['#game_window']?.backgroundImage) {
+                const bgStr = elementStyles['#game_window'].backgroundImage;
+                const match = bgStr.match(/url\(['"]?([^'")]+)['"]?\)/);
+                if (match) this.jet_data.backgroundImageUrl = match[1];
+            }
+            if (elementAttributes['header']?.src) {
+                this.jet_data.bannerImageUrl = elementAttributes['header'].src;
+            }
+            if (elementAttributes['body']?.background) {
+                this.jet_data.backgroundImageUrl = elementAttributes['body'].background;
+            }
+
+            // extract quote and game title from corrr if it was generated
+            if (result.corrr) {
+                const titleMatch = result.corrr.match(/<h2>(.*?)<\/h2>/i);
+                if (titleMatch) {
+                    this.jet_data.gameTitle = titleMatch[1];
+                }
+                const quoteMatch = result.corrr.match(/<font id=['"]wittyquote['"][^>]*><em>(.*?)<\/em><\/font>/i);
+                if (quoteMatch) {
+                    this.jet_data.customQuote = quoteMatch[1];
+                }
+            }
+
+        } catch (sandboxError) {
+            console.error("Sandbox evaluation failed, falling back to regex scanning...", sandboxError);
         }
+
+        // fallback regex parsing layer
+        const source = typeof fileContent === 'string' ? fileContent.replace(/\r\n/g, '\n') : '';
+        const extractString = (regex, fallback) => {
+            const match = source.match(regex);
+            return match ? match[1] : fallback;
+        };
+
+        // if sandbox fails to retrieve core arrays, scan them statically
+        if (this.elections.length === 0 || !this.elections[0]) {
+            const parseLiteral = (identifier) => {
+                const assignmentRe = new RegExp(`(?:campaignTrail_temp|e)\\.${identifier}\\s*=`, 'g');
+                let match;
+                while ((match = assignmentRe.exec(source)) !== null) {
+                    const literalStart = match.index + match[0].length;
+                    let i = literalStart;
+                    while (i < source.length && /\s/.test(source[i])) i++;
+                    const startChar = source[i];
+                    if (startChar === '{' || startChar === '[') {
+                        let depth = 0;
+                        let end = -1;
+                        for (let j = i; j < source.length; j++) {
+                            if (source[j] === startChar) depth++;
+                            else if (source[j] === (startChar === '{' ? '}' : ']')) {
+                                depth--;
+                                if (depth === 0) {
+                                    end = j + 1;
+                                    break;
+                                }
+                            }
+                        }
+                        if (end !== -1) {
+                            try {
+                                return new Function(`return (${source.slice(i, end)});`)();
+                            } catch {}
+                        }
+                    }
+                }
+                return null;
+            };
+
+            const electionJson = parseLiteral('election_json');
+            const candidateJson = parseLiteral('candidate_json');
+            const runningMateJson = parseLiteral('running_mate_json');
+            const globalParameterJson = parseLiteral('global_parameter_json');
+            const tempElectionList = parseLiteral('temp_election_list');
+            const credits = extractString(/(?:campaignTrail_temp|e)\.credits\s*=\s*["']([^"']+)["']/, null);
+
+            if (electionJson) this.elections = electionJson;
+            if (candidateJson) this.candidates = candidateJson;
+            if (runningMateJson) this.running_mates = runningMateJson;
+            if (globalParameterJson) this.global_parameters = globalParameterJson;
+            if (tempElectionList) this.temp_election_list = tempElectionList;
+            if (credits) this.credits = credits;
+        }
+
+        // fallback regex extractions
+        this.jet_data.headerColor = extractString(/coloring_title\s*=\s*["']([^"']+)["']/, this.jet_data.headerColor);
+        this.jet_data.windowColor = extractString(/coloring_window\s*=\s*["']([^"']+)["']/, this.jet_data.windowColor);
+        this.jet_data.containerColor = extractString(/\.container.*backgroundColor\s*=\s*["']([^"']+)["']/, this.jet_data.containerColor);
+        this.jet_data.bannerImageUrl = extractString(/document\.getElementById\("header"\)\.src\s*=\s*["']([^"']+)["']/, this.jet_data.bannerImageUrl);
+        this.jet_data.backgroundImageUrl = extractString(/document\.body\.background\s*=\s*["']([^"']+)["']/, this.jet_data.backgroundImageUrl);
+
+        const bgImgMatch = source.match(/#game_window.*backgroundImage\s*=\s*["']url\(([^)]+)\)["']/);
+        if (bgImgMatch) {
+            this.jet_data.backgroundImageUrl = bgImgMatch[1];
+        }
+
+        const quoteMatch = source.match(/id=['"]wittyquote['"].*?><em>(.*?)<\/em>/i);
+        if (quoteMatch) {
+            this.jet_data.customQuote = quoteMatch[1];
+        }
+
+        return this.elections.length > 0;
     }
 }
 
@@ -520,10 +594,9 @@ window.TCTCode1Data = TCTCode1Data;
 // global reference for component registration
 window.TCT1ComponentQueue = [];
 window.registerCode1Component = function (name, definition) {
-    if (window.TCTApp1) {
-        window.TCTApp1.component(name, definition);
+    if (window.TCTApp) {
+        window.TCTApp.component(name, definition);
     } else {
         window.TCT1ComponentQueue.push({ name, definition });
     }
 };
-

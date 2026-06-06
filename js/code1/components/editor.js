@@ -33,10 +33,10 @@ registerCode1Component('code1-editor', {
             <h1 class="text-2xl font-bold">Code 1 Maker</h1>
             <div class="flex gap-2 items-center">
                 <div class="mr-4 flex items-center gap-2">
-                    <label class="text-sm font-semibold text-gray-600">Template ({{$TCT1.templates.length}}):</label>
+                    <label class="text-sm font-semibold text-gray-600">Template ({{$TCT.templates.length}}):</label>
                     <select @change="loadTemplate" class="p-1 border rounded text-sm bg-white">
                         <option value="">-- Select Scenario --</option>
-                        <option v-for="t in $TCT1.templates" :key="t.pk" :value="t.pk">
+                        <option v-for="t in $TCT.templates" :key="t.pk" :value="t.pk">
                             {{t.fields.display_year || t.fields.year}}
                         </option>
                     </select>
@@ -58,19 +58,19 @@ registerCode1Component('code1-editor', {
                     <div class="space-y-4">
                         <mode-picker></mode-picker>
                         <hr>
-                        <div v-if="$globalData1.mode === 'ELECTION'">
+                        <div v-if="$globalData.mode === 'ELECTION'">
                             <election-editor></election-editor>
                         </div>
-                        <div v-if="$globalData1.mode === 'CANDIDATE'">
+                        <div v-if="$globalData.mode === 'CANDIDATE'">
                             <candidate-editor></candidate-editor>
                         </div>
-                        <div v-if="$globalData1.mode === 'RUNNING_MATE'">
+                        <div v-if="$globalData.mode === 'RUNNING_MATE'">
                             <running-mate-editor></running-mate-editor>
                         </div>
-                        <div v-if="$globalData1.mode === 'THEME'">
+                        <div v-if="$globalData.mode === 'THEME'">
                             <theme-editor></theme-editor>
                         </div>
-                        <div v-if="$globalData1.mode === 'SETTINGS'">
+                        <div v-if="$globalData.mode === 'SETTINGS'">
                             <settings-editor></settings-editor>
                         </div>
                     </div>
@@ -91,7 +91,7 @@ registerCode1Component('code1-editor', {
         </div>
 
         <!-- Import Modal -->
-        <div v-if="showImportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div v-if="showImportModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl">
                 <h2 class="text-xl font-bold mb-4">Import Code 1</h2>
                 <div class="flex justify-between items-center mb-3">
@@ -126,7 +126,7 @@ registerCode1Component('code1-editor', {
             }
         },
         async copyCode() {
-            const code = this.$TCT1.exportCode1();
+            const code = this.$TCT.exportCode1();
             try {
                 await navigator.clipboard.writeText(code);
                 alert("Code copied to clipboard!");
@@ -140,17 +140,17 @@ registerCode1Component('code1-editor', {
             if (!pk) return;
 
             if (confirm("This will overwrite your current work. Continue?")) {
-                const success = await this.$TCT1.applyTemplate(pk);
+                const success = await this.$TCT.applyTemplate(pk);
                 if (success) {
-                    this.$globalData1.dataVersion++;
-                    this.$globalData1.selectedCandidate = 0;
-                    this.$globalData1.selectedElection = 0;
+                    this.$globalData.dataVersion++;
+                    this.$globalData.selectedCandidate = 0;
+                    this.$globalData.selectedElection = 0;
                     alert("Template loaded!");
                 }
             }
         },
         exportCode() {
-            const code = this.$TCT1.exportCode1();
+            const code = this.$TCT.exportCode1();
             const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -176,9 +176,9 @@ registerCode1Component('code1-editor', {
                 }
 
                 this.importText = text;
-                if (this.$TCT1.loadCode1(text)) {
+                if (this.$TCT.loadCode1(text)) {
                     this.showImportModal = false;
-                    this.$globalData1.dataVersion++;
+                    this.$globalData.dataVersion++;
                     alert('Import successful!');
                 } else {
                     alert('Import failed. Check the console for details.');
@@ -191,9 +191,9 @@ registerCode1Component('code1-editor', {
             reader.readAsText(file, 'UTF-8');
         },
         doImport() {
-            if (this.$TCT1.loadCode1(this.importText)) {
+            if (this.$TCT.loadCode1(this.importText)) {
                 this.showImportModal = false;
-                this.$globalData1.dataVersion++;
+                this.$globalData.dataVersion++;
                 alert("Import successful!");
             } else {
                 alert("Import failed. Check the console for details.");
@@ -417,9 +417,9 @@ registerCode1Component('tct-preview', {
         };
     },
     computed: {
-        jetData() { return this.$TCT1.jet_data; },
-        currentElection() { return this.$TCT1.elections[0]; },
-        credits() { return this.$TCT1.credits; },
+        jetData() { return this.$TCT.jet_data; },
+        currentElection() { return this.$TCT.elections[0]; },
+        credits() { return this.$TCT.credits; },
         recommendedReadingEnabled() {
             return this.currentElection?.fields?.recommended_reading_enabled !== false;
         },
@@ -427,17 +427,17 @@ registerCode1Component('tct-preview', {
             return this.currentElection?.fields?.recommended_reading || '<p><em>No recommended reading content.</em></p>';
         },
         activeCandidates() {
-            return this.$TCT1.candidates.filter(c => c.fields.is_active === 1 && !c.fields.running_mate);
+            return this.$TCT.candidates.filter(c => c.fields.is_active === 1 && !c.fields.running_mate);
         },
         selectedPreviewCandidate() {
             return this.activeCandidates[this.selectedCandIdx];
         },
         availableRunningMates() {
             if (!this.selectedPreviewCandidate) return [];
-            const rmpks = this.$TCT1.running_mates
+            const rmpks = this.$TCT.running_mates
                 .filter(rm => rm.fields.candidate === this.selectedPreviewCandidate.pk)
                 .map(rm => rm.fields.running_mate);
-            return this.$TCT1.candidates.filter(c => rmpks.includes(c.pk));
+            return this.$TCT.candidates.filter(c => rmpks.includes(c.pk));
         },
         selectedPreviewRunningMate() {
             return this.availableRunningMates[this.selectedMateIdx];
@@ -513,4 +513,3 @@ registerCode1Component('tct-preview', {
         }
     }
 });
-

@@ -46,14 +46,13 @@ async function initCode1Storage() {
     }
 }
 
-
 function startAutosave() {
     if (autosaveInterval) clearInterval(autosaveInterval);
     autosaveInterval = setInterval(saveAutosave, 15000);
 }
 
 function saveAutosave() {
-    const tct = window.$TCT1;
+    const tct = window.$TCT;
     if (!tct || typeof tct.exportCode1 !== 'function') return;
 
     try {
@@ -75,21 +74,21 @@ function saveAutosave() {
 
 // global data for Code 1
 const globalData = reactive({
-    mode: 'ELECTION', // ELECTION, CANDIDATE, RUNNING_MATE, THEME, SETTINGS
+    mode: 'ELECTION', 
     selectedElection: 0,
     selectedCandidate: 0,
     selectedRunningMate: 0,
     dataVersion: 0
 });
 
-window.$globalData1 = globalData;
+window.$globalData = globalData;
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOM Content Loaded - Initializing Code 1");
     await initCode1Storage();
     const rawTct = new TCTCode1Data();
-    const tct1 = reactive(rawTct);
-    window.$TCT1 = tct1;
+    const tct = reactive(rawTct);
+    window.$TCT = tct;
     
     // load from autosave if it exists
     let autosaveData = null;
@@ -101,25 +100,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (autosaveData) {
         console.log("Loading Code 1 from autosave...");
-        tct1.loadCode1(autosaveData);
+        tct.loadCode1(autosaveData);
     }
 
     const app = createApp({
         setup() {
             onMounted(() => {
                 console.log("App mounted, fetching templates...");
-                tct1.fetchTemplates();
+                tct.fetchTemplates();
             });
+
+            // deep watcher
+            watch(
+                tct,
+                (newVal) => {
+                    const election = newVal.elections[0];
+                    const temp = newVal.temp_election_list[0];
+                    if (election && temp) {
+                        temp.id = Number(election.pk);
+                        temp.year = Number(election.fields.year);
+                        temp.display_year = election.fields.display_year;
+                    }
+
+                    globalData.dataVersion++;
+                    requestAutosaveDebounced();
+                },
+                { deep: true }
+            );
+
             return {
                 globalData,
-                tct1
+                tct
             };
         }
     });
 
-    window.TCTApp1 = app;
-    app.config.globalProperties.$globalData1 = globalData;
-    app.config.globalProperties.$TCT1 = tct1;
+    window.TCTApp = app;
+    app.config.globalProperties.$globalData = globalData;
+    app.config.globalProperties.$TCT = tct;
 
     // register components from the queue
     if (window.TCT1ComponentQueue) {
@@ -130,4 +148,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     app.mount('#app');
 });
-
