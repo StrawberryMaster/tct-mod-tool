@@ -1633,13 +1633,22 @@ registerComponent('integrated-state-effect-visualizer', {
             dragMoved: false,
             lastPointer: null,
             svgBounds: null,
-            viewportInitialized: false
+            viewportInitialized: false,
+            isExpanded: false
         };
     },
 
     mounted() {
         this.loadStateEffects();
         this.loadMapData();
+        this._onKeydown = (e) => {
+            if (e.key === 'Escape' && this.isExpanded) this.toggleExpand();
+        };
+        window.addEventListener('keydown', this._onKeydown);
+    },
+
+    beforeDestroy() {
+        window.removeEventListener('keydown', this._onKeydown);
     },
 
     computed: {
@@ -1758,7 +1767,7 @@ registerComponent('integrated-state-effect-visualizer', {
 
                 const statesWithPath = this.states.filter(s => s?.d);
                 if (statesWithPath.length) {
-                    this.mapData = statesWithPath.map(s => [s.fields.abbr, s.d]);
+                    this.mapData = statesWithPath.map(s => [s.fields.abbr, s.d, s.transform || '']);
                     this.mapLoaded = true;
                     this.initializeViewport(true);
                     return;
@@ -1798,7 +1807,7 @@ registerComponent('integrated-state-effect-visualizer', {
                 const x = col * (size + padding) + 50;
                 const y = row * (size + padding) + 50;
                 const path = `M${x},${y} h${size} v${size} h-${size} Z`;
-                return [state.fields?.abbr || `S${state.pk}`, path];
+                return [state.fields?.abbr || `S${state.pk}`, path, ''];
             });
             this.usingBasicShapes = true;
             this.mapLoaded = true;
@@ -1818,8 +1827,6 @@ registerComponent('integrated-state-effect-visualizer', {
             if (!this.viewportInitialized || force) {
                 this.viewportInitialized = true;
                 this.resetViewport();
-            } else {
-                this.clampPan();
             }
         },
 
@@ -1846,23 +1853,8 @@ registerComponent('integrated-state-effect-visualizer', {
 
         resetViewport() {
             this.zoom = 1;
-            const mapping = this.$TCT.jet_data?.mapping_data || {};
-            this.panX = mapping.dx != null ? Number(mapping.dx) : 0;
-            this.panY = mapping.dy != null ? Number(mapping.dy) : 0;
-            this.clampPan();
-        },
-
-        clampPan() {
-            if (!this.viewportInitialized) return;
-            const mapping = this.$TCT.jet_data?.mapping_data || {};
-            const minX = mapping.dx != null ? Number(mapping.dx) : 0;
-            const minY = mapping.dy != null ? Number(mapping.dy) : 0;
-            const viewWidth = this.baseWidth / this.zoom;
-            const viewHeight = this.baseHeight / this.zoom;
-            const maxX = minX + Math.max(0, this.baseWidth - viewWidth);
-            const maxY = minY + Math.max(0, this.baseHeight - viewHeight);
-            this.panX = Math.min(Math.max(this.panX, minX), maxX);
-            this.panY = Math.min(Math.max(this.panY, minY), maxY);
+            this.panX = 0;
+            this.panY = 0;
         },
 
         getStateTransform(state) {
@@ -1888,7 +1880,6 @@ registerComponent('integrated-state-effect-visualizer', {
                 const scaleChange = 1 / this.zoom - 1 / oldZoom;
                 this.panX += (centerPoint.x) * scaleChange * this.zoom;
             }
-            this.clampPan();
         },
 
         zoomIn() { this.setZoom(this.zoom * 1.25); },
@@ -1924,7 +1915,6 @@ registerComponent('integrated-state-effect-visualizer', {
             this.panY -= dy * scaleY;
 
             this.lastPointer = { x: evt.clientX, y: evt.clientY };
-            this.clampPan();
         },
 
         endPan(evt) {
@@ -1985,16 +1975,15 @@ registerComponent('integrated-state-effect-visualizer', {
 
         getStatePath(state) {
             const abbr = state.fields?.abbr;
-            if (!abbr && !state.d) return 'M0,0 h20 v20 h-20 Z';
-
-            let entry = this.mapData.find(item => item[0] === abbr);
-            if (!entry && abbr) {
+            if (abbr) {
+                let entry = this.mapData.find(item => item[0] === abbr);
+                if (entry) return entry[1];
                 const normalized = abbr.replaceAll('-', '_');
                 entry = this.mapData.find(item => item[0] === normalized);
+                if (entry) return entry[1];
             }
-
-            if (!entry && state.d) return state.d;
-            return entry ? entry[1] : 'M0,0 h20 v20 h-20 Z';
+            if (state.d) return state.d;
+            return 'M0,0 h20 v20 h-20 Z';
         },
 
         getStateColor(statePk) {
@@ -2116,6 +2105,13 @@ registerComponent('integrated-state-effect-visualizer', {
 
         applyPresetValue(value) {
             this.editValue = value;
+        },
+
+        toggleExpand() {
+            this.isExpanded = !this.isExpanded;
+            this.$nextTick(() => {
+                this.initializeViewport(true);
+            });
         }
     },
 
@@ -2156,13 +2152,13 @@ registerComponent('integrated-state-effect-visualizer', {
                     Using basic shapes (fallback map)
                 </div>
 
-                <div class="relative border rounded overflow-hidden">
+                <div class="relative border rounded overflow-hidden shadow-inner">
                     <svg
                         version="1.1"
                         xmlns="http://www.w3.org/2000/svg"
                         :viewBox="viewBoxString"
                         preserveAspectRatio="xMidYMid meet"
-                        class="w-full h-auto select-none"
+                        class="w-full h-96 select-none cursor-move"
                         :style="mapCanvasStyle"
                         style="touch-action: none;"
                         @pointerdown="startPan"
@@ -2197,10 +2193,15 @@ registerComponent('integrated-state-effect-visualizer', {
                     </svg>
                     
                     <!-- Zoom Controls Overlay -->
-                    <div class="absolute top-2 right-2 flex flex-col gap-2">
-                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomIn">+</button>
-                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="zoomOut">−</button>
-                        <button class="bg-black/60 text-white rounded px-2 py-1 text-xs hover:bg-black/80" @pointerdown.stop @click.stop="resetViewport">Reset</button>
+                    <div class="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
+                        <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomIn">+</button>
+                        <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomOut">−</button>
+                        <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100 font-semibold" @pointerdown.stop @click.stop="resetViewport">Fit</button>
+                        <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100 font-semibold" @pointerdown.stop @click.stop="toggleExpand">Expand</button>
+                    </div>
+
+                    <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
+                        <strong>Click</strong> to select, <strong>Drag</strong> to pan.
                     </div>
                 </div>
 
@@ -2326,6 +2327,233 @@ registerComponent('integrated-state-effect-visualizer', {
                             </li>
                             <li v-if="allStateEffectsForAnswer.length === 0" class="py-1 text-gray-500 italic">No state effects configured.</li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Map Modal -->
+        <div v-if="isExpanded" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60" @click="toggleExpand" aria-hidden="true"></div>
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col z-10 border border-gray-300">
+                <!-- Header -->
+                <div class="theme-panel-header p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">Edit state effects</h3>
+                        <p class="text-xs text-gray-500">Answer #{{ answerId }} | Candidate: {{ $TCT.getNicknameForCandidate(candidateId) || candidateId }} &rarr; Affected: {{ $TCT.getNicknameForCandidate(affectedCandidateId) || affectedCandidateId }}</p>
+                    </div>
+                    <button class="text-gray-500 hover:text-black text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
+                </div>
+                
+                <div class="p-6 flex flex-col md:flex-row gap-6 overflow-y-auto min-h-0 flex-1">
+                    <!-- Left: Large Map Display -->
+                    <div class="md:w-3/5 flex flex-col min-h-0">
+                        <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
+                            Using basic shapes (fallback map)
+                        </div>
+                        
+                        <div class="relative border rounded-lg overflow-hidden flex-1 min-h-[400px] bg-gray-50 flex items-stretch">
+                            <svg
+                                version="1.1"
+                                xmlns="http://www.w3.org/2000/svg"
+                                :viewBox="viewBoxString"
+                                preserveAspectRatio="xMidYMid meet"
+                                class="w-full h-full select-none cursor-move min-h-[400px]"
+                                :style="mapCanvasStyle"
+                                style="touch-action: none;"
+                                @pointerdown="startPan"
+                                @pointermove="onPan"
+                                @pointerup="endPan"
+                                @pointerleave="endPan"
+                                @pointercancel="endPan"
+                                @wheel.prevent="onWheel"
+                                @contextmenu.prevent
+                            >
+                                <g v-if="mapLoaded">
+                                    <path
+                                        v-for="state in states"
+                                        :key="'modal-' + state.pk"
+                                        :d="getStatePath(state)"
+                                        :transform="getStateTransform(state) || null"
+                                        :style="{
+                                            fill: getStateColor(state.pk),
+                                            stroke: getStateStroke(state.pk),
+                                            'stroke-width': getStateStrokeWidth(state.pk),
+                                            cursor: isPanning ? 'grabbing' : 'pointer'
+                                        }"
+                                        :aria-checked="isStateSelected(state.pk) ? 'true' : 'false'"
+                                        @click="handleStateClick(state.pk)"
+                                        @mouseenter="highlightState(state.pk)"
+                                        @mouseleave="unhighlightState"
+                                    />
+                                </g>
+                                <text v-else x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="text-sm">
+                                    Loading map data...
+                                </text>
+                            </svg>
+                            
+                            <!-- Zoom Controls Overlay -->
+                            <div class="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
+                                <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomIn">+</button>
+                                <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomOut">−</button>
+                                <button class="bg-white shadow border rounded px-2.5 py-1 text-xs hover:bg-gray-100 font-semibold" @pointerdown.stop @click.stop="resetViewport">Fit</button>
+                                <button class="bg-blue-600 text-white shadow border border-blue-700 rounded px-2 py-1 text-xs hover:bg-blue-700 font-semibold" @pointerdown.stop @click.stop="toggleExpand">Collapse</button>
+                            </div>
+                            
+                            <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
+                                <strong>Click</strong> to select, <strong>Drag</strong> to pan, <strong>Scroll</strong> to zoom.
+                            </div>
+                        </div>
+                        
+                        <!-- Small States, D.C. and Congressional Districts Buttons -->
+                        <div class="flex flex-wrap gap-1 mt-3" v-if="smallStates.length > 0 || districtStates.length > 0">
+                            <button v-for="state in smallStates"
+                                :key="'modal-small-' + state.pk"
+                                @click="toggleStateSelection(state.pk)"
+                                :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
+                                class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                                {{ state.fields.abbr }}
+                            </button>
+                            <button v-for="state in districtStates"
+                                :key="'modal-dist-' + state.pk"
+                                @click="toggleStateSelection(state.pk)"
+                                :class="{'bg-blue-700': isStateSelected(state.pk), 'bg-blue-500': !isStateSelected(state.pk)}"
+                                class="text-white px-2 py-1 text-xs rounded hover:bg-blue-600">
+                                {{ state.fields.abbr || state.fields.name.replace(/[^0-9]/g, '') }}
+                            </button>
+                        </div>
+                        
+                        <div class="flex justify-between mt-3">
+                            <button @click="selectAll" class="bg-blue-500 text-white px-3 py-1.5 text-xs rounded hover:bg-blue-600 font-medium">Select all</button>
+                            <button @click="clearSelection" class="bg-red-500 text-white px-3 py-1.5 text-xs rounded hover:bg-red-600 font-medium">Clear selection</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Large Controls Panel -->
+                    <div class="md:w-2/5 flex flex-col overflow-y-auto pr-2">
+                        <!-- Candidate Selection inside Modal -->
+                        <div class="bg-gray-50 border rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-xs uppercase text-gray-500 mb-3">Edit target candidates</h4>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Candidate:</label>
+                                    <select v-model="candidateId" @change="loadStateEffects"
+                                        class="p-2 text-sm block w-full border border-gray-300 rounded bg-white shadow-xs">
+                                        <option v-for="candidate in candidates" :key="'modal-c-' + candidate[0]" :value="candidate[0]">
+                                            {{ candidate[1] }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Affected candidate:</label>
+                                    <select v-model="affectedCandidateId" @change="loadStateEffects"
+                                        class="p-2 text-sm block w-full border border-gray-300 rounded bg-white shadow-xs">
+                                        <option v-for="candidate in candidates" :key="'modal-ac-' + candidate[0]" :value="candidate[0]">
+                                            {{ candidate[1] }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Presets inside Modal -->
+                        <div class="mb-4">
+                            <state-effect-presets
+                                :onSelectPreset="selectPresetStates"
+                                @applyValue="applyPresetValue">
+                            </state-effect-presets>
+                        </div>
+                        
+                        <!-- Fallback State Dropdown inside Modal -->
+                        <div class="mb-4 bg-gray-50 border rounded-lg p-4">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Select state from list</label>
+                            <div class="flex items-center gap-2">
+                                <select v-model="stateDropdownPk"
+                                        class="p-2 text-sm block w-full border border-gray-300 rounded bg-white shadow-xs">
+                                    <option :value="null" disabled>Select a state...</option>
+                                    <option v-for="s in states" :key="'modal-dd-' + s.pk" :value="s.pk">
+                                        {{ s.fields.abbr }} - {{ s.fields.name }}
+                                    </option>
+                                </select>
+                                <button @click="selectStateFromDropdown"
+                                        class="bg-blue-500 text-white px-3 py-2 text-xs rounded hover:bg-blue-600 font-medium">
+                                    Toggle
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Effect Value Editor inside Modal -->
+                        <div class="mb-4 bg-gray-50 border rounded-lg p-4">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Effect value (-1.0 to 1.0)</label>
+                            <div class="flex items-center gap-2">
+                                <button @click="decreaseValue" class="bg-gray-200 px-3 py-2 rounded-l hover:bg-gray-300 text-md font-bold">-</button>
+                                <input type="number" v-model="editValue" step="0.001" min="-1" max="1"
+                                    class="w-24 text-center border p-2 text-sm">
+                                <button @click="increaseValue" class="bg-gray-200 px-3 py-2 rounded-r hover:bg-gray-300 text-md font-bold">+</button>
+                            </div>
+                            <input type="range" v-model="editValue" min="-1" max="1" step="0.001" class="w-full mt-3">
+                        </div>
+                        
+                        <!-- Apply Button inside Modal -->
+                        <div class="mb-4">
+                            <button @click="applyValueToSelectedStates"
+                                    class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors shadow-sm"
+                                    :disabled="selectedStatesCount === 0"
+                                    :aria-disabled="selectedStatesCount === 0 ? 'true' : 'false'">
+                                Apply to selected ({{ selectedStatesCount }})
+                            </button>
+                        </div>
+                        
+                        <!-- Color Scale inside Modal -->
+                        <div class="mb-4 px-2">
+                            <div class="flex justify-center items-center">
+                                <div class="w-full h-4 bg-gradient-to-r from-red-700 via-gray-300 to-blue-700 rounded"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-1 text-gray-600">
+                                <span>-1.0</span>
+                                <span>0</span>
+                                <span>1.0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- All State Effects List inside Modal -->
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-xs font-medium text-gray-700">All state effects for this answer</label>
+                                <button v-if="allStateEffectsForAnswer.length > 0" 
+                                        @click="deleteAllStateEffects" 
+                                        class="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50"
+                                        title="Delete all state effects for this answer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="max-h-60 overflow-y-auto bg-gray-50 p-3 rounded-lg border text-xs">
+                                <ul class="divide-y divide-gray-200">
+                                    <li v-for="effect in allStateEffectsForAnswer" :key="'modal-effect-' + effect.pk" class="py-2.5 flex justify-between items-center">
+                                        <div>
+                                            <span class="font-semibold text-gray-800">{{ effect.stateName }}</span>
+                                            <div class="text-[10px] text-gray-500">
+                                                <span v-if="effect.candidateNickname">(Candidate: {{ effect.candidateNickname }})</span>
+                                                <span v-if="effect.affectedCandidateNickname"> (Affected: {{ effect.affectedCandidateNickname }})</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <span :class="effect.multiplier > 0 ? 'text-blue-600 font-semibold' : effect.multiplier < 0 ? 'text-red-600 font-semibold' : 'text-gray-500'">
+                                                {{ effect.multiplier.toFixed(3) }}
+                                            </span>
+                                            <button @click="deleteStateEffect(effect.pk)" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </li>
+                                    <li v-if="allStateEffectsForAnswer.length === 0" class="py-2 text-gray-500 italic text-center">No state effects configured.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

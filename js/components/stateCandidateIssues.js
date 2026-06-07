@@ -1003,7 +1003,8 @@ registerComponent('issue-state-map-editor', {
             dragMoved: false,
             lastPointer: null,
             svgBounds: null,
-            viewportInitialized: false
+            viewportInitialized: false,
+            isExpanded: false
         };
     },
     watch: {
@@ -1056,9 +1057,14 @@ registerComponent('issue-state-map-editor', {
         this.loadStateScores();
         this.loadMapData();
         window.addEventListener('resize', this.onResize);
+        this._onKeydown = (e) => {
+            if (e.key === 'Escape' && this.isExpanded) this.toggleExpand();
+        };
+        window.addEventListener('keydown', this._onKeydown);
     },
     beforeDestroy() {
         window.removeEventListener('resize', this.onResize);
+        window.removeEventListener('keydown', this._onKeydown);
     },
     methods: {
         resetSelection() {
@@ -1391,6 +1397,13 @@ registerComponent('issue-state-map-editor', {
 
         onMouseLeave() {
             this.highlightedState = null;
+        },
+
+        toggleExpand() {
+            this.isExpanded = !this.isExpanded;
+            this.$nextTick(() => {
+                this.initializeViewport(true);
+            });
         }
     },
     template: `
@@ -1435,13 +1448,14 @@ registerComponent('issue-state-map-editor', {
                 </g>
             </svg>
             
-            <div class="absolute bottom-2 right-2 flex flex-col gap-1">
+            <div class="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
                 <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
                 <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomOut">-</button>
                 <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100" @click.stop="resetViewport">Fit</button>
+                <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100 font-semibold" @click.stop="toggleExpand">Expand</button>
             </div>
             
-            <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border">
+            <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
                 <strong>Click</strong> to select, <strong>Drag</strong> to pan.
             </div>
         </div>
@@ -1508,6 +1522,145 @@ registerComponent('issue-state-map-editor', {
                 <div class="text-xs text-gray-600 flex gap-3">
                     <span>Score: <strong>{{ state.score.toFixed(2) }}</strong></span>
                     <span>Wt: <strong>{{ state.weight.toFixed(2) }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Map Modal -->
+        <div v-if="isExpanded" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60" @click="toggleExpand" aria-hidden="true"></div>
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col z-10 border border-gray-300">
+                <!-- Header -->
+                <div class="theme-panel-header p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">Edit state issue scores</h3>
+                        <p class="text-xs text-gray-500">Issue #{{ issuePk }} | Selected: {{ selectedCount }} states</p>
+                    </div>
+                    <button class="text-gray-500 hover:text-black text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
+                </div>
+                
+                <!-- Body: Split Layout -->
+                <div class="p-6 flex flex-col md:flex-row gap-6 overflow-y-auto min-h-0 flex-1">
+                    <!-- Left: Large Map Display -->
+                    <div class="md:w-3/5 flex flex-col min-h-0">
+                        <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
+                            Using basic shapes (fallback map)
+                        </div>
+                        
+                        <div class="relative border rounded-lg overflow-hidden flex-1 min-h-[400px] bg-gray-50 flex items-stretch">
+                            <svg
+                                version="1.1"
+                                xmlns="http://www.w3.org/2000/svg"
+                                :viewBox="viewBoxString"
+                                preserveAspectRatio="xMidYMid meet"
+                                class="w-full h-full select-none cursor-move min-h-[400px]"
+                                :style="mapCanvasStyle"
+                                style="touch-action: none;"
+                                @pointerdown="startPan"
+                                @pointermove="onPan"
+                                @pointerup="endPan"
+                                @pointerleave="endPan"
+                                @pointercancel="endPan"
+                                @wheel.prevent="onWheel"
+                                @contextmenu.prevent
+                            >
+                                <g :key="'modal-' + renderVersion">
+                                    <path
+                                        v-for="state in states"
+                                        :key="'modal-' + state.pk"
+                                        :d="getStatePath(state)"
+                                        :transform="getStateTransform(state) || null"
+                                        :style="{
+                                            fill: getStateColor(state.pk),
+                                            stroke: stateStroke(state.pk),
+                                            'stroke-width': strokeWidth(state.pk),
+                                            cursor: 'pointer',
+                                            transition: 'fill 0.2s ease'
+                                        }"
+                                        @pointerdown.stop
+                                        @click.stop="handleStateClick(state.pk)"
+                                        @mouseenter="onMouseEnter(state.pk)"
+                                        @mouseleave="onMouseLeave"
+                                        vector-effect="non-scaling-stroke"
+                                    >
+                                        <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>
+                                    </path>
+                                </g>
+                            </svg>
+                            
+                            <!-- Zoom Controls Overlay -->
+                            <div class="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
+                                <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
+                                <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @click.stop="zoomOut">-</button>
+                                <button class="bg-white shadow border rounded px-2.5 py-1 text-xs hover:bg-gray-100 font-semibold" @click.stop="resetViewport">Fit</button>
+                                <button class="bg-blue-600 text-white shadow border border-blue-700 rounded px-2 py-1 text-xs hover:bg-blue-700 font-semibold" @click.stop="toggleExpand">Collapse</button>
+                            </div>
+                            
+                            <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
+                                <strong>Click</strong> to select, <strong>Drag</strong> to pan, <strong>Scroll</strong> to zoom.
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between mt-3">
+                            <button @click="selectAll" class="bg-blue-500 text-white px-3 py-1.5 text-xs rounded hover:bg-blue-600 font-medium">Select all</button>
+                            <button @click="clearSelection" class="bg-red-500 text-white px-3 py-1.5 text-xs rounded hover:bg-red-600 font-medium">Clear selection</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Controls Panel -->
+                    <div class="md:w-2/5 flex flex-col overflow-y-auto pr-2">
+                        <!-- Score/Weight Inputs -->
+                        <div class="bg-gray-50 border rounded-lg p-4 mb-4">
+                            <div class="grid grid-cols-2 gap-4 w-full">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Issue Score (-1 to 1)</label>
+                                    <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore" 
+                                        class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Weight</label>
+                                    <input type="number" step="0.1" min="0" v-model.number="editWeight" 
+                                        class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        placeholder="1.0">
+                                </div>
+                            </div>
+                            
+                            <button
+                                class="w-full mt-4 bg-blue-600 text-white py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                                :disabled="selectedCount === 0"
+                                @click="applyToSelected"
+                            >
+                                Apply to {{ selectedCount || 0 }} selected
+                            </button>
+                            <p v-if="selectedCount > 0" class="text-xs text-gray-500 mt-2 text-center">
+                                Editing: {{ Object.keys(selectedStates).map(pk => states.find(s=>s.pk==pk)?.fields.abbr).join(', ') }}
+                            </p>
+                        </div>
+
+                        <!-- States List -->
+                        <div class="border rounded divide-y max-h-96 overflow-y-auto bg-white">
+                            <div
+                                v-for="state in sortedStateMetrics"
+                                :key="'modal-state-' + state.pk"
+                                class="flex items-center justify-between px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer"
+                                :class="{'bg-blue-50': selectedStates[state.pk]}"
+                                @click="toggleStateSelection(state.pk)"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="w-4 h-4 rounded-full border shadow-sm" :style="{backgroundColor: getStateColor(state.pk)}"></div>
+                                    <div>
+                                        <span class="font-medium text-gray-800">{{ state.name }}</span>
+                                        <span class="text-gray-400 text-xs ml-1">({{ state.abbr }})</span>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-600 flex gap-3">
+                                    <span>Score: <strong>{{ state.score.toFixed(2) }}</strong></span>
+                                    <span>Wt: <strong>{{ state.weight.toFixed(2) }}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
