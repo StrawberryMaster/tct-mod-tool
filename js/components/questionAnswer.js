@@ -2337,12 +2337,12 @@ registerComponent('integrated-state-effect-visualizer', {
             <div class="absolute inset-0 bg-black/60" @click="toggleExpand" aria-hidden="true"></div>
             <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col z-10 border border-gray-300">
                 <!-- Header -->
-                <div class="theme-panel-header p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                <div class="theme-panel-header p-4 border-b flex justify-between items-center rounded-t-lg">
                     <div>
                         <h3 class="font-bold text-lg">Edit state effects</h3>
                         <p class="text-xs">Answer #{{ answerId }} | Candidate: {{ $TCT.getNicknameForCandidate(candidateId) || candidateId }} &rarr; Affected: {{ $TCT.getNicknameForCandidate(affectedCandidateId) || affectedCandidateId }}</p>
                     </div>
-                    <button class="text-gray-500 hover:text-black text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
+                    <button class="text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
                 </div>
                 
                 <div class="p-6 flex flex-col md:flex-row gap-6 overflow-y-auto min-h-0 flex-1">
