@@ -364,6 +364,7 @@ applyTheme(theme);
 
         const elementStyles = {};
         const elementAttributes = {};
+        let capturedStyleText = "";
 
         // helper mock element generator
         const createMockElement = (id) => {
@@ -376,6 +377,8 @@ applyTheme(theme);
                         return true;
                     }
                 }),
+                get textContent() { return capturedStyleText; },
+                set textContent(val) { capturedStyleText = val; },
                 get src() { return elementAttributes[id].src || ""; },
                 set src(val) { elementAttributes[id].src = val; },
                 get background() { return elementAttributes[id].background || ""; },
@@ -411,6 +414,37 @@ applyTheme(theme);
             return [createMockElement(sel)];
         };
         mockJQuery.fn = {};
+
+        const extractColorsFromCSS = (css) => {
+            const extracted = {};
+            let match;
+
+            match = css.match(/#results_container\s*\{\s*color:\s*([^;!]+)/);
+            if (match) extracted.endingTextColor = match[1].trim();
+
+            match = css.match(/#wittyquote\s*\{\s*color:\s*([^;!]+)/);
+            if (match) extracted.quoteTextColor = match[1].trim();
+
+            match = css.match(/\.game_header\s+h2\s*\{\s*color:\s*([^;!]+)/);
+            if (match) extracted.headerTextColor = match[1].trim();
+
+            match = css.match(/\.inner_window_w_desc\s*\{\s*background-color:\s*([^;!]+)/);
+            if (match) extracted.innerWindowColor = match[1].trim();
+
+            match = css.match(/\.inner_window_w_desc\s*\{[^}]*?[^\w-]color:\s*([^;!]+)/);
+            if (match) extracted.innerWindowTextColor = match[1].trim();
+
+            match = css.match(/\.inner_window_front[^{]*\{\s*background-color:\s*([^;!]+)/);
+            if (match) extracted.descriptionWindowColor = match[1].trim();
+
+            match = css.match(/\.inner_window_front[^{]*\{[^}]*?[^\w-]color:\s*([^;!]+)/);
+            if (match) extracted.descriptionWindowTextColor = match[1].trim();
+
+            match = css.match(/\.campaign_trail_start_emphasis\s*\{\s*background-color:\s*([^;!]+)/);
+            if (match) extracted.startButtonColor = match[1].trim();
+
+            return extracted;
+        };
 
         try {
             const runSandbox = new Function(
@@ -497,6 +531,12 @@ applyTheme(theme);
                 this.jet_data.backgroundImageUrl = elementAttributes['body'].background;
             }
 
+            // extract from CSS block
+            if (capturedStyleText) {
+                const extracted = extractColorsFromCSS(capturedStyleText);
+                Object.assign(this.jet_data, extracted);
+            }
+
             // extract quote and game title from corrr if it was generated
             if (result.corrr) {
                 const titleMatch = result.corrr.match(/<h2>(.*?)<\/h2>/i);
@@ -568,6 +608,23 @@ applyTheme(theme);
             if (credits) this.credits = credits;
         }
 
+        // parse raw jet_data object literal from file content if present
+        const jetDataMatch = source.match(/jet_data\s*=\s*(\{[\s\S]*?\})(?:;|\n)/);
+        if (jetDataMatch) {
+            try {
+                const parsedJetData = new Function(`return (${jetDataMatch[1]});`)();
+                if (parsedJetData && typeof parsedJetData === 'object') {
+                    for (const key in parsedJetData) {
+                        if (parsedJetData[key] !== undefined && parsedJetData[key] !== null) {
+                            this.jet_data[key] = parsedJetData[key];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Failed to parse jet_data object literal via regex:", e);
+            }
+        }
+
         // fallback regex extractions
         this.jet_data.headerColor = extractString(/coloring_title\s*=\s*["']([^"']+)["']/, this.jet_data.headerColor);
         this.jet_data.windowColor = extractString(/coloring_window\s*=\s*["']([^"']+)["']/, this.jet_data.windowColor);
@@ -583,6 +640,14 @@ applyTheme(theme);
         const quoteMatch = source.match(/id=['"]wittyquote['"].*?><em>(.*?)<\/em>/i);
         if (quoteMatch) {
             this.jet_data.customQuote = quoteMatch[1];
+        }
+
+        // extract color modifications from CSS strings literal if present in raw file
+        const extractedFallbackColors = extractColorsFromCSS(source);
+        for (const key in extractedFallbackColors) {
+            if (!extractedFallbackColors[key].includes('${')) {
+                this.jet_data[key] = extractedFallbackColors[key];
+            }
         }
 
         return this.elections.length > 0;
