@@ -79,8 +79,7 @@
         }
 
         .border-blue-500 {
-            --tw-border-opacity: 1;
-            border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
+            border-color: var(--accent-blue) !important;
         }
 
         :root {
@@ -523,7 +522,8 @@
         .hover\:bg-gray-300:hover,
         .hover\:bg-gray-400:hover,
         .hover\:bg-gray-500:hover,
-        .hover\:bg-gray-600:hover {
+        .hover\:bg-gray-600:hover,
+        .hover\:bg-gray-700:hover {
             background-color: var(--utility-hover-gray-300) !important;
         }
 
@@ -608,8 +608,7 @@
         .hover\:text-gray-200:hover { color: rgba(255, 255, 255, 0.8) !important; }
 
         .bg-gradient-to-r {
-            --tw-gradient-from: var(--gradient-from) var(--tw-gradient-from-position);
-            --tw-gradient-to: var(--gradient-to) var(--tw-gradient-to-position);
+            background-image: linear-gradient(to right, var(--gradient-from), var(--gradient-to));
         }
         .from-blue-500 { --gradient-from: var(--gradient-from-blue); }
         .to-blue-600 { --gradient-to: var(--gradient-to-blue); }
@@ -636,6 +635,45 @@
         .accent-green-500 { accent-color: var(--accent-green) !important; }
         .accent-blue-500 { accent-color: var(--accent-blue) !important; }
 
+        .text-red-500 { color: var(--text-red-600) !important; }
+        .text-blue-800 { color: var(--accent-blue) !important; }
+        .text-amber-800,
+        .text-amber-900 { color: var(--amber-text) !important; }
+        .hover\:text-blue-600:hover { color: var(--accent-blue) !important; }
+        .hover\:border-red-300:hover { border-color: var(--text-red-600) !important; }
+        .hover\:bg-red-50:hover { background-color: var(--utility-bg-gray-100) !important; }
+
+        .bg-blue-500 { background-color: var(--control-primary-bg) !important; color: var(--control-primary-text) !important; }
+        .bg-blue-600 { background-color: var(--control-primary-hover) !important; color: var(--control-primary-text) !important; }
+        .hover\:bg-blue-600:hover { background-color: var(--control-primary-hover) !important; }
+        .hover\:bg-blue-700:hover { background-color: var(--gradient-to-blue-hover) !important; }
+
+        .bg-green-500 { background-color: var(--accent-green) !important; color: #ffffff !important; }
+        .hover\:bg-green-600:hover { background-color: var(--gradient-to-green) !important; }
+
+        .bg-red-500 { background-color: var(--accent-red) !important; color: #ffffff !important; }
+        .hover\:bg-red-600:hover { background-color: var(--gradient-to-red) !important; }
+
+        .bg-indigo-500 { background-color: var(--card-border-indigo) !important; color: #ffffff !important; }
+        .hover\:bg-indigo-600:hover { background-color: #6366f1 !important; }
+        .bg-indigo-600 { background-color: #6366f1 !important; color: #ffffff !important; }
+
+        .bg-gray-500 { background-color: var(--control-bg) !important; color: var(--control-text) !important; }
+        .bg-gray-500.hover\:bg-gray-600:hover { background-color: var(--control-bg-hover) !important; color: #ffffff !important; }
+        .bg-gray-800 { background-color: var(--brand-start) !important; color: var(--header-contrast) !important; }
+
+        .focus\:border-blue-500:focus { border-color: var(--utility-input-focus) !important; }
+        .focus\:ring-blue-400:focus { --tw-ring-color: var(--utility-input-focus) !important; }
+        .focus\:ring-blue-500:focus { --tw-ring-color: var(--utility-input-focus) !important; }
+
+        .bg-yellow-50,
+        .bg-yellow-100 { background-color: var(--amber-bg) !important; }
+        .text-yellow-900 { color: var(--amber-text) !important; }
+        .border-yellow-200 { border-color: var(--banner-border) !important; }
+
+        #app { background: var(--app-bg) !important; }
+        #editor { background: var(--app-editor-bg) !important; }
+
         .theme-app-header,
         .theme-app-footer {
             display: flex;
@@ -643,7 +681,7 @@
             justify-content: center;
             color: var(--header-contrast);
             background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
             text-align: center;
             padding: 1rem 1.25rem;
             font-weight: 700;
@@ -653,7 +691,7 @@
         .theme-app-header {
             font-size: 1.6rem;
             line-height: 1.1;
-            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             border-bottom-left-radius: 10px;
             border-bottom-right-radius: 10px;
         }
@@ -665,7 +703,7 @@
             gap: 0.75rem;
             color: var(--header-contrast);
             background: var(--footer-bg);
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
             text-align: center;
             padding: 0.6rem 1rem;
             font-weight: 600;
@@ -684,7 +722,8 @@
         }
 
         .theme-app-footer a {
-            color: rgba(255, 255, 255, 0.95);
+            color: var(--header-contrast);
+            opacity: 0.92;
             text-decoration: none;
         }
 
@@ -694,7 +733,8 @@
         }
 
         .theme-app-footer .sep {
-            color: rgba(255, 255, 255, 0.65);
+            color: var(--header-contrast);
+            opacity: 0.6;
             margin: 0 0.35rem;
             user-select: none;
         }

@@ -35,7 +35,7 @@ window.registerComponent = function (name, definition) {
                 '--toolbar-panel-bg': '#ffffff',
                 '--toolbar-panel-border': '#d1d5db',
                 '--control-bg': '#d1d5db',
-                '--control-bg-hover': '#6b7280',
+                '--control-bg-hover': '#7f8694',
                 '--control-text': '#111827',
                 '--control-primary-bg': '#2563eb',
                 '--control-primary-text': '#ffffff',
