@@ -725,8 +725,6 @@ registerComponent('question', {
         },
 
         description: function () {
-            // track temp_answers for reactivity
-            this.temp_answers;
             return this.$TCT.questions.get(this.pk)?.fields.description;
         },
 
@@ -1091,17 +1089,14 @@ registerComponent('global-score-card', {
         },
 
         candidate: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_global[this.pk].fields.candidate;
         },
 
         affected: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_global[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_global[this.pk].fields.global_multiplier;
         }
     }
@@ -1224,18 +1219,14 @@ registerComponent('issue-score-card', {
 
     computed: {
         issues: function () {
-            this.$globalData.dataVersion;
             return Object.values(this.$TCT.issues);
         },
 
         stateList: function () {
-            this.$globalData.dataVersion;
             return Object.values(this.$TCT.states);
         },
 
         uniqueCandidatePKs: function () {
-            this.$globalData.dataVersion;
-            // extract unique candidate PKs from candidate_issue_score
             const scores = this.$TCT.candidate_issue_score;
             if (!scores || Object.keys(scores).length === 0) {
                 return [];
@@ -1255,37 +1246,30 @@ registerComponent('issue-score-card', {
         },
 
         issue: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.issue;
         },
 
         issueScore: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.issue_score;
         },
 
         issueImportance: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.issue_importance;
         },
 
         affectedCandidate: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.affected_candidate;
         },
 
         affectedCandidateShift: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.affected_candidate_shift;
         },
 
         affectedState: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.affected_state;
         },
 
         affectedStateShift: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_issue[this.pk].fields.affected_state_shift;
         },
 
@@ -1311,7 +1295,6 @@ registerComponent('issue-score-card', {
         },
 
         affectedCandidateFinalStance: function () {
-            this.$globalData.dataVersion;
             const current = this.affectedCandidateCurrentStance;
             if (current === null) return 0;
             const shift = this.affectedCandidateShift || 0;
@@ -1332,7 +1315,6 @@ registerComponent('issue-score-card', {
         },
 
         affectedStateFinalStance: function () {
-            this.$globalData.dataVersion;
             const current = this.affectedStateCurrentStance;
             if (current === null) return 0;
             const shift = this.affectedStateShift || 0;
@@ -1429,27 +1411,22 @@ registerComponent('state-score-card', {
         },
 
         candidate: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_state[this.pk].fields.candidate;
         },
 
         affected: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_state[this.pk].fields.affected_candidate;
         },
 
         multiplier: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_state[this.pk].fields.state_multiplier;
         },
 
         state: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.answer_score_state[this.pk].fields.state;
         },
 
         states: function () {
-            this.$globalData.dataVersion;
             return Object.values(this.$TCT.states);
         }
     }

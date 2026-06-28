@@ -373,8 +373,6 @@ registerComponent('endings', {
                 this.$TCT.jet_data.ending_data = {};
             }
 
-            let a = [this.$globalData.dataVersion];
-
             return this.$TCT.jet_data.endings_enabled;
         }
     }
@@ -1224,7 +1222,6 @@ registerComponent('ending', {
         },
 
         answerOptions: function() {
-            this.$globalData.dataVersion;
             return Object.values(this.$TCT.answers || {});
         },
 

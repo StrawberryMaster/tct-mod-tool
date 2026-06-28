@@ -904,28 +904,36 @@ class TCTData {
 
     cleanAllData() {
         this.cleanMap(this.questions);
-        this.clean(this.answers);
-        this.clean(this.issues);
-        this.clean(this.state_issue_scores);
-        this.clean(this.candidate_issue_score);
-        this.clean(this.running_mate_issue_score);
-        this.clean(this.candidate_state_multiplier);
-        this.clean(this.answer_score_global);
-        this.clean(this.answer_score_issue);
-        this.clean(this.answer_score_state);
-        this.clean(this.answer_feedback);
-        this.clean(this.states);
+        this.cleanItems(this.answers);
+        this.cleanItems(this.issues);
+        this.cleanItems(this.state_issue_scores);
+        this.cleanItems(this.candidate_issue_score);
+        this.cleanItems(this.running_mate_issue_score);
+        this.cleanItems(this.candidate_state_multiplier);
+        this.cleanItems(this.answer_score_global);
+        this.cleanItems(this.answer_score_issue);
+        this.cleanItems(this.answer_score_state);
+        this.cleanItems(this.answer_feedback);
+        this.cleanItems(this.states);
     }
 
-    clean(obj, visited = new Set()) {
-        if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
-        visited.add(obj);
+    cleanItems(obj) {
+        if (!obj || typeof obj !== 'object') return;
+        const keys = Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const val = obj[keys[i]];
+            if (val && typeof val === 'object') {
+                this.clean(val);
+            }
+        }
+    }
 
+    clean(obj) {
+        if (!obj || typeof obj !== 'object') return;
         const keys = Object.keys(obj);
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const val = obj[key];
-
             if (typeof val === 'string') {
                 const trimmed = val.trim();
                 if (trimmed !== '') {
@@ -934,8 +942,6 @@ class TCTData {
                         obj[key] = num;
                     }
                 }
-            } else if (val && typeof val === 'object') {
-                this.clean(val, visited);
             }
         }
     }
@@ -2480,7 +2486,7 @@ const _tctCheckExtraConditions = (entry, playerAnswers) => {
     if (answerType !== "ignore") {
         const rawAnswers = String(entry.answerConditionAnswers || entry.answerConditionAnswer || "").trim();
         const answerIds = rawAnswers
-            .split(/[\\s,]+/)
+            .split(/[\s,]+/)
             .filter((v) => v.length > 0)
             .map((v) => Number(v))
             .filter((v) => Number.isFinite(v));

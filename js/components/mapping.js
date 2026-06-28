@@ -305,8 +305,6 @@ registerComponent('mapping', {
                 this.$TCT.jet_data.mapping_data = {};
             }
 
-            this.$globalData.dataVersion; // register dependency
-
             return this.$TCT.jet_data.mapping_enabled;
         }
     }

@@ -58,7 +58,7 @@ const MODES = {
 Object.assign(window, MODES);
 
 function updateGlobalTCT(newTCT) {
-    window.$TCT = newTCT;
+    window.$TCT = reactive(newTCT);
 }
 window.$updateGlobalTCT = updateGlobalTCT;
 

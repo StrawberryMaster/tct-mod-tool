@@ -2,12 +2,19 @@
 const DB_NAME = 'tct_mod_tool_db';
 const DB_VERSION = 1;
 
+let _db = null;
+let _dbOpenPromise = null;
+
 /**
  * Opens the IndexedDB for the TCT Mod Tool.
+ * The connection is cached and reused across all operations.
  * @returns {Promise<IDBDatabase>}
  */
 function openTCTDB() {
-    return new Promise((resolve, reject) => {
+    if (_db) return Promise.resolve(_db);
+    if (_dbOpenPromise) return _dbOpenPromise;
+
+    _dbOpenPromise = new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onupgradeneeded = (event) => {
@@ -24,13 +31,26 @@ function openTCTDB() {
         };
 
         request.onsuccess = (event) => {
-            resolve(event.target.result);
+            const db = event.target.result;
+            db.onclose = () => {
+                _db = null;
+            };
+            db.onversionchange = () => {
+                db.close();
+                _db = null;
+            };
+            _db = db;
+            _dbOpenPromise = null;
+            resolve(db);
         };
 
         request.onerror = (event) => {
+            _dbOpenPromise = null;
             reject(event.target.error);
         };
     });
+
+    return _dbOpenPromise;
 }
 
 /**

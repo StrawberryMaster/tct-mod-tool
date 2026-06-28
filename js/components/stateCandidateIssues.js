@@ -229,7 +229,6 @@ registerComponent('state-shift-editor', {
     },
     computed: {
         items() {
-            this.$globalData.dataVersion;
             const states = this.$TCT.states;
             return (this.shifts || []).map(s => {
                 const st = states[s.state];
@@ -252,7 +251,6 @@ registerComponent('state-shift-editor', {
             ];
         },
         availableStates() {
-            this.$globalData.dataVersion;
             const used = new Set((this.shifts || []).map(s => s.state));
             const states = this.$TCT.states || {};
             return Object.values(states)
@@ -493,37 +491,30 @@ registerComponent('state', {
         },
 
         stateName: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.name;
         },
 
         abbr: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.abbr;
         },
 
         electoralVotes: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.electoral_votes;
         },
 
         popularVotes: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.popular_votes;
         },
 
         pollClosingTime: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.poll_closing_time;
         },
 
         winnerTakeAll: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.winner_take_all_flg;
         },
 
         election: function () {
-            this.temp;
             return this.$TCT.states[this.statePk]?.fields.election;
         },
 
@@ -594,11 +585,9 @@ registerComponent('candidate-state-multiplier', {
     },
     computed: {
         stateMultiplier: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.candidate_state_multiplier[this.pk].fields.state_multiplier;
         },
         candidate: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.candidate_state_multiplier[this.pk].fields.candidate;
         },
         nickname: function () {
@@ -661,11 +650,9 @@ registerComponent('state-issue-score', {
     },
     computed: {
         issues: function () {
-            let a = [this.$globalData.filename, this.$globalData.dataVersion];
             return Object.values(this.$TCT?.issues || {});
         },
         currentIssue: function () {
-            this.$globalData.dataVersion;
             return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.issue;
         },
         stateName: function () {
@@ -673,11 +660,9 @@ registerComponent('state-issue-score', {
             return this.$TCT?.states?.[statePK]?.fields?.name || '';
         },
         stateIssueScore: function () {
-            this.$globalData.dataVersion;
             return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.state_issue_score ?? 0;
         },
         weight: function () {
-            this.$globalData.dataVersion;
             return this.$TCT?.state_issue_scores?.[this.pk]?.fields?.weight ?? 0;
         },
         stateAbbr: function () {
@@ -858,7 +843,6 @@ registerComponent('candidate-issue-score', {
     },
     computed: {
         candidate: function () {
-            this.$globalData.dataVersion;
             if (this.isRunning != "true") {
                 return this.$TCT.candidate_issue_score[this.pk].fields["candidate"];
             } else {
@@ -869,7 +853,6 @@ registerComponent('candidate-issue-score', {
             return this.$TCT.getNicknameForCandidate(this.candidate);
         },
         issueScore: function () {
-            this.$globalData.dataVersion;
             if (this.isRunning != "true") {
                 return this.$TCT.candidate_issue_score[this.pk].fields["issue_score"];
             } else {
@@ -1018,7 +1001,6 @@ registerComponent('issue-state-map-editor', {
     },
     computed: {
         states() {
-            this.$globalData.dataVersion;
             return Object.values(this.$TCT.states || {}).filter(s => s && s.pk != null);
         },
         currentEntries() {

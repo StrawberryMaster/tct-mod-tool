@@ -249,7 +249,6 @@ registerComponent('banner-settings', {
 
     computed: {
         enabled() {
-            this.$globalData.dataVersion;
             return !!(this.$TCT.jet_data.banner_enabled);
         },
 

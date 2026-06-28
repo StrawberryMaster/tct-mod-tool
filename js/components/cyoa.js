@@ -467,17 +467,14 @@ registerComponent('cyoa', {
         },
 
         bunnyhopEnabled() {
-            this.$globalData.dataVersion;
             return !!this.$TCT.jet_data.bunnyhop_enabled;
         },
 
         bunnyhopPools() {
-            this.$globalData.dataVersion;
             return this.$TCT.jet_data.bunnyhop_pools || [];
         },
 
         enabled: function () {
-            this.$globalData.dataVersion;
             return this.$TCT.jet_data?.cyoa_enabled;
         },
 
@@ -490,24 +487,20 @@ registerComponent('cyoa', {
 
         // expose swaps as a sorted list
         cyoaQuestionSwaps() {
-            this.$globalData.dataVersion;
             const src = this.$TCT.jet_data.cyoa_question_swaps || {};
             return Object.values(src).sort((a, b) => a.id - b.id);
         },
 
         cyoaAnswerSwaps() {
-            this.$globalData.dataVersion;
             const src = this.$TCT.jet_data.cyoa_answer_swaps || {};
             return Object.values(src).sort((a, b) => a.id - b.id);
         },
 
         campaignDataEnabled() {
-            this.$globalData.dataVersion;
             return !!this.$TCT.jet_data.cyoa_campaign_data_enabled;
         },
 
         campaignDataStats() {
-            this.$globalData.dataVersion;
             const src = this.$TCT.jet_data.cyoa_campaign_data_stats || {};
             return Object.values(src).sort((a, b) => a.id - b.id);
         },
