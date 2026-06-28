@@ -1193,14 +1193,20 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
                 const sortedMid = Math.max(lowMax, midMax);
                 const label = String(row.label || row.variable || '').trim() || row.variable;
 
+                const tCfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
+                const tVars = tCfg.cssVars || {};
+                const defLow = tVars['--tier-low'] || '#ff4d4d';
+                const defMid = tVars['--tier-mid'] || '#e6e6e6';
+                const defHigh = tVars['--tier-high'] || '#4dff4d';
+
                 return {
                     id: Number(row.id || (Date.now() + index)),
                     variable: String(row.variable).trim(),
                     label,
                     tiers: [
-                        { max: sortedLow, text: lowText, color: '#ff4d4d' },
-                        { max: sortedMid, text: midText, color: '#e6e6e6' },
-                        { max: 'Infinity', text: highText, color: '#4dff4d' }
+                        { max: sortedLow, text: lowText, color: defLow },
+                        { max: sortedMid, text: midText, color: defMid },
+                        { max: 'Infinity', text: highText, color: defHigh }
                     ]
                 };
             })
@@ -1217,11 +1223,21 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             .replaceAll('`', '\\`')
             .replaceAll('${', '\\${');
 
+        const cyoaCfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
+        const cyoaVars = cyoaCfg.cssVars || {};
+        const defLow = cyoaVars['--tier-low'] || '#ff4d4d';
+        const defMid = cyoaVars['--tier-mid'] || '#e6e6e6';
+        const defHigh = cyoaVars['--tier-high'] || '#4dff4d';
+        const cyoaBg = cyoaVars['--cyoa-popup-bg'] || '#222449';
+        const cyoaBorder = cyoaVars['--cyoa-popup-border'] || '#727C96';
+        const cyoaText = cyoaVars['--cyoa-popup-text'] || '#fff';
+        const cyoaH3Border = cyoaVars['--cyoa-popup-h3-border'] || '#ccc';
+
         const statsRows = rows.map((row) => {
             const tiers = row.tiers || [];
-            const t1 = tiers[0] || { max: 0, text: '', color: '#ff4d4d' };
-            const t2 = tiers[1] || { max: 2, text: '', color: '#e6e6e6' };
-            const t3 = tiers[2] || { max: 'Infinity', text: '', color: '#4dff4d' };
+            const t1 = tiers[0] || { max: 0, text: '', color: defLow };
+            const t2 = tiers[1] || { max: 2, text: '', color: defMid };
+            const t3 = tiers[2] || { max: 'Infinity', text: '', color: defHigh };
             const max1 = Number.isFinite(Number(t1.max)) ? Number(t1.max) : 0;
             const max2 = Number.isFinite(Number(t2.max)) ? Number(t2.max) : 2;
             const max3 = String(t3.max) === 'Infinity' ? 'Infinity' : (Number.isFinite(Number(t3.max)) ? Number(t3.max) : 'Infinity');
@@ -1247,22 +1263,22 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             bottom: 20px;
             right: 20px;
             width: 320px;
-            background-color: #222449;
-            border: 2px solid #727C96;
+            background-color: ${cyoaBg};
+            border: 2px solid ${cyoaBorder};
             border-radius: 2px;
             padding: 10px 12px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
             z-index: 10000;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 14px;
-            color: #fff;
+            color: ${cyoaText};
             cursor: move;
         }
         #gameStatsContent { pointer-events: none; }
         #gameStatsPopup h3 {
             margin: 0 0 8px;
             font-weight: bold;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid ${cyoaH3Border};
             padding-bottom: 4px;
             font-size: 16px;
         }

@@ -161,7 +161,7 @@ registerComponent('banner-settings', {
 
                         <div class="flex flex-col items-center justify-center px-6">
                             <div class="text-sm font-semibold mb-2">Question {{ safePreviewQuestion }} of {{ safePreviewTotal }}</div>
-                            <div class="border-4 border-yellow-400 rounded-xs px-6 py-4 bg-[#75948F] text-white font-bold text-center leading-tight">
+                            <div class="border-4 border-yellow-400 rounded-xs px-6 py-4 bg-[var(--banner-bg)] text-white font-bold text-center leading-tight">
                                 <div class="text-3xl tracking-wide">{{ formCanName || 'Candidate' }}</div>
                                 <div v-if="formRunName" class="text-xl font-medium mt-1 opacity-90">{{ formRunName }}</div>
                             </div>

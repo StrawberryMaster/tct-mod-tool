@@ -3,14 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Jet's TCT Mod Tool</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A tool for modding The Campaign Trail mods">
-    <link rel="manifest" href="tct.webmanifest">
     <meta name="theme-color" content="#2563eb">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://strawberrymaster.github.io/tct-mod-tool/">
+    <meta property="og:title" content="TCT Mod Tool">
+    <meta property="og:description" content="A tool for modding The Campaign Trail mods, based off the original Jet's TCT Mod Tool">
+    <meta property="og:image" content="https://i.pinimg.com/webp85/1200x/ae/42/0b/ae420b41441f707dc38dda3d0049e1ad.webp">
+    <meta property="og:site_name" content="TCT Mod Tool">
+    <meta property="og:locale" content="en_US">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="TCT Mod Tool">
+    <meta name="twitter:description" content="A tool for modding The Campaign Trail mods, based off the original Jet's TCT Mod Tool">
+    <meta name="twitter:image" content="https://i.pinimg.com/webp85/1200x/ae/42/0b/ae420b41441f707dc38dda3d0049e1ad.webp">
+
+    <link rel="manifest" href="tct.webmanifest">
+    <link rel="icon" type="image/x-icon" href="https://strawberrymaster.github.io/files/wizardry.ico">
     <script src="./js/tailwind.js"></script>
     <script src="./js/vue3.js"></script>
-    <title>Jet's TCT Mod Tool</title>
 
     <style>
         @media only screen and (max-width: 1000px) {
@@ -121,6 +135,60 @@
             --map-bg: #0f2237;
             --map-fill: #73b3ff;
             --map-stroke: #dbeafe;
+        }
+
+        html[data-theme="mallard"] {
+            --app-bg: #eef3f3;
+            --app-panel-bg: #dce5e5;
+            --app-editor-bg: #f2f7f7;
+            --app-text: #0f1a1a;
+            --card-bg: rgba(255, 255, 255, 0.88);
+            --muted-surface: #d4e0e0;
+            --input-bg: #ffffff;
+            --border-color: #b0c4c4;
+            --brand-start: #006064;
+            --brand-end: #00acc1;
+            --header-contrast: #ffffff;
+            --footer-bg: rgba(0, 150, 170, 0.92);
+            --map-bg: #b2ebf2;
+            --map-fill: #ff8a80;
+            --map-stroke: #00363a;
+        }
+
+        html[data-theme="xp-olive"] {
+            --app-bg: #ece9d8;
+            --app-panel-bg: #d4d0c8;
+            --app-editor-bg: #f0efe7;
+            --app-text: #000000;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --muted-surface: #e0dccd;
+            --input-bg: #ffffff;
+            --border-color: #aca899;
+            --brand-start: #4a5a1a;
+            --brand-end: #8cb43a;
+            --header-contrast: #ffffff;
+            --footer-bg: rgba(107, 124, 42, 0.95);
+            --map-bg: #e8edd0;
+            --map-fill: #c97e58;
+            --map-stroke: #000000;
+        }
+
+        html[data-theme="xp-silver"] {
+            --app-bg: #f0f1f4;
+            --app-panel-bg: #e0e2e8;
+            --app-editor-bg: #f5f6f8;
+            --app-text: #111827;
+            --card-bg: rgba(255, 255, 255, 0.88);
+            --muted-surface: #d4d6de;
+            --input-bg: #ffffff;
+            --border-color: #c4c7d0;
+            --brand-start: #1f2937;
+            --brand-end: #4b5563;
+            --header-contrast: #ffffff;
+            --footer-bg: rgba(75, 85, 99, 0.95);
+            --map-bg: #d4d8e0;
+            --map-fill: #f87171;
+            --map-stroke: #1f2937;
         }
 
         html[data-theme="sepia"] .effect-chip {
@@ -241,6 +309,159 @@
             color: #93c5fd !important;
             border-color: #3b82f6 !important;
             background: linear-gradient(180deg, rgba(30, 58, 95, 0.65), rgba(30, 41, 59, 0.1));
+        }
+
+        html[data-theme="mallard"] .effect-chip {
+            border-color: #b0c4c4;
+            box-shadow: inset 0 0 0 1px rgba(0, 96, 100, 0.08);
+        }
+
+        html[data-theme="mallard"] .effect-chip--feedback {
+            background-color: #dff5f8 !important;
+            border-color: #00acc1 !important;
+            color: #006064 !important;
+        }
+
+        html[data-theme="mallard"] .effect-chip--global {
+            background-color: #e9d5ff !important;
+            border-color: #a855f7 !important;
+            color: #5b2c83 !important;
+        }
+
+        html[data-theme="mallard"] .effect-chip--issues {
+            background-color: #e0f2e9 !important;
+            border-color: #00897b !important;
+            color: #004d40 !important;
+        }
+
+        html[data-theme="mallard"] .effect-chip--states {
+            background-color: #fff3e0 !important;
+            border-color: #ff7043 !important;
+            color: #bf360c !important;
+        }
+
+        html[data-theme="mallard"] .effect-chip--variables {
+            background-color: #dde1f7 !important;
+            border-color: #6366f1 !important;
+            color: #3840a0 !important;
+        }
+
+        html[data-theme="mallard"] .answer-tab {
+            color: #6b8a8a !important;
+        }
+
+        html[data-theme="mallard"] .answer-tab:hover {
+            color: #004d40 !important;
+            border-color: #80cbc4 !important;
+            background-color: rgba(0, 150, 170, 0.06);
+        }
+
+        html[data-theme="mallard"] .answer-tab.tab-active {
+            color: #00838f !important;
+            border-color: #00acc1 !important;
+            background: linear-gradient(180deg, rgba(178, 235, 242, 0.95), rgba(128, 203, 196, 0.4));
+        }
+
+        html[data-theme="xp-olive"] .effect-chip {
+            border-color: #aca899;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+        }
+
+        html[data-theme="xp-olive"] .effect-chip--feedback {
+            background-color: #e6edc8 !important;
+            border-color: #6b7c2a !important;
+            color: #3d4a10 !important;
+        }
+
+        html[data-theme="xp-olive"] .effect-chip--global {
+            background-color: #e9d5ff !important;
+            border-color: #a855f7 !important;
+            color: #5b2c83 !important;
+        }
+
+        html[data-theme="xp-olive"] .effect-chip--issues {
+            background-color: #d4edda !important;
+            border-color: #39a64e !important;
+            color: #1e6b2e !important;
+        }
+
+        html[data-theme="xp-olive"] .effect-chip--states {
+            background-color: #fee2d4 !important;
+            border-color: #ea580c !important;
+            color: #8a4d18 !important;
+        }
+
+        html[data-theme="xp-olive"] .effect-chip--variables {
+            background-color: #dde1f7 !important;
+            border-color: #6366f1 !important;
+            color: #3840a0 !important;
+        }
+
+        html[data-theme="xp-olive"] .answer-tab {
+            color: #6b7280 !important;
+        }
+
+        html[data-theme="xp-olive"] .answer-tab:hover {
+            color: #111827 !important;
+            border-color: #9ca3af !important;
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        html[data-theme="xp-olive"] .answer-tab.tab-active {
+            color: #6b7c2a !important;
+            border-color: #8cb43a !important;
+            background: linear-gradient(180deg, rgba(230, 237, 200, 0.95), rgba(200, 210, 165, 0.55));
+        }
+
+        html[data-theme="xp-silver"] .effect-chip {
+            border-color: #c4c7d0;
+            box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.08);
+        }
+
+        html[data-theme="xp-silver"] .effect-chip--feedback {
+            background-color: #e2e8f0 !important;
+            border-color: #4b5563 !important;
+            color: #1f2937 !important;
+        }
+
+        html[data-theme="xp-silver"] .effect-chip--global {
+            background-color: #e9d5ff !important;
+            border-color: #a855f7 !important;
+            color: #5b2c83 !important;
+        }
+
+        html[data-theme="xp-silver"] .effect-chip--issues {
+            background-color: #d1fae5 !important;
+            border-color: #059669 !important;
+            color: #065f46 !important;
+        }
+
+        html[data-theme="xp-silver"] .effect-chip--states {
+            background-color: #fed7aa !important;
+            border-color: #ea580c !important;
+            color: #9a3412 !important;
+        }
+
+        html[data-theme="xp-silver"] .effect-chip--variables {
+            background-color: #dde1f7 !important;
+            border-color: #6366f1 !important;
+            color: #3840a0 !important;
+        }
+
+        html[data-theme="xp-silver"] .answer-tab {
+            color: #6b7280 !important;
+        }
+
+        html[data-theme="xp-silver"] .answer-tab:hover {
+            color: #111827 !important;
+            border-color: #9ca3af !important;
+            background-color: rgba(8, 145, 178, 0.06);
+        }
+
+        html[data-theme="xp-silver"] .answer-tab.tab-active {
+            color: #1f2937 !important;
+            border-color: #4b5563 !important;
+            background: linear-gradient(180deg, rgba(226, 232, 240, 0.95), rgba(196, 200, 212, 0.5));
         }
 
         body {
@@ -366,6 +587,54 @@
         .shadow-xs {
             box-shadow: var(--utility-shadow) !important;
         }
+
+        .border-emerald-500 { border-color: var(--card-border-emerald) !important; }
+        .border-blue-400 { border-color: var(--card-border-blue) !important; }
+        .border-teal-400 { border-color: var(--card-border-teal) !important; }
+        .border-indigo-400 { border-color: var(--card-border-indigo) !important; }
+        .border-purple-400 { border-color: var(--card-border-purple) !important; }
+        .border-amber-300,
+        .border-amber-200,
+        .border-yellow-400 { border-color: var(--banner-border) !important; }
+        .bg-amber-50 { background-color: var(--amber-bg) !important; }
+        .text-amber-700,
+        .text-amber-950 { color: var(--amber-text) !important; }
+        .text-red-600 { color: var(--text-red-600) !important; }
+        .text-green-600 { color: var(--text-green-600) !important; }
+        .hover\:text-red-800:hover { color: var(--text-red-600) !important; }
+        .text-blue-600 { color: var(--accent-blue) !important; }
+        .text-blue-600.font-semibold { color: var(--accent-blue) !important; }
+        .hover\:text-blue-800:hover { color: var(--gradient-to-blue) !important; }
+        .hover\:text-gray-200:hover { color: rgba(255, 255, 255, 0.8) !important; }
+
+        .bg-gradient-to-r {
+            --tw-gradient-from: var(--gradient-from) var(--tw-gradient-from-position);
+            --tw-gradient-to: var(--gradient-to) var(--tw-gradient-to-position);
+        }
+        .from-blue-500 { --gradient-from: var(--gradient-from-blue); }
+        .to-blue-600 { --gradient-to: var(--gradient-to-blue); }
+        .hover\:from-blue-600:hover { --gradient-from: var(--gradient-from-blue-hover); }
+        .hover\:to-blue-700:hover { --gradient-to: var(--gradient-to-blue-hover); }
+        .from-green-500 { --gradient-from: var(--gradient-from-green); }
+        .to-green-600 { --gradient-to: var(--gradient-to-green); }
+        .hover\:from-green-600:hover { --gradient-from: var(--gradient-from-green-hover); }
+        .hover\:to-green-700:hover { --gradient-to: var(--gradient-to-green-hover); }
+        .from-purple-500 { --gradient-from: var(--gradient-from-purple); }
+        .to-purple-600 { --gradient-to: var(--gradient-to-purple); }
+        .hover\:from-purple-600:hover { --gradient-from: var(--gradient-from-purple-hover); }
+        .hover\:to-purple-700:hover { --gradient-to: var(--gradient-to-purple-hover); }
+        .from-orange-500 { --gradient-from: var(--gradient-from-orange); }
+        .to-orange-600 { --gradient-to: var(--gradient-to-orange); }
+        .hover\:from-orange-600:hover { --gradient-from: var(--gradient-from-orange-hover); }
+        .hover\:to-orange-700:hover { --gradient-to: var(--gradient-to-orange-hover); }
+        .from-red-500 { --gradient-from: var(--gradient-from-red); }
+        .to-red-600 { --gradient-to: var(--gradient-to-red); }
+        .hover\:from-red-600:hover { --gradient-from: var(--gradient-from-red-hover); }
+        .hover\:to-red-700:hover { --gradient-to: var(--gradient-to-red-hover); }
+
+        .accent-red-500 { accent-color: var(--accent-red) !important; }
+        .accent-green-500 { accent-color: var(--accent-green) !important; }
+        .accent-blue-500 { accent-color: var(--accent-blue) !important; }
 
         .theme-app-header,
         .theme-app-footer {

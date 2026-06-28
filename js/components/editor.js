@@ -29,17 +29,17 @@ registerComponent('toolbar', {
         <!-- Toolbar header with toggle -->
         <div class="theme-panel-header p-3 rounded-t-lg">
             <h3 class="font-semibold text-sm">Mod tools</h3>
-            <button @click="isMinimized = !isMinimized" 
+            <button @click="isMinimized = !isMinimized"
                     class="text-white/90 hover:text-white transition-colors"
                     :aria-label="isMinimized ? 'Expand toolbar' : 'Minimize toolbar'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" 
-                     :class="isMinimized ? 'rotate-180' : ''" 
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="isMinimized ? 'rotate-180' : ''"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
         </div>
-        
+
         <!-- Collapsible content -->
         <div v-show="!isMinimized" class="p-4">
             <div class="space-y-3">
@@ -60,13 +60,13 @@ registerComponent('toolbar', {
                     <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
                     <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors text-left" v-on:click="toggleThemeMode()">
                         <span class="block text-[11px] uppercase tracking-wide opacity-80">Theme</span>
-                        <span class="block font-medium leading-tight">{{ currentTheme === 'light' ? 'Light' : currentTheme === 'sepia' ? 'Sepia' : 'Dark' }}</span>
+                        <span class="block font-medium leading-tight">{{ getThemeDisplayName(currentTheme) }}</span>
                     </button>
                 </div>
                 <a href="./code1.html" class="theme-control inline-flex w-full justify-center px-3 py-2 rounded-sm text-sm transition-colors">Code 1 Tool Here</a>
             </div>
         </div>
-        
+
         <!-- Mod presets panel -->
         <div v-if="showModPresets" class="fixed inset-0 z-50">
             <div class="absolute inset-0 bg-black/50" @click="closeModPresets()" aria-hidden="true"></div>
@@ -76,13 +76,13 @@ registerComponent('toolbar', {
                         <h2 class="text-lg font-semibold">Mod presets</h2>
                         <button class="text-white/90 hover:text-white text-xl leading-none" @click="closeModPresets()" aria-label="Close">✕</button>
                     </div>
-                    
+
                     <div class="p-4 flex-1 overflow-y-auto">
                         <!-- Save current mod section -->
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-2">
                                 <h3 class="font-medium">Save current mod</h3>
-                                <button @click="showAddPreset = !showAddPreset" 
+                                <button @click="showAddPreset = !showAddPreset"
                                         class="theme-control theme-control--accent px-3 py-1 rounded hover:bg-gray-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -90,26 +90,26 @@ registerComponent('toolbar', {
                                     Save current
                                 </button>
                             </div>
-                            
+
                             <!-- Add New Preset Form -->
                             <div v-if="showAddPreset" class="mb-4 p-3 rounded border" style="background: var(--muted-surface);">
                                 <div class="space-y-2">
-                                    <input v-model="newPresetName" 
-                                           placeholder="Enter preset name..." 
+                                    <input v-model="newPresetName"
+                                           placeholder="Enter preset name..."
                                            class="w-full px-3 py-2 border rounded"
                                            @keyup.enter="saveCurrentAsPreset"
                                            maxlength="50">
-                                    <textarea v-model="newPresetDescription" 
-                                              placeholder="Enter optional description..." 
+                                    <textarea v-model="newPresetDescription"
+                                              placeholder="Enter optional description..."
                                               class="w-full px-3 py-2 border rounded"
                                               rows="2"
                                               maxlength="200"></textarea>
                                     <div class="flex gap-2">
-                                        <button @click="saveCurrentAsPreset" 
+                                        <button @click="saveCurrentAsPreset"
                                                 class="theme-control theme-control--primary px-3 py-1 rounded hover:bg-gray-600">
                                             Save Preset
                                         </button>
-                                        <button @click="cancelAddPreset" 
+                                        <button @click="cancelAddPreset"
                                                 class="theme-control px-3 py-1 rounded hover:bg-gray-600">
                                             Cancel
                                         </button>
@@ -117,22 +117,22 @@ registerComponent('toolbar', {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Saved presets list -->
                         <div>
                             <h3 class="font-medium mb-2">Saved presets ({{ modPresets.length }})</h3>
-                            
+
                             <div v-if="modPresets.length === 0" class="text-gray-500 italic text-center py-4">
                                 No mod presets saved yet. Import or create a mod, then save it as a preset.
                             </div>
-                            
+
                             <div v-else class="space-y-2">
-                                <div v-for="preset in modPresets" :key="preset.id" 
+                                <div v-for="preset in modPresets" :key="preset.id"
                                      class="border rounded p-3 hover:bg-gray-50">
                                     <div v-if="editingPreset !== preset.id">
                                         <div class="flex justify-between items-start">
                                             <div class="flex-1">
-                                                <h4 class="font-medium text-blue-600 hover:text-blue-800 cursor-pointer" 
+                                                <h4 class="font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
                                                     @click="loadModPreset(preset)">
                                                     {{ preset.name }}
                                                 </h4>
@@ -144,14 +144,14 @@ registerComponent('toolbar', {
                                                 </p>
                                             </div>
                                             <div class="flex gap-1 ml-2">
-                                                <button @click="startEditPreset(preset)" 
+                                                <button @click="startEditPreset(preset)"
                                                         class="text-gray-400 hover:text-blue-600 text-sm"
                                                         title="Edit preset">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                 </button>
-                                                <button @click="deleteModPreset(preset.id)" 
+                                                <button @click="deleteModPreset(preset.id)"
                                                         class="text-gray-400 hover:text-red-600 text-sm"
                                                         title="Delete preset">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -161,24 +161,24 @@ registerComponent('toolbar', {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div v-else class="space-y-2">
-                                        <input v-model="editPresetName" 
+                                        <input v-model="editPresetName"
                                                class="w-full px-2 py-1 border rounded"
                                                @keyup.enter="savePresetEdit"
                                                @keyup.escape="cancelEditPreset"
                                                maxlength="50">
-                                        <textarea v-model="editPresetDescription" 
+                                        <textarea v-model="editPresetDescription"
                                                   class="w-full px-2 py-1 border rounded"
                                                   rows="2"
                                                   @keyup.escape="cancelEditPreset"
                                                   maxlength="200"></textarea>
                                         <div class="flex gap-2">
-                                            <button @click="savePresetEdit" 
+                                            <button @click="savePresetEdit"
                                                     class="theme-control theme-control--primary px-2 py-1 text-sm rounded hover:bg-gray-600">
                                                 Save
                                             </button>
-                                            <button @click="cancelEditPreset" 
+                                            <button @click="cancelEditPreset"
                                                     class="theme-control px-2 py-1 text-sm rounded hover:bg-gray-600">
                                                 Cancel
                                             </button>
@@ -205,6 +205,18 @@ registerComponent('toolbar', {
                 window.setTheme(theme);
             }
             this.syncThemeState();
+        },
+
+        getThemeDisplayName: function (theme) {
+            const names = {
+                'light': 'Light',
+                'sepia': 'Sepia',
+                'dark': 'Dark',
+                'mallard': 'Mallard',
+                'xp-olive': 'Olive',
+                'xp-silver': 'Silver'
+            };
+            return names[theme] || 'Light';
         },
 
         toggleThemeMode: function () {
@@ -365,16 +377,16 @@ registerComponent('toolbar', {
                         // parse!
                         const parsed = loadDataFromFile(stripped);
                         window.$updateGlobalTCT(parsed);
-                        
+
                         const firstQuestionPk = Array.from(parsed.questions.values())[0].pk;
-                        
+
                         // force question component to refresh even if pk is the same
                         // useful in cases when importing mods works, but doesn't update the question you're currently in
                         this.$globalData.question = null;
                         this.$nextTick(() => {
                             this.$globalData.question = firstQuestionPk;
                         });
-                        
+
                         this.$globalData.state = Object.values(parsed.states)[0].pk;
                         this.$globalData.issue = Object.values(parsed.issues)[0].pk;
                         this.$globalData.candidate = getListOfCandidates()[0][0];
@@ -611,13 +623,13 @@ registerComponent('toolbar', {
                 // reset the interface to first items
                 const firstQuestionPk = Array.from(parsed.questions.values())[0]?.pk || null;
                 const firstStatePk = Object.values(parsed.states)[0]?.pk || null;
-                
+
                 // force question component to refresh even if pk is the same
                 this.$globalData.question = null;
                 this.$nextTick(() => {
                     this.$globalData.question = firstQuestionPk;
                 });
-                
+
                 this.$globalData.state = firstStatePk;
                 this.$globalData.issue = Object.values(parsed.issues)[0]?.pk || null;
                 this.$globalData.candidate = getListOfCandidates()[0]?.[0] || null;
@@ -810,4 +822,3 @@ registerComponent('editor', {
         },
     }
 })
-

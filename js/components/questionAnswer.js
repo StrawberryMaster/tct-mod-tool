@@ -763,7 +763,7 @@ registerComponent('answer', {
         <h1 class="font-bold">ANSWER PK {{this.pk}}</h1><br>
         <label for="description">Description:</label><br>
         <textarea @input="onInput($event)" :value="description" name="description" rows="4" cols="50"></textarea><br>
-        
+
         <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteAnswer()">Delete answer</button>
         <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneAnswer()">Clone answer</button>
 
@@ -1056,16 +1056,16 @@ registerComponent('global-score-card', {
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                     <div class="h-full rounded transition-all duration-200"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
-                                 backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    `,
+                                 backgroundColor: multiplier < 0 ? 'var(--score-negative)' : 'var(--score-positive)' }">
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </div>
+     `,
 
-    methods: {
-        onInput: function (evt) {
+     methods: {
+         onInput: function (evt) {
             let value = evt.target.value;
             if (shouldBeSavedAsNumber(value)) {
                 value = Number(value);
@@ -1141,11 +1141,11 @@ registerComponent('issue-score-card', {
                     <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                         <div class="h-full rounded transition-all duration-200"
                             :style="{ width: Math.min(Math.max((parseFloat(issueScore) + 1) * 50, 0), 100) + '%',
-                                     backgroundColor: issueScore < 0 ? '#ef4444' : '#22c55e' }">
-                        </div>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-500 mt-1">(-1.0 = Stance 1, 1.0 = Stance 7)</div>
+                                     backgroundColor: issueScore < 0 ? 'var(--score-negative)' : 'var(--score-positive)' }">
+                         </div>
+                     </div>
+                 </div>
+                 <div class="text-xs text-gray-500 mt-1">(-1.0 = Stance 1, 1.0 = Stance 7)</div>
             </div>
 
             <div>
@@ -1393,11 +1393,11 @@ registerComponent('state-score-card', {
                 <div class="ml-2 flex-1 h-2 bg-gray-200 rounded" aria-hidden="true">
                     <div class="h-full rounded transition-all duration-200"
                         :style="{ width: Math.min(Math.max((multiplier + 0.04) * 1250, 0), 100) + '%',
-                                 backgroundColor: multiplier < 0 ? '#ef4444' : '#22c55e' }">
-                    </div>
-                </div>
-            </div>
-            <div class="text-xs text-gray-500 mt-1">
+                                 backgroundColor: multiplier < 0 ? 'var(--score-negative)' : 'var(--score-positive)' }">
+                     </div>
+                 </div>
+             </div>
+             <div class="text-xs text-gray-500 mt-1">
                 <span v-if="multiplier > 0">Helps in this state</span>
                 <span v-else-if="multiplier < 0">Hurts in this state</span>
                 <span v-else>No effect</span>
@@ -1819,7 +1819,7 @@ registerComponent('integrated-state-effect-visualizer', {
             this.useListEditor = true;
             this.mapLoaded = false;
         },
-        
+
         initializeViewport(force = false) {
             const dims = this.resolveBaseDimensions();
             this.baseWidth = dims.width;
@@ -2191,7 +2191,7 @@ registerComponent('integrated-state-effect-visualizer', {
                             Loading map data...
                         </text>
                     </svg>
-                    
+
                     <!-- Zoom Controls Overlay -->
                     <div class="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
                         <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomIn">+</button>
@@ -2295,8 +2295,8 @@ registerComponent('integrated-state-effect-visualizer', {
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-1">
                         <label class="block text-xs font-medium text-gray-700">All state effects</label>
-                        <button v-if="allStateEffectsForAnswer.length > 0" 
-                                @click="deleteAllStateEffects" 
+                        <button v-if="allStateEffectsForAnswer.length > 0"
+                                @click="deleteAllStateEffects"
                                 class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
                                 title="Delete all state effects for this answer">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2344,14 +2344,14 @@ registerComponent('integrated-state-effect-visualizer', {
                     </div>
                     <button class="text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
                 </div>
-                
+
                 <div class="p-6 flex flex-col md:flex-row gap-6 overflow-y-auto min-h-0 flex-1">
                     <!-- Left: Large Map Display -->
                     <div class="md:w-3/5 flex flex-col min-h-0">
                         <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
                             Using basic shapes (fallback map)
                         </div>
-                        
+
                         <div class="relative border rounded-lg overflow-hidden flex-1 min-h-[400px] bg-gray-50 flex items-stretch">
                             <svg
                                 version="1.1"
@@ -2391,7 +2391,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                     Loading map data...
                                 </text>
                             </svg>
-                            
+
                             <!-- Zoom Controls Overlay -->
                             <div class="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
                                 <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @pointerdown.stop @click.stop="zoomIn">+</button>
@@ -2399,12 +2399,12 @@ registerComponent('integrated-state-effect-visualizer', {
                                 <button class="bg-white shadow border rounded px-2.5 py-1 text-xs hover:bg-gray-100 font-semibold" @pointerdown.stop @click.stop="resetViewport">Fit</button>
                                 <button class="bg-blue-600 text-white shadow border border-blue-700 rounded px-2 py-1 text-xs hover:bg-blue-700 font-semibold" @pointerdown.stop @click.stop="toggleExpand">Collapse</button>
                             </div>
-                            
+
                             <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
                                 <strong>Click</strong> to select, <strong>Drag</strong> to pan, <strong>Scroll</strong> to zoom.
                             </div>
                         </div>
-                        
+
                         <!-- Small States, D.C. and Congressional Districts Buttons -->
                         <div class="flex flex-wrap gap-1 mt-3" v-if="smallStates.length > 0 || districtStates.length > 0">
                             <button v-for="state in smallStates"
@@ -2422,13 +2422,13 @@ registerComponent('integrated-state-effect-visualizer', {
                                 {{ state.fields.abbr || state.fields.name.replace(/[^0-9]/g, '') }}
                             </button>
                         </div>
-                        
+
                         <div class="flex justify-between mt-3">
                             <button @click="selectAll" class="bg-blue-500 text-white px-3 py-1.5 text-xs rounded hover:bg-blue-600 font-medium">Select all</button>
                             <button @click="clearSelection" class="bg-red-500 text-white px-3 py-1.5 text-xs rounded hover:bg-red-600 font-medium">Clear selection</button>
                         </div>
                     </div>
-                    
+
                     <!-- Right: Large Controls Panel -->
                     <div class="md:w-2/5 flex flex-col overflow-y-auto pr-2">
                         <!-- Candidate Selection inside Modal -->
@@ -2455,7 +2455,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Presets inside Modal -->
                         <div class="mb-4">
                             <state-effect-presets
@@ -2463,7 +2463,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                 @applyValue="applyPresetValue">
                             </state-effect-presets>
                         </div>
-                        
+
                         <!-- Fallback State Dropdown inside Modal -->
                         <div class="mb-4 bg-gray-50 border rounded-lg p-4">
                             <label class="block text-xs font-medium text-gray-700 mb-1">Select state from list</label>
@@ -2481,7 +2481,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- Effect Value Editor inside Modal -->
                         <div class="mb-4 bg-gray-50 border rounded-lg p-4">
                             <label class="block text-xs font-medium text-gray-700 mb-1">Effect value (-1.0 to 1.0)</label>
@@ -2493,7 +2493,7 @@ registerComponent('integrated-state-effect-visualizer', {
                             </div>
                             <input type="range" v-model="editValue" min="-1" max="1" step="0.001" class="w-full mt-3">
                         </div>
-                        
+
                         <!-- Apply Button inside Modal -->
                         <div class="mb-4">
                             <button @click="applyValueToSelectedStates"
@@ -2503,7 +2503,7 @@ registerComponent('integrated-state-effect-visualizer', {
                                 Apply to selected ({{ selectedStatesCount }})
                             </button>
                         </div>
-                        
+
                         <!-- Color Scale inside Modal -->
                         <div class="mb-4 px-2">
                             <div class="flex justify-center items-center">
@@ -2515,13 +2515,13 @@ registerComponent('integrated-state-effect-visualizer', {
                                 <span>1.0</span>
                             </div>
                         </div>
-                        
+
                         <!-- All State Effects List inside Modal -->
                         <div class="mb-4">
                             <div class="flex justify-between items-center mb-2">
                                 <label class="block text-xs font-medium text-gray-700">All state effects for this answer</label>
-                                <button v-if="allStateEffectsForAnswer.length > 0" 
-                                        @click="deleteAllStateEffects" 
+                                <button v-if="allStateEffectsForAnswer.length > 0"
+                                        @click="deleteAllStateEffects"
                                         class="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50"
                                         title="Delete all state effects for this answer">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2599,7 +2599,7 @@ registerComponent('variable-effect-card', {
                     class="mt-1 p-1 text-sm block w-full border border-gray-300 rounded shadow-xs focus:ring-3 focus:ring-blue-400-purple-500 focus:border-purple-500">
             </div>
         </div>
-        
+
         <div class="mt-2 text-xs text-gray-500">
             Effect: <span class="font-medium">{{ variable }} {{ operation === 'add' ? '+' : '-' }}= {{ amount }}</span>
         </div>
@@ -2637,4 +2637,3 @@ registerComponent('variable-effect-card', {
         }
     }
 });
-

@@ -12,7 +12,7 @@ window.registerComponent = function (name, definition) {
 
 (function () {
     const THEME_KEY = 'tct-theme';
-    const THEME_ORDER = ['light', 'sepia', 'dark'];
+    const THEME_ORDER = ['light', 'sepia', 'dark', 'mallard', 'xp-olive', 'xp-silver'];
     const THEME_CONFIGS = {
         light: {
             themeColor: '#2563eb',
@@ -70,7 +70,51 @@ window.registerComponent = function (name, definition) {
                 '--utility-shadow': '0 1px 3px rgba(0, 0, 0, 0.12)',
                 '--map-bg': '#bfe6ff',
                 '--map-fill': '#ff9494',
-                '--map-stroke': '#111827'
+                '--map-stroke': '#111827',
+                '--score-positive': '#22c55e',
+                '--score-negative': '#ef4444',
+                '--gradient-from-blue': '#3b82f6',
+                '--gradient-to-blue': '#2563eb',
+                '--gradient-from-blue-hover': '#2563eb',
+                '--gradient-to-blue-hover': '#1d4ed8',
+                '--gradient-from-green': '#22c55e',
+                '--gradient-to-green': '#16a34a',
+                '--gradient-from-green-hover': '#16a34a',
+                '--gradient-to-green-hover': '#15803d',
+                '--gradient-from-purple': '#a855f7',
+                '--gradient-to-purple': '#9333ea',
+                '--gradient-from-purple-hover': '#9333ea',
+                '--gradient-to-purple-hover': '#7e22ce',
+                '--gradient-from-orange': '#f97316',
+                '--gradient-to-orange': '#ea580c',
+                '--gradient-from-orange-hover': '#ea580c',
+                '--gradient-to-orange-hover': '#c2410c',
+                '--gradient-from-red': '#ef4444',
+                '--gradient-to-red': '#dc2626',
+                '--gradient-from-red-hover': '#dc2626',
+                '--gradient-to-red-hover': '#b91c1c',
+                '--card-border-emerald': '#10b981',
+                '--card-border-blue': '#60a5fa',
+                '--card-border-teal': '#2dd4bf',
+                '--card-border-indigo': '#818cf8',
+                '--card-border-purple': '#c084fc',
+                '--amber-bg': '#fffbeb',
+                '--amber-border': '#fcd34d',
+                '--amber-text': '#b45309',
+                '--accent-red': '#ef4444',
+                '--accent-green': '#22c55e',
+                '--accent-blue': '#3b82f6',
+                '--text-red-600': '#dc2626',
+                '--text-green-600': '#16a34a',
+                '--banner-bg': '#75948f',
+                '--banner-border': '#eab308',
+                '--cyoa-popup-bg': '#222449',
+                '--cyoa-popup-border': '#727C96',
+                '--cyoa-popup-text': '#ffffff',
+                '--cyoa-popup-h3-border': '#cccccc',
+                '--tier-low': '#ff4d4d',
+                '--tier-mid': '#e6e6e6',
+                '--tier-high': '#4dff4d'
             },
             mapPalette: {
                 positive: ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'],
@@ -144,7 +188,51 @@ window.registerComponent = function (name, definition) {
                 '--utility-shadow': '0 1px 3px rgba(101, 67, 33, 0.14)',
                 '--map-bg': '#f0dcc2',
                 '--map-fill': '#c97e58',
-                '--map-stroke': '#4d3b2d'
+                '--map-stroke': '#4d3b2d',
+                '--score-positive': '#5d8a4a',
+                '--score-negative': '#b85a4a',
+                '--gradient-from-blue': '#b7791f',
+                '--gradient-to-blue': '#9a6518',
+                '--gradient-from-blue-hover': '#9a6518',
+                '--gradient-to-blue-hover': '#7d5012',
+                '--gradient-from-green': '#5d8a4a',
+                '--gradient-to-green': '#4d7a3a',
+                '--gradient-from-green-hover': '#4d7a3a',
+                '--gradient-to-green-hover': '#3d6a2a',
+                '--gradient-from-purple': '#a06dad',
+                '--gradient-to-purple': '#8d5d9a',
+                '--gradient-from-purple-hover': '#8d5d9a',
+                '--gradient-to-purple-hover': '#7a4d87',
+                '--gradient-from-orange': '#c28539',
+                '--gradient-to-orange': '#a86a1c',
+                '--gradient-from-orange-hover': '#a86a1c',
+                '--gradient-to-orange-hover': '#8d5510',
+                '--gradient-from-red': '#b85a4a',
+                '--gradient-to-red': '#a54a3a',
+                '--gradient-from-red-hover': '#a54a3a',
+                '--gradient-to-red-hover': '#923a2a',
+                '--card-border-emerald': '#5d8a4a',
+                '--card-border-blue': '#7d94a8',
+                '--card-border-teal': '#5d8a7a',
+                '--card-border-indigo': '#8d7dad',
+                '--card-border-purple': '#a06dad',
+                '--amber-bg': '#f7e6c8',
+                '--amber-border': '#c28539',
+                '--amber-text': '#7d5012',
+                '--accent-red': '#b85a4a',
+                '--accent-green': '#5d8a4a',
+                '--accent-blue': '#7d94a8',
+                '--text-red-600': '#b85a4a',
+                '--text-green-600': '#5d8a4a',
+                '--banner-bg': '#8a7a6a',
+                '--banner-border': '#c28539',
+                '--cyoa-popup-bg': '#3a3028',
+                '--cyoa-popup-border': '#8a7a6a',
+                '--cyoa-popup-text': '#f0e6d0',
+                '--cyoa-popup-h3-border': '#8a7a6a',
+                '--tier-low': '#c97a5a',
+                '--tier-mid': '#d0c0a8',
+                '--tier-high': '#5d8a4a'
             },
             mapPalette: {
                 positive: ['#f3e7d3', '#ead6b9', '#e0c69f', '#d6b681', '#cca665', '#c18f4d', '#b57b3f', '#9f6836', '#87552f', '#6f4328'],
@@ -218,7 +306,51 @@ window.registerComponent = function (name, definition) {
                 '--utility-shadow': '0 1px 3px rgba(0, 0, 0, 0.45)',
                 '--map-bg': '#0f2237',
                 '--map-fill': '#73b3ff',
-                '--map-stroke': '#dbeafe'
+                '--map-stroke': '#dbeafe',
+                '--score-positive': '#22c55e',
+                '--score-negative': '#ef4444',
+                '--gradient-from-blue': '#3b82f6',
+                '--gradient-to-blue': '#2563eb',
+                '--gradient-from-blue-hover': '#2563eb',
+                '--gradient-to-blue-hover': '#1d4ed8',
+                '--gradient-from-green': '#22c55e',
+                '--gradient-to-green': '#16a34a',
+                '--gradient-from-green-hover': '#16a34a',
+                '--gradient-to-green-hover': '#15803d',
+                '--gradient-from-purple': '#a855f7',
+                '--gradient-to-purple': '#9333ea',
+                '--gradient-from-purple-hover': '#9333ea',
+                '--gradient-to-purple-hover': '#7e22ce',
+                '--gradient-from-orange': '#f97316',
+                '--gradient-to-orange': '#ea580c',
+                '--gradient-from-orange-hover': '#ea580c',
+                '--gradient-to-orange-hover': '#c2410c',
+                '--gradient-from-red': '#ef4444',
+                '--gradient-to-red': '#dc2626',
+                '--gradient-from-red-hover': '#dc2626',
+                '--gradient-to-red-hover': '#b91c1c',
+                '--card-border-emerald': '#10b981',
+                '--card-border-blue': '#60a5fa',
+                '--card-border-teal': '#2dd4bf',
+                '--card-border-indigo': '#818cf8',
+                '--card-border-purple': '#c084fc',
+                '--amber-bg': '#422006',
+                '--amber-border': '#a16207',
+                '--amber-text': '#fde68a',
+                '--accent-red': '#ef4444',
+                '--accent-green': '#22c55e',
+                '--accent-blue': '#60a5fa',
+                '--text-red-600': '#f87171',
+                '--text-green-600': '#4ade80',
+                '--banner-bg': '#1e293b',
+                '--banner-border': '#eab308',
+                '--cyoa-popup-bg': '#0f172a',
+                '--cyoa-popup-border': '#334155',
+                '--cyoa-popup-text': '#e2e8f0',
+                '--cyoa-popup-h3-border': '#475569',
+                '--tier-low': '#ef4444',
+                '--tier-mid': '#475569',
+                '--tier-high': '#22c55e'
             },
             mapPalette: {
                 positive: ['#1e3a5f', '#1f4d78', '#245b8f', '#2a67a1', '#3275b8', '#3b82f6', '#4f90ff', '#62a0ff', '#76b1ff', '#93c5fd'],
@@ -234,6 +366,360 @@ window.registerComponent = function (name, definition) {
                 selected: '#e2e8f0',
                 highlighted: '#cbd5e1',
                 normal: '#94a3b8'
+            }
+        },
+        'mallard': {
+            themeColor: '#0097a7',
+            cssVars: {
+                '--app-bg': '#eef3f3',
+                '--app-panel-bg': '#dce5e5',
+                '--app-editor-bg': '#f2f7f7',
+                '--app-text': '#0f1a1a',
+                '--card-bg': 'rgba(255, 255, 255, 0.88)',
+                '--muted-surface': '#d4e0e0',
+                '--input-bg': '#ffffff',
+                '--border-color': '#b0c4c4',
+                '--brand-start': '#006064',
+                '--brand-end': '#00acc1',
+                '--header-contrast': '#ffffff',
+                '--footer-bg': 'rgba(0, 150, 170, 0.92)',
+                '--toolbar-header-start': '#006064',
+                '--toolbar-header-end': '#00acc1',
+                '--toolbar-header-text': '#ffffff',
+                '--toolbar-panel-bg': '#e8f0f0',
+                '--toolbar-panel-border': '#b0c4c4',
+                '--control-bg': '#dce5e5',
+                '--control-bg-hover': '#c4d1d1',
+                '--control-text': '#0f1a1a',
+                '--control-primary-bg': '#00acc1',
+                '--control-primary-text': '#ffffff',
+                '--control-primary-hover': '#0097a7',
+                '--control-accent-bg': '#00897b',
+                '--control-accent-text': '#ffffff',
+                '--utility-bg-white': '#ffffff',
+                '--utility-bg-white-90': 'rgba(255, 255, 255, 0.9)',
+                '--utility-bg-gray-50': '#eef5f5',
+                '--utility-bg-gray-100': '#e8f0f0',
+                '--utility-bg-gray-200': '#dce5e5',
+                '--utility-bg-gray-300': '#c4d1d1',
+                '--utility-bg-blue-50': '#dff5f8',
+                '--utility-bg-indigo-200': '#c7d2fe',
+                '--utility-bg-purple-200': '#e9d5ff',
+                '--utility-hover-gray-50': '#dce5e5',
+                '--utility-hover-gray-100': '#c4d1d1',
+                '--utility-hover-gray-300': '#b0c4c4',
+                '--utility-hover-gray-400': '#9aafaf',
+                '--utility-hover-gray-500': '#9aafaf',
+                '--utility-hover-gray-600': '#9aafaf',
+                '--utility-text-gray': '#1a2e2e',
+                '--utility-text-black': '#0f1a1a',
+                '--utility-hover-text-black': '#000000',
+                '--utility-hover-text-gray': '#0f1a1a',
+                '--utility-border': '#b0c4c4',
+                '--utility-input-bg': '#ffffff',
+                '--utility-input-text': '#0f1a1a',
+                '--utility-input-border': '#b0c4c4',
+                '--utility-input-placeholder': '#6b8a8a',
+                '--utility-input-focus': '#00acc1',
+                '--utility-shadow': '0 2px 4px rgba(0, 0, 0, 0.12)',
+                '--map-bg': '#b2ebf2',
+                '--map-fill': '#ff8a80',
+                '--map-stroke': '#00363a',
+                '--score-positive': '#00897b',
+                '--score-negative': '#e65100',
+                '--gradient-from-blue': '#00acc1',
+                '--gradient-to-blue': '#0097a7',
+                '--gradient-from-blue-hover': '#0097a7',
+                '--gradient-to-blue-hover': '#00838f',
+                '--gradient-from-green': '#00897b',
+                '--gradient-to-green': '#00695c',
+                '--gradient-from-green-hover': '#00695c',
+                '--gradient-to-green-hover': '#004d40',
+                '--gradient-from-purple': '#7e57c2',
+                '--gradient-to-purple': '#673ab7',
+                '--gradient-from-purple-hover': '#673ab7',
+                '--gradient-to-purple-hover': '#512da8',
+                '--gradient-from-orange': '#ff7043',
+                '--gradient-to-orange': '#f4511e',
+                '--gradient-from-orange-hover': '#f4511e',
+                '--gradient-to-orange-hover': '#d84315',
+                '--gradient-from-red': '#ef5350',
+                '--gradient-to-red': '#e53935',
+                '--gradient-from-red-hover': '#e53935',
+                '--gradient-to-red-hover': '#c62828',
+                '--card-border-emerald': '#26a69a',
+                '--card-border-blue': '#4dd0e1',
+                '--card-border-teal': '#80cbc4',
+                '--card-border-indigo': '#9fa8da',
+                '--card-border-purple': '#ce93d8',
+                '--amber-bg': '#fff8e1',
+                '--amber-border': '#ffd54f',
+                '--amber-text': '#e65100',
+                '--accent-red': '#ef5350',
+                '--accent-green': '#00897b',
+                '--accent-blue': '#00acc1',
+                '--text-red-600': '#e65100',
+                '--text-green-600': '#00897b',
+                '--banner-bg': '#80cbc4',
+                '--banner-border': '#ffb300',
+                '--cyoa-popup-bg': '#004d40',
+                '--cyoa-popup-border': '#26a69a',
+                '--cyoa-popup-text': '#e0f2f1',
+                '--cyoa-popup-h3-border': '#80cbc4',
+                '--tier-low': '#ff7043',
+                '--tier-mid': '#b2dfdb',
+                '--tier-high': '#26a69a'
+            },
+            mapPalette: {
+                positive: ['#e0f7fa', '#b2ebf2', '#80deea', '#4dd0e1', '#26c6da', '#00bcd4', '#00acc1', '#0097a7', '#00838f', '#006064'],
+                negative: ['#fbe9e7', '#ffccbc', '#ffab91', '#ff8a65', '#ff7043', '#ff5722', '#f4511e', '#e64a19', '#d84315', '#bf360c'],
+                neutral: '#c4d1d1'
+            },
+            stateMetricPalette: {
+                positive: ['#e0f7fa', '#80deea', '#26c6da', '#00acc1', '#00838f'],
+                negative: ['#fbe9e7', '#ffab91', '#ff7043', '#f4511e', '#d84315'],
+                neutral: '#d4e0e0'
+            },
+            stateStroke: {
+                selected: '#004d40',
+                highlighted: '#00695c',
+                normal: '#80cbc4'
+            }
+        },
+        'xp-olive': {
+            themeColor: '#6b7c2a',
+            cssVars: {
+                '--app-bg': '#ece9d8',
+                '--app-panel-bg': '#d4d0c8',
+                '--app-editor-bg': '#f0efe7',
+                '--app-text': '#000000',
+                '--card-bg': 'rgba(255, 255, 255, 0.85)',
+                '--muted-surface': '#e0dccd',
+                '--input-bg': '#ffffff',
+                '--border-color': '#aca899',
+                '--brand-start': '#4a5a1a',
+                '--brand-end': '#8cb43a',
+                '--header-contrast': '#ffffff',
+                '--footer-bg': 'rgba(107, 124, 42, 0.95)',
+                '--toolbar-header-start': '#4a5a1a',
+                '--toolbar-header-end': '#8cb43a',
+                '--toolbar-header-text': '#ffffff',
+                '--toolbar-panel-bg': '#ece9d8',
+                '--toolbar-panel-border': '#aca899',
+                '--control-bg': '#ece9d8',
+                '--control-bg-hover': '#d4d0c8',
+                '--control-text': '#000000',
+                '--control-primary-bg': '#8cb43a',
+                '--control-primary-text': '#ffffff',
+                '--control-primary-hover': '#6b8c2a',
+                '--control-accent-bg': '#39a64e',
+                '--control-accent-text': '#ffffff',
+                '--utility-bg-white': '#ffffff',
+                '--utility-bg-white-90': 'rgba(255, 255, 255, 0.9)',
+                '--utility-bg-gray-50': '#f5f3ed',
+                '--utility-bg-gray-100': '#ece9d8',
+                '--utility-bg-gray-200': '#e0dccd',
+                '--utility-bg-gray-300': '#d4d0c8',
+                '--utility-bg-blue-50': '#dae6f5',
+                '--utility-bg-indigo-200': '#c7d2fe',
+                '--utility-bg-purple-200': '#e9d5ff',
+                '--utility-hover-gray-50': '#e0dccd',
+                '--utility-hover-gray-100': '#d4d0c8',
+                '--utility-hover-gray-300': '#c0bca8',
+                '--utility-hover-gray-400': '#aca899',
+                '--utility-hover-gray-500': '#aca899',
+                '--utility-hover-gray-600': '#aca899',
+                '--utility-text-gray': '#1f2937',
+                '--utility-text-black': '#000000',
+                '--utility-hover-text-black': '#000000',
+                '--utility-hover-text-gray': '#111827',
+                '--utility-border': '#aca899',
+                '--utility-input-bg': '#ffffff',
+                '--utility-input-text': '#000000',
+                '--utility-input-border': '#aca899',
+                '--utility-input-placeholder': '#6b7280',
+                '--utility-input-focus': '#8cb43a',
+                '--utility-shadow': '0 2px 4px rgba(0, 0, 0, 0.18)',
+                '--map-bg': '#e8edd0',
+                '--map-fill': '#c97e58',
+                '--map-stroke': '#000000',
+                '--score-positive': '#558b2f',
+                '--score-negative': '#d84315',
+                '--gradient-from-blue': '#8cb43a',
+                '--gradient-to-blue': '#6b8c2a',
+                '--gradient-from-blue-hover': '#6b8c2a',
+                '--gradient-to-blue-hover': '#4a6a1a',
+                '--gradient-from-green': '#558b2f',
+                '--gradient-to-green': '#33691e',
+                '--gradient-from-green-hover': '#33691e',
+                '--gradient-to-green-hover': '#1b3d0e',
+                '--gradient-from-purple': '#9c7e5c',
+                '--gradient-to-purple': '#7d6348',
+                '--gradient-from-purple-hover': '#7d6348',
+                '--gradient-to-purple-hover': '#5e4a34',
+                '--gradient-from-orange': '#c28539',
+                '--gradient-to-orange': '#a86a1c',
+                '--gradient-from-orange-hover': '#a86a1c',
+                '--gradient-to-orange-hover': '#8d5510',
+                '--gradient-from-red': '#d84315',
+                '--gradient-to-red': '#bf360c',
+                '--gradient-from-red-hover': '#bf360c',
+                '--gradient-to-red-hover': '#a02700',
+                '--card-border-emerald': '#558b2f',
+                '--card-border-blue': '#8cb43a',
+                '--card-border-teal': '#7cb342',
+                '--card-border-indigo': '#9c7e5c',
+                '--card-border-purple': '#b8956a',
+                '--amber-bg': '#f7e6c8',
+                '--amber-border': '#c28539',
+                '--amber-text': '#7d5012',
+                '--accent-red': '#d84315',
+                '--accent-green': '#558b2f',
+                '--accent-blue': '#8cb43a',
+                '--text-red-600': '#d84315',
+                '--text-green-600': '#558b2f',
+                '--banner-bg': '#8a8a6a',
+                '--banner-border': '#c28539',
+                '--cyoa-popup-bg': '#3a3a20',
+                '--cyoa-popup-border': '#7a8a5a',
+                '--cyoa-popup-text': '#f0f0d0',
+                '--cyoa-popup-h3-border': '#8a9a6a',
+                '--tier-low': '#d84315',
+                '--tier-mid': '#c8c0a8',
+                '--tier-high': '#558b2f'
+            },
+            mapPalette: {
+                positive: ['#f1f8e9', '#dcedc8', '#c5e1a5', '#aed581', '#9ccc65', '#8bc34a', '#7cb342', '#689f38', '#558b2f', '#33691e'],
+                negative: ['#fbe9e7', '#ffccbc', '#ffab91', '#ff8a65', '#ff7043', '#ff5722', '#f4511e', '#e64a19', '#d84315', '#bf360c'],
+                neutral: '#d4d0c8'
+            },
+            stateMetricPalette: {
+                positive: ['#f1f8e9', '#c5e1a5', '#9ccc65', '#7cb342', '#558b2f'],
+                negative: ['#fbe9e7', '#ffab91', '#ff7043', '#f4511e', '#d84315'],
+                neutral: '#e0dccd'
+            },
+            stateStroke: {
+                selected: '#000000',
+                highlighted: '#333333',
+                normal: '#666666'
+            }
+        },
+        'xp-silver': {
+            themeColor: '#4b5563',
+            cssVars: {
+                '--app-bg': '#f0f1f4',
+                '--app-panel-bg': '#e0e2e8',
+                '--app-editor-bg': '#f5f6f8',
+                '--app-text': '#111827',
+                '--card-bg': 'rgba(255, 255, 255, 0.88)',
+                '--muted-surface': '#d4d6de',
+                '--input-bg': '#ffffff',
+                '--border-color': '#c4c7d0',
+                '--brand-start': '#1f2937',
+                '--brand-end': '#4b5563',
+                '--header-contrast': '#ffffff',
+                '--footer-bg': 'rgba(75, 85, 99, 0.95)',
+                '--toolbar-header-start': '#1f2937',
+                '--toolbar-header-end': '#4b5563',
+                '--toolbar-header-text': '#ffffff',
+                '--toolbar-panel-bg': '#e8e9ee',
+                '--toolbar-panel-border': '#c4c7d0',
+                '--control-bg': '#d4d6de',
+                '--control-bg-hover': '#c0c3cc',
+                '--control-text': '#111827',
+                '--control-primary-bg': '#4b5563',
+                '--control-primary-text': '#ffffff',
+                '--control-primary-hover': '#374151',
+                '--control-accent-bg': '#0891b2',
+                '--control-accent-text': '#ffffff',
+                '--utility-bg-white': '#ffffff',
+                '--utility-bg-white-90': 'rgba(255, 255, 255, 0.9)',
+                '--utility-bg-gray-50': '#f0f1f4',
+                '--utility-bg-gray-100': '#e8e9ee',
+                '--utility-bg-gray-200': '#e0e2e8',
+                '--utility-bg-gray-300': '#d4d6de',
+                '--utility-bg-blue-50': '#e2e8f0',
+                '--utility-bg-indigo-200': '#c7d2fe',
+                '--utility-bg-purple-200': '#e9d5ff',
+                '--utility-hover-gray-50': '#e0e2e8',
+                '--utility-hover-gray-100': '#d4d6de',
+                '--utility-hover-gray-300': '#c0c3cc',
+                '--utility-hover-gray-400': '#a8abb8',
+                '--utility-hover-gray-500': '#a8abb8',
+                '--utility-hover-gray-600': '#a8abb8',
+                '--utility-text-gray': '#1f2937',
+                '--utility-text-black': '#111827',
+                '--utility-hover-text-black': '#000000',
+                '--utility-hover-text-gray': '#111827',
+                '--utility-border': '#c4c7d0',
+                '--utility-input-bg': '#ffffff',
+                '--utility-input-text': '#111827',
+                '--utility-input-border': '#c4c7d0',
+                '--utility-input-placeholder': '#6b7280',
+                '--utility-input-focus': '#0891b2',
+                '--utility-shadow': '0 2px 4px rgba(0, 0, 0, 0.14)',
+                '--map-bg': '#d4d8e0',
+                '--map-fill': '#f87171',
+                '--map-stroke': '#1f2937',
+                '--score-positive': '#059669',
+                '--score-negative': '#dc2626',
+                '--gradient-from-blue': '#0891b2',
+                '--gradient-to-blue': '#0e7490',
+                '--gradient-from-blue-hover': '#0e7490',
+                '--gradient-to-blue-hover': '#155e75',
+                '--gradient-from-green': '#059669',
+                '--gradient-to-green': '#047857',
+                '--gradient-from-green-hover': '#047857',
+                '--gradient-to-green-hover': '#065f46',
+                '--gradient-from-purple': '#7c3aed',
+                '--gradient-to-purple': '#6d28d9',
+                '--gradient-from-purple-hover': '#6d28d9',
+                '--gradient-to-purple-hover': '#5b21b6',
+                '--gradient-from-orange': '#f97316',
+                '--gradient-to-orange': '#ea580c',
+                '--gradient-from-orange-hover': '#ea580c',
+                '--gradient-to-orange-hover': '#c2410c',
+                '--gradient-from-red': '#ef4444',
+                '--gradient-to-red': '#dc2626',
+                '--gradient-from-red-hover': '#dc2626',
+                '--gradient-to-red-hover': '#b91c1c',
+                '--card-border-emerald': '#059669',
+                '--card-border-blue': '#38bdf8',
+                '--card-border-teal': '#2dd4bf',
+                '--card-border-indigo': '#818cf8',
+                '--card-border-purple': '#c084fc',
+                '--amber-bg': '#fffbeb',
+                '--amber-border': '#fcd34d',
+                '--amber-text': '#b45309',
+                '--accent-red': '#ef4444',
+                '--accent-green': '#059669',
+                '--accent-blue': '#0891b2',
+                '--text-red-600': '#dc2626',
+                '--text-green-600': '#059669',
+                '--banner-bg': '#64748b',
+                '--banner-border': '#eab308',
+                '--cyoa-popup-bg': '#1e293b',
+                '--cyoa-popup-border': '#475569',
+                '--cyoa-popup-text': '#e2e8f0',
+                '--cyoa-popup-h3-border': '#64748b',
+                '--tier-low': '#ef4444',
+                '--tier-mid': '#9ca3af',
+                '--tier-high': '#059669'
+            },
+            mapPalette: {
+                positive: ['#f3f4f6', '#e5e7eb', '#d1d5db', '#9ca3af', '#6b7280', '#4b5563', '#374151', '#1f2937', '#111827', '#030712'],
+                negative: ['#fef2f2', '#fee2e2', '#fecaca', '#fca5a5', '#f87171', '#ef4444', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d'],
+                neutral: '#c4c7d0'
+            },
+            stateMetricPalette: {
+                positive: ['#f3f4f6', '#d1d5db', '#9ca3af', '#6b7280', '#374151'],
+                negative: ['#fef2f2', '#fecaca', '#f87171', '#ef4444', '#b91c1c'],
+                neutral: '#d4d6de'
+            },
+            stateStroke: {
+                selected: '#1f2937',
+                highlighted: '#374151',
+                normal: '#6b7280'
             }
         }
     };
@@ -381,7 +867,7 @@ class TCTData {
     _getFromIndex(indexName, sourceData, fieldKey, lookupValue) {
         if (!this._indices[indexName]) {
             const index = new Map();
-            
+
             const items = sourceData instanceof Map ? sourceData.values() : Object.values(sourceData);
 
             for (const item of items) {
@@ -439,7 +925,7 @@ class TCTData {
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const val = obj[key];
-            
+
             if (typeof val === 'string') {
                 const trimmed = val.trim();
                 if (trimmed !== '') {
@@ -1243,7 +1729,7 @@ class TCTData {
         if (!pointsRaw || typeof pointsRaw !== 'string') {
             return null;
         }
-        
+
         const nums = pointsRaw.match(/-?\d*\.?\d+(?:[eE][-+]?\d+)?/g);
         if (!nums || nums.length < 4 || (nums.length & 1) !== 0) {
             return null;
@@ -1794,7 +2280,7 @@ class TCTData {
                         missingVars.push(`var ${varName} = ${v.defaultValue};`);
                     }
                 }
-                
+
                 if (missingVars.length > 0) {
                     const missingStr = missingVars.join("\n");
                     // try to inject right after the existing comment
@@ -1826,7 +2312,7 @@ class TCTData {
                 if (generatedEffects) {
                     const noCounterRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[\s\S]*?e\.noCounter\s*=\s*[^;]+;[ \t]*\r?\n)/;
                     const ansRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[ \t]*\r?\n)/;
-                    
+
                     let match = codeToAdd.match(noCounterRe);
                     let insertionPoint = -1;
                     let indent = "    ";
@@ -2321,13 +2807,13 @@ endingPicker = (out, totv, aa, quickstats) => {
                     }
                     groupMap.get(groupKey).push(slide);
                 }
-                
+
                 const mainSlides = groupMap.get("main") || parsed;
                 let validMain = mainSlides.find((slide) => {
                     return _tctMatchesPrimaryCondition(slide, quickstats, out)
                         && _tctCheckExtraConditions(slide, playerAnswers);
                 });
-                
+
                 if (validMain) isMatch = true;
             } else {
                 // legacy format without json slides
@@ -3234,7 +3720,7 @@ function loadDataFromFile(raw_json) {
     }
     extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
-    
+
     if (jet_data.endings_enabled) {
         excludeArrowFunctionAssignments("endingPicker", false);
         excludeArrowFunctionAssignments("endingConstructor", false);
@@ -3273,4 +3759,3 @@ function loadDataFromFile(raw_json) {
 
     return new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
 }
-
