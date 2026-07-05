@@ -24,6 +24,15 @@ const requestAutosaveDebounced = (() => {
 })();
 window.requestCode1AutosaveDebounced = requestAutosaveDebounced;
 
+window.$promptCode1ChangePk = function (type, oldPk, label) {
+    const newPk = prompt(`Enter new PK for ${label || type} (currently ${oldPk}):`, oldPk);
+    if (newPk === null || newPk === "" || Number(newPk) === Number(oldPk)) return;
+    const tct = window.$TCT;
+    if (tct.changePk(type, Number(oldPk), Number(newPk))) {
+        window.$globalData.dataVersion++;
+    }
+};
+
 async function initCode1Storage() {
     if (window.TCTDB) {
         await TCTDB.migrate();

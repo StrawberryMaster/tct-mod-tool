@@ -1,7 +1,7 @@
 registerCode1Component('mode-picker', {
     template: `
     <div class="flex flex-wrap gap-2">
-        <button v-for="m in modes" :key="m.id" 
+        <button v-for="m in modes" :key="m.id"
             @click="setMode(m.id)"
             :class="['px-3 py-1 rounded text-sm font-medium transition', $globalData.mode === m.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300']"
         >
@@ -43,7 +43,7 @@ registerCode1Component('election-editor', {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">PK (ID)</label>
-                    <input v-model.number="election.pk" type="number" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <input :value="election.pk" @change="changeElectionPk(election, $event)" type="number" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -77,7 +77,18 @@ registerCode1Component('election-editor', {
             </div>
         </div>
     </div>
-    `
+    `,
+    methods: {
+        changeElectionPk(election, event) {
+            const newPk = Number(event.target.value);
+            const oldPk = election.pk;
+            if (!isNaN(newPk) && newPk !== oldPk) {
+                this.$TCT.changePk('election', oldPk, newPk);
+            } else if (isNaN(newPk)) {
+                event.target.value = oldPk;
+            }
+        }
+    }
 });
 
 registerCode1Component('candidate-editor', {
@@ -87,9 +98,13 @@ registerCode1Component('candidate-editor', {
             <h3 class="text-lg font-bold">Candidates</h3>
             <button @click="addCandidate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add</button>
         </div>
-        
+
+        <div v-if="visibleCandidates.length === 0" class="text-sm text-gray-500 italic py-4">
+            No candidates defined. Running mates are shown in the Running Mates tab.
+        </div>
+
         <div class="flex flex-wrap gap-2 mb-4">
-            <button v-for="(cand, index) in $TCT.candidates" :key="cand.pk" 
+            <button v-for="(cand, index) in visibleCandidates" :key="cand.pk"
                 @click="selectedIdx = index"
                 :class="['px-2 py-1 rounded text-xs', selectedIdx === index ? 'bg-blue-600 text-white' : 'bg-gray-200']"
             >
@@ -98,11 +113,15 @@ registerCode1Component('candidate-editor', {
         </div>
 
         <div v-if="currentCand" class="space-y-4 p-4 border rounded bg-gray-50 relative">
-            <button @click="deleteCandidate" class="absolute top-2 right-2 text-red-600 hover:text-red-800" title="Delete candidate">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-            </button>
+            <div class="flex gap-2 items-center mb-2">
+                <label class="text-sm font-medium text-gray-700">PK:</label>
+                <input :value="currentCand.pk" @change="changeCandidatePk($event)" type="number" class="w-24 rounded border-gray-300 text-sm">
+                <button @click="deleteCandidate" class="ml-auto text-red-600 hover:text-red-800" title="Delete candidate">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -171,12 +190,12 @@ registerCode1Component('candidate-editor', {
                 <label class="block text-sm font-medium text-gray-700">Running mate description (HTML; if applicable)</label>
                 <textarea v-model="currentCand.fields.description_as_running_mate" rows="4" class="mt-1 block w-full rounded border-gray-300"></textarea>
             </div>
-            
+
              <div>
                 <label class="block text-sm font-medium text-gray-700">Victory message</label>
                 <textarea v-model="currentCand.fields.electoral_victory_message" rows="2" class="mt-1 block w-full rounded border-gray-300"></textarea>
             </div>
-            
+
             <div>
                 <label class="block text-sm font-medium text-gray-700">Loss message</label>
                 <textarea v-model="currentCand.fields.electoral_loss_message" rows="2" class="mt-1 block w-full rounded border-gray-300"></textarea>
@@ -190,8 +209,11 @@ registerCode1Component('candidate-editor', {
         };
     },
     computed: {
+        visibleCandidates() {
+            return this.$TCT.candidates.filter(c => !c.fields.running_mate);
+        },
         currentCand() {
-            return this.$TCT.candidates[this.selectedIdx];
+            return this.visibleCandidates[this.selectedIdx];
         }
     },
     methods: {
@@ -220,13 +242,26 @@ registerCode1Component('candidate-editor', {
                     "running_mate": false
                 }
             });
-            this.selectedIdx = this.$TCT.candidates.length - 1;
+            this.selectedIdx = this.visibleCandidates.length - 1;
         },
         deleteCandidate() {
-            if (this.$TCT.candidates.length <= 1) return;
-            if (confirm("Are you sure you want to delete this candidate?")) {
-                this.$TCT.candidates.splice(this.selectedIdx, 1);
+            const cand = this.currentCand;
+            if (!cand || this.visibleCandidates.length <= 1) return;
+            if (confirm(`Are you sure you want to delete ${cand.fields.first_name} ${cand.fields.last_name}?`)) {
+                const fullIdx = this.$TCT.candidates.indexOf(cand);
+                if (fullIdx !== -1) this.$TCT.candidates.splice(fullIdx, 1);
                 this.selectedIdx = Math.max(0, this.selectedIdx - 1);
+            }
+        },
+        changeCandidatePk(event) {
+            const cand = this.currentCand;
+            if (!cand) return;
+            const newPk = Number(event.target.value);
+            const oldPk = cand.pk;
+            if (!isNaN(newPk) && newPk !== oldPk) {
+                this.$TCT.changePk('candidate', oldPk, newPk);
+            } else if (isNaN(newPk)) {
+                event.target.value = oldPk;
             }
         }
     }
@@ -240,52 +275,139 @@ registerCode1Component('running-mate-editor', {
             <button @click="addRunningMate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add link</button>
         </div>
 
-        <div v-for="(rm, index) in $TCT.running_mates" :key="index" class="p-3 border rounded bg-white shadow-sm relative">
-             <button @click="deleteRunningMate(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <button v-for="(rm, index) in $TCT.running_mates" :key="rm.pk"
+                @click="selectedIdx = index"
+                :class="['px-2 py-1 rounded text-xs', selectedIdx === index ? 'bg-blue-600 text-white' : 'bg-gray-200']"
+            >
+                {{ runningMateName(rm) }} ({{ rm.pk }})
             </button>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Main candidate</label>
-                    <select v-model.number="rm.fields.candidate" class="mt-1 block w-full rounded border-gray-300 sm:text-sm">
-                        <option v-for="c in candidates" :key="c.pk" :value="c.pk">{{c.fields.first_name}} {{c.fields.last_name}} ({{c.pk}})</option>
-                    </select>
+        </div>
+
+        <div v-if="currentRm" class="space-y-4 p-4 border rounded bg-gray-50 relative">
+            <div class="flex gap-2 items-center mb-2">
+                <label class="text-sm font-medium text-gray-700">PK:</label>
+                <input :value="currentRm.pk" @change="changeRunningMatePk($event)" type="number" class="w-24 rounded border-gray-300 text-sm">
+                <button @click="deleteRunningMate" class="ml-auto text-red-600 hover:text-red-800" title="Delete running mate link">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Running mate for?</label>
+                <select v-model.number="currentRm.fields.candidate" class="mt-1 block w-full rounded border-gray-300 sm:text-sm">
+                    <option v-for="c in actualCandidates" :key="c.pk" :value="c.pk">{{c.fields.first_name}} {{c.fields.last_name}} ({{c.pk}})</option>
+                </select>
+            </div>
+
+            <div v-if="rmCandidate" class="border-t pt-4 mt-4 space-y-4">
+                <h4 class="text-md font-semibold text-gray-800">Running mate details</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">First name</label>
+                        <input v-model="rmCandidate.fields.first_name" type="text" class="mt-1 block w-full rounded border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Last name</label>
+                        <input v-model="rmCandidate.fields.last_name" type="text" class="mt-1 block w-full rounded border-gray-300">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Party</label>
+                        <input v-model="rmCandidate.fields.party" type="text" class="mt-1 block w-full rounded border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Home state</label>
+                        <input v-model="rmCandidate.fields.state" type="text" class="mt-1 block w-full rounded border-gray-300">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Color hex</label>
+                        <div class="flex gap-2 items-center">
+                            <input v-model="rmCandidate.fields.color_hex" type="text" class="mt-1 block w-full rounded border-gray-300 font-mono">
+                            <input v-model="rmCandidate.fields.color_hex" type="color" class="mt-1 h-8 w-8 border rounded">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Candidate score</label>
+                        <input v-model.number="rmCandidate.fields.candidate_score" type="number" step="0.1" class="mt-1 block w-full rounded border-gray-300">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Running mate</label>
-                     <select v-model.number="rm.fields.running_mate" class="mt-1 block w-full rounded border-gray-300 sm:text-sm">
-                        <option v-for="c in candidates" :key="c.pk" :value="c.pk">{{c.fields.first_name}} {{c.fields.last_name}} ({{c.pk}})</option>
-                    </select>
+                    <label class="block text-sm font-medium text-gray-700">Image URL</label>
+                    <input v-model="rmCandidate.fields.image_url" type="text" class="mt-1 block w-full rounded border-gray-300">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Running mate description (HTML)</label>
+                    <textarea v-model="rmCandidate.fields.description_as_running_mate" rows="3" class="mt-1 block w-full rounded border-gray-300"></textarea>
                 </div>
             </div>
-            
+
             <div class="mt-2 text-xs text-gray-500 italic">
-                Note: Ensure the running mate is marked as 'Not Active' in the Candidates tab to appear correctly in game.
+                Note: Ensure the running mate candidate is marked as 'Not Active' in the Candidates tab to appear correctly in game.
             </div>
+        </div>
+
+        <div v-if="$TCT.running_mates.length === 0" class="text-sm text-gray-500 italic py-4">
+            No running mate links defined. Add one to link a candidate with their running mate.
         </div>
     </div>
     `,
+    data() {
+        return {
+            selectedIdx: 0
+        };
+    },
     computed: {
-        candidates() { return this.$TCT.candidates; }
+        candidates() { return this.$TCT.candidates; },
+        actualCandidates() { return this.$TCT.candidates.filter(c => !c.fields.running_mate); },
+        currentRm() {
+            return this.$TCT.running_mates[this.selectedIdx];
+        },
+        rmCandidate() {
+            if (!this.currentRm) return null;
+            return this.$TCT.candidates.find(c => c.pk === this.currentRm.fields.running_mate);
+        }
     },
     methods: {
+        runningMateName(rm) {
+            const cand = this.$TCT.candidates.find(c => c.pk === rm.fields.running_mate);
+            return cand ? (cand.fields.last_name || 'Unknown') : 'Unknown';
+        },
         addRunningMate() {
+            const actualCands = this.actualCandidates;
             const maxPk = Math.max(...this.$TCT.running_mates.map(rm => rm.pk), 0);
+            const runningMate = this.$TCT.candidates.find(c => c.fields.running_mate && !this.$TCT.running_mates.some(r => r.fields.running_mate === c.pk));
             this.$TCT.running_mates.push({
                 "model": "campaign_trail.running_mate",
                 "pk": maxPk + 1,
                 "fields": {
-                    "candidate": this.candidates[0]?.pk,
-                    "running_mate": this.candidates[1]?.pk || this.candidates[0]?.pk
+                    "candidate": actualCands[0]?.pk,
+                    "running_mate": runningMate?.pk || this.$TCT.candidates.find(c => c.fields.running_mate)?.pk || actualCands[1]?.pk || actualCands[0]?.pk
                 }
             });
+            this.selectedIdx = this.$TCT.running_mates.length - 1;
         },
-        deleteRunningMate(index) {
+        deleteRunningMate() {
+            if (this.$TCT.running_mates.length === 0) return;
             if (confirm("Delete this running mate link?")) {
-                this.$TCT.running_mates.splice(index, 1);
+                this.$TCT.running_mates.splice(this.selectedIdx, 1);
+                this.selectedIdx = Math.max(0, this.selectedIdx - 1);
+            }
+        },
+        changeRunningMatePk(event) {
+            const rm = this.currentRm;
+            if (!rm) return;
+            const newPk = Number(event.target.value);
+            const oldPk = rm.pk;
+            if (!isNaN(newPk) && newPk !== oldPk) {
+                this.$TCT.changePk('running_mate', oldPk, newPk);
+            } else if (isNaN(newPk)) {
+                event.target.value = oldPk;
             }
         }
     }
@@ -295,7 +417,7 @@ registerCode1Component('theme-editor', {
     template: `
     <div class="space-y-4">
         <h3 class="text-lg font-bold border-b pb-1">Mod theme</h3>
-        
+
         <div>
             <label class="block text-sm font-medium text-gray-700">Game title</label>
             <input v-model="jetData.gameTitle" type="text" class="mt-1 block w-full rounded border-gray-300">

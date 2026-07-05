@@ -237,6 +237,63 @@ class TCTCode1Data {
         ];
     }
 
+    changePk(type, oldPk, newPk) {
+        oldPk = Number(oldPk);
+        newPk = Number(newPk);
+        if (oldPk === newPk || isNaN(oldPk) || isNaN(newPk)) return false;
+
+        if (type === 'candidate') {
+            const candidate = this.candidates.find(c => c.pk === oldPk);
+            if (!candidate) return false;
+
+            if (this.candidates.some(c => c.pk === newPk)) {
+                alert(`PK ${newPk} is already in use by another candidate.`);
+                return false;
+            }
+
+            candidate.pk = newPk;
+
+            this.running_mates.forEach(rm => {
+                if (rm.fields.candidate === oldPk) rm.fields.candidate = newPk;
+                if (rm.fields.running_mate === oldPk) rm.fields.running_mate = newPk;
+            });
+
+            return true;
+        }
+
+        if (type === 'running_mate') {
+            const rm = this.running_mates.find(r => r.pk === oldPk);
+            if (!rm) return false;
+
+            if (this.running_mates.some(r => r.pk === newPk)) {
+                alert(`PK ${newPk} is already in use by another running mate link.`);
+                return false;
+            }
+
+            rm.pk = newPk;
+            return true;
+        }
+
+        if (type === 'election') {
+            const election = this.elections.find(e => e.pk === oldPk);
+            if (!election) return false;
+
+            election.pk = newPk;
+
+            this.candidates.forEach(c => {
+                if (c.fields.election === oldPk) c.fields.election = newPk;
+            });
+
+            this.temp_election_list.forEach(t => {
+                if (t.id === oldPk) t.id = newPk;
+            });
+
+            return true;
+        }
+
+        return false;
+    }
+
     exportCode1() {
         let code = "";
 
