@@ -2359,11 +2359,15 @@ class TCTData {
             parts.push("\n\n//#startcode\n", codeToAdd, "\n//#endcode\n");
         }
 
-        // export jet_data while stripping bulky or temporary fields
+        // export jet_data while stripping bulky, temporary, or default-valued fields
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
         const jetDataStr = JSON.stringify(this.jet_data, (key, value) => {
             if (key === "code_to_add") return undefined;
             if (key === "mapSvg") return "";
+            if (value === false) return undefined;
+            if (value == null) return undefined;
+            if (Array.isArray(value) && value.length === 0) return undefined;
+            if (typeof value === "object" && value !== null && Object.keys(value).length === 0) return undefined;
             return value;
         }, 4);
         parts.push(jetDataStr, "\n]", "\n\n");
