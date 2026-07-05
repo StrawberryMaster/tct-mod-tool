@@ -26,6 +26,7 @@ registerComponent('bulk', {
             campaignScriptInput: "",
             campaignScriptWarnings: [],
             campaignScriptFileName: "",
+            changeElectionPk: "",
             stateItems: [],
             issueItems: [],
             multiplierItems: []
@@ -131,24 +132,24 @@ registerComponent('bulk', {
                                     </span>
                                 </div>
                             </div>
-                            
+
                             <div class="flex items-center gap-2 shrink-0">
                                 <div class="flex flex-col">
                                     <label class="text-[10px] text-gray-400 uppercase leading-none">Score</label>
-                                    <input v-model.number="item.score" @change="syncIssueItem(item)" type="number" step="0.001" 
+                                    <input v-model.number="item.score" @change="syncIssueItem(item)" type="number" step="0.001"
                                         class="w-20 p-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-400 transition-colors duration-300"
                                         :class="getScoreColorClass(item.score)">
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-[10px] text-gray-400 uppercase leading-none">Weight</label>
-                                    <input v-model.number="item.weight" @change="syncIssueItem(item)" type="number" step="0.1" 
+                                    <input v-model.number="item.weight" @change="syncIssueItem(item)" type="number" step="0.1"
                                         class="w-16 p-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-400">
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center pl-7 gap-2">
-                            <input type="range" v-model.number="item.score" @input="syncIssueItem(item)" min="-1" max="1" step="0.001" 
+                            <input type="range" v-model.number="item.score" @input="syncIssueItem(item)" min="-1" max="1" step="0.001"
                                 class="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer transition-all duration-300"
                                 :class="getSliderAccentClass(item.score)">
                             <span class="text-[10px] font-mono w-10 text-right transition-colors duration-300" :class="getScoreColorClass(item.score)">
@@ -199,7 +200,7 @@ registerComponent('bulk', {
                 </div>
 
                 <div class="flex justify-end">
-                    <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm transition-all active:transform active:scale-95" 
+                    <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm transition-all active:transform active:scale-95"
                             v-on:click="applyBulkAnswerEffects()">
                         Apply to selected answers
                     </button>
@@ -341,6 +342,26 @@ registerComponent('bulk', {
                     <ul class="list-disc pl-5 text-xs text-amber-700 space-y-1">
                         <li v-for="(w, idx) in campaignScriptWarnings" :key="'cswarn-' + idx">{{ w }}</li>
                     </ul>
+                </div>
+            </div>
+        </details>
+
+        <details class="mt-4">
+            <summary class="font-semibold cursor-pointer p-2 bg-gray-50 rounded">Change election PK (use with caution)</summary>
+            <div class="p-4 space-y-3">
+                <div class="border border-amber-300 bg-amber-50 rounded p-3 text-xs text-amber-800">
+                    <strong>Warning:</strong> This changes the election PK on the entirety of your Code 2. The election PKs here must
+                    match the ones on your Code 1 as well, or else your scenario will break. Only use this if you know what you're doing.
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700">New election PK</label>
+                        <input v-model="changeElectionPk" type="number" placeholder="Enter new election PK"
+                               class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
+                    </div>
+                    <button class="mt-6 bg-amber-500 text-white px-4 py-2 rounded hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="changeElectionPk === '' || changeElectionPk === null"
+                            @click="applyChangeElectionPk()">Apply</button>
                 </div>
             </div>
         </details>
@@ -1511,6 +1532,27 @@ registerComponent('bulk', {
 
         invertAll: function () {
             this.stateItems.forEach(i => i.amount = -i.amount);
+        },
+
+        applyChangeElectionPk: function () {
+            const newPk = Number(this.changeElectionPk);
+            if (isNaN(newPk)) return;
+
+            const msg = `This will change the election PK on ALL states and issues to ${newPk}.\n\nAre you sure?`;
+            if (!confirm(msg)) return;
+
+            for (const state of Object.values(this.$TCT.states)) {
+                state.fields.election = newPk;
+            }
+
+            for (const issue of Object.values(this.$TCT.issues)) {
+                issue.fields.election = newPk;
+            }
+
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+            this.changeElectionPk = "";
+            alert(`Election PK changed to ${newPk} on all states and issues.`);
         }
     },
 
@@ -1638,4 +1680,3 @@ registerComponent('bulk-state-multiplier', {
         }
     }
 });
-
