@@ -27,8 +27,8 @@ registerComponent('cyoa', {
                 <p class="px-3 py-2 text-sm text-gray-700 italic">Your variable can be used in conditions and effects, e.g., to track player choices or stats.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
-                        <button 
-                            class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600" 
+                        <button
+                            class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600"
                             v-on:click="addVariable()"
                         >
                             Add variable
@@ -93,9 +93,9 @@ registerComponent('cyoa', {
                 <p class="px-3 py-2 text-sm text-gray-700 italic">Also known as tunneling, these events let you immediately jump to specific questions based on player answers/variables.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
-                        <button 
-                            class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
-                            v-on:click="addCyoaEvent()" 
+                        <button
+                            class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            v-on:click="addCyoaEvent()"
                             :disabled="!canAdd"
                             :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
                         >
@@ -430,7 +430,7 @@ registerComponent('cyoa', {
         addBunnyhopPool() {
             const jet = this.$TCT.jet_data;
             if (!jet.bunnyhop_pools) {
-                jet.bunnyhop_pools = []; 
+                jet.bunnyhop_pools = [];
             }
 
             const id = this.generateId([jet.bunnyhop_pools]);
@@ -747,32 +747,40 @@ window.TCTAnswerSwapHelper = {
     getConditionLabel(variableName) {
         const key = String(variableName || '').trim().toLowerCase();
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
-            return 'NoCounter';
+            return 'Question number';
         }
         return variableName;
+    },
+
+    getConditionTooltip(variableName) {
+        const key = String(variableName || '').trim().toLowerCase();
+        if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
+            return 'Count of questions already answered. Here, a value of N means the condition activates after question N is answered (i.e., before question N+1). For example, a question number of 20 means the condition activates at question 21.';
+        }
+        return '';
     },
 
     buildQuestionSwapperFunction() {
         return `
 function questionSwapper(pk1, pk2) {
     const questionData = campaignTrail_temp.questions_json;
-    
+
     // find indices of the questions
     const index1 = getQuestionIndexFromPk(pk1);
     const index2 = getQuestionIndexFromPk(pk2);
-    
+
     // validate both questions exist
     if (index1 === -1 || index2 === -1) {
         console.warn(\`questionSwapper: Could not find question(s) with pk \${pk1} and/or \${pk2}\`);
         return false;
     }
-    
+
     // swap the entire question objects
     [questionData[index1], questionData[index2]] = [questionData[index2], questionData[index1]];
-    
+
     // rebuild the index map since positions changed
     _rebuildQuestionIdxMap();
-    
+
     return true;
 }
 `.trim();
@@ -1435,7 +1443,7 @@ registerComponent('cyoa-event', {
                     <span v-if="hasConditions">
                         when
                         <span v-for="(c, idx) in conditionsList" :key="'summary-c-'+idx" class="inline-flex items-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ c.value }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ c.value }}</span>
                             <span v-if="idx < conditionsList.length - 1" class="mx-1 text-xs">{{ eventRow.conditionOperator }}</span>
                         </span>
                     </span>
@@ -1479,7 +1487,7 @@ registerComponent('cyoa-event', {
 
             <div v-if="hasConditions" class="mb-2 space-y-1">
                 <div v-for="(c, idx) in conditionsList" :key="'cond-'+idx" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
-                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
+                    <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
                     <div class="text-xs">{{ c.value }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
@@ -1577,6 +1585,10 @@ registerComponent('cyoa-event', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        displayConditionTooltip(name) {
+            return window.TCTAnswerSwapHelper.getConditionTooltip(name);
         },
 
         updateGlobal: function (field, val) {
@@ -1678,23 +1690,23 @@ registerComponent('cyoa-variable', {
                 ✕
             </button>
         </div>
-        
+
         <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Variable name:</label>
-                <input 
-                    v-model="nameVal" 
-                    name="name" 
-                    type="text" 
+                <input
+                    v-model="nameVal"
+                    name="name"
+                    type="text"
                     class="w-full border rounded-sm p-2 text-sm"
                     placeholder="e.g. wins, trust">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Starting value:</label>
-                <input 
-                    v-model.number="defaultValueVal" 
-                    name="defaultValue" 
-                    type="number" 
+                <input
+                    v-model.number="defaultValueVal"
+                    name="defaultValue"
+                    type="number"
                     class="w-full border rounded-sm p-2 text-sm">
             </div>
         </div>
@@ -1974,6 +1986,10 @@ registerComponent('cyoa-question-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        displayConditionTooltip(name) {
+            return window.TCTAnswerSwapHelper.getConditionTooltip(name);
         }
     },
 
@@ -2037,9 +2053,9 @@ registerComponent('cyoa-question-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
-                </span>, 
+                </span>,
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
@@ -2073,7 +2089,7 @@ registerComponent('cyoa-question-swap', {
         <!-- Multiple conditions -->
         <div class="mb-3">
             <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
-            
+
             <!-- Condition operator selector (only show if conditions exist) -->
             <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
@@ -2086,7 +2102,7 @@ registerComponent('cyoa-question-swap', {
             <!-- Existing conditions list -->
             <div v-if="hasConditions" class="mb-2 space-y-1">
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
-                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
+                    <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
                     <div class="text-xs">{{ c.value }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
@@ -2267,6 +2283,10 @@ registerComponent('cyoa-answer-swap', {
 
         displayConditionVariable(name) {
             return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        displayConditionTooltip(name) {
+            return window.TCTAnswerSwapHelper.getConditionTooltip(name);
         }
     },
 
@@ -2326,9 +2346,9 @@ registerComponent('cyoa-answer-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
-                </span>, 
+                </span>,
             </span>
             <span v-if="validSwaps.length > 0">
                 swap <span v-for="(s, idx) in validSwaps" :key="idx">
@@ -2362,7 +2382,7 @@ registerComponent('cyoa-answer-swap', {
         <!-- Multiple conditions -->
         <div class="mb-3">
             <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
-            
+
             <!-- Condition operator selector (only show if conditions exist) -->
             <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
@@ -2375,7 +2395,7 @@ registerComponent('cyoa-answer-swap', {
             <!-- Existing conditions list -->
             <div v-if="hasConditions" class="mb-2 space-y-1">
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
-                    <div class="text-xs font-medium">{{ displayConditionVariable(c.variable) }}</div>
+                    <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
                     <div class="text-xs">{{ c.value }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
