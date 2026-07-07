@@ -829,7 +829,7 @@ const TEMPLATE_NAMES =
     ]
 
 class TCTData {
-    constructor(questions, answers, issues, state_issue_scores, candidate_issue_score, running_mate_issue_score, candidate_state_multiplier, answer_score_global, answer_score_issue, answer_score_state, answer_feedback, states, highest_pk, jet_data) {
+    constructor({ questions, answers, issues, state_issue_scores, candidate_issue_score, running_mate_issue_score, candidate_state_multiplier, answer_score_global, answer_score_issue, answer_score_state, answer_feedback, states, highest_pk, jet_data }) {
         this.highest_pk = highest_pk
         this.questions = questions
         this.answers = answers
@@ -2172,18 +2172,14 @@ class TCTData {
     }
 
     getStateJavascriptForMapping() {
-        let f = "";
         const states = Object.values(this.states);
+        const parts = [];
 
         for (let i = 0; i < states.length; i++) {
-            // quote the key to ensure valid JS identifiers in the generated object
-            f += `"${states[i].fields.abbr}":"${states[i].d}"`
-            if (i < states.length - 1) {
-                f += ", ";
-            }
+            parts.push(`"${states[i].fields.abbr}":"${states[i].d}"`);
         }
 
-        return f
+        return parts.join(", ");
     }
 
     getStateTransformJavascriptForMapping() {
@@ -2409,10 +2405,11 @@ class TCTData {
             answerConditionAnswers: ending?.answerConditionAnswers ?? ""
         }));
 
-        let f = "// [JETS_ENDINGS_START]\n";
-        f += "campaignTrail_temp.multiple_endings = true;\n\n";
-        f += `const _tctEndingDefs = ${JSON.stringify(preparedEndings, null, 4)};\n\n`;
-        f += `const _tctOpMap = {
+        const parts = [
+            "// [JETS_ENDINGS_START]\n",
+            "campaignTrail_temp.multiple_endings = true;\n\n",
+            `const _tctEndingDefs = ${JSON.stringify(preparedEndings, null, 4)};\n\n`,
+            `const _tctOpMap = {
     ">": (a, b) => a > b,
     ">=": (a, b) => a >= b,
     "==": (a, b) => a == b,
@@ -2859,8 +2856,8 @@ endingPicker = (out, totv, aa, quickstats) => {
     return "";
 };
 `;
-        f += "\n// [JETS_ENDINGS_END]\n";
-        return f;
+            "\n// [JETS_ENDINGS_END]\n"
+        ].join("");
     }
 
     getBunnyhopCode() {
@@ -2929,8 +2926,8 @@ endingPicker = (out, totv, aa, quickstats) => {
             return "";
         }
 
-        let f = `
-campaignTrail_temp.cyoa = true;
+        const parts = [
+            `campaignTrail_temp.cyoa = true;
 
 // pk -> index lookup for questions
 let _questionIdxByPk = null;
@@ -2966,21 +2963,22 @@ function getJumpIndexFromPk(pk) {
 // for backwards compatibility
 function getQuestionNumberFromPk(pk) {
   return getJumpIndexFromPk(pk);
-}`;
+}`
+        ];
 
         // add variable declarations
         const variables = this.getAllCyoaVariables();
         if (variables.length > 0) {
-            f += "\n\n// CYOA Variables\n";
+            parts.push("\n\n// CYOA variables\n");
             for (const variable of variables) {
-                f += `var ${variable.name} = ${variable.defaultValue};\n`;
+                parts.push(`var ${variable.name} = ${variable.defaultValue};\n`);
             }
         }
 
-        f += `\ncyoAdventure = function (a) {
+        parts.push(`\ncyoAdventure = function (a) {
     const ans = campaignTrail_temp.player_answers[campaignTrail_temp.player_answers.length - 1];
     e.noCounter = campaignTrail_temp.player_answers.length;
-`;
+`);
 
         // variable effects grouped by logic
         const variableEffects = this.getAllCyoaVariableEffects();
@@ -3006,10 +3004,10 @@ function getQuestionNumberFromPk(pk) {
                     ? `[${group.answers.join(', ')}].includes(ans)`
                     : `ans == ${group.answers[0]}`;
 
-                f += `\n    // ${group.operation === 'add' ? '+' : '-'}${group.amount} ${group.variable}\n`;
-                f += `    if (${cond}) {\n`;
-                f += `        ${group.variable} ${operator} ${group.amount};\n`;
-                f += `    }\n`;
+                parts.push(`\n    // ${group.operation === 'add' ? '+' : '-'}${group.amount} ${group.variable}\n`);
+                parts.push(`    if (${cond}) {\n`);
+                parts.push(`        ${group.variable} ${operator} ${group.amount};\n`);
+                parts.push(`    }\n`);
             }
         }
 
@@ -3060,17 +3058,17 @@ function getQuestionNumberFromPk(pk) {
             .filter(Boolean);
 
         if (compiledEvents.length > 0) {
-            f += "\n    // Branching logic\n";
+            parts.push("\n    // Branching logic\n");
             for (let i = 0; i < compiledEvents.length; i++) {
                 const row = compiledEvents[i];
-                f += `    ${i > 0 ? "else " : ""}if (${row.condition}) {\n`;
-                f += `        campaignTrail_temp.question_number = getQuestionNumberFromPk(${row.questionPk});\n`;
-                f += "    }\n";
+                parts.push(`    ${i > 0 ? "else " : ""}if (${row.condition}) {\n`);
+                parts.push(`        campaignTrail_temp.question_number = getQuestionNumberFromPk(${row.questionPk});\n`);
+                parts.push("    }\n");
             }
         }
 
-        f += "}\n\n";
-        return f;
+        parts.push("}\n\n");
+        return parts.join("");
     }
 }
 
@@ -3252,7 +3250,9 @@ function loadDataFromFile(raw_json) {
         }
     };
 
-    const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) => {
+    // walk text from startIndex tracking strings, comments,
+    // and bracket depth. returns index after the matching closeChar, or -1
+    const findMatchingBracket = (text, startIndex, openChar, closeChar) => {
         let depth = 0;
         let inString = false;
         let stringChar = '';
@@ -3320,6 +3320,9 @@ function loadDataFromFile(raw_json) {
         return -1;
     };
 
+    const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) =>
+        findMatchingBracket(text, startIndex, openChar, closeChar);
+
     const excludeAllButLastRegex = (regex) => {
         const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
         const scan = new RegExp(regex.source, flags);
@@ -3346,78 +3349,14 @@ function loadDataFromFile(raw_json) {
 
         while ((match = headerRe.exec(raw_json)) !== null) {
             const header = match[0];
-            const bodyStart = match.index + header.length - 1; // points to '{'
+            const bodyStart = match.index + header.length - 1;
+            const bodyEnd = findMatchingBracket(raw_json, bodyStart, '{', '}');
+            if (bodyEnd === -1) continue;
 
-            let i = bodyStart;
-            let depth = 0;
-            let inString = false;
-            let stringChar = '';
-            let escape = false;
-            let inSingleLine = false;
-            let inMultiLine = false;
-
-            for (; i < raw_json.length; i++) {
-                const ch = raw_json[i];
-                const next = raw_json[i + 1];
-
-                if (inSingleLine) {
-                    if (ch === '\n' || ch === '\r') inSingleLine = false;
-                    continue;
-                }
-
-                if (inMultiLine) {
-                    if (ch === '*' && next === '/') {
-                        inMultiLine = false;
-                        i++;
-                    }
-                    continue;
-                }
-
-                if (inString) {
-                    if (!escape && ch === stringChar) {
-                        inString = false;
-                        stringChar = '';
-                    }
-                    escape = (!escape && ch === '\\');
-                    if (escape && ch !== '\\') escape = false;
-                    continue;
-                }
-
-                if (ch === '"' || ch === "'" || ch === '`') {
-                    inString = true;
-                    stringChar = ch;
-                    escape = false;
-                    continue;
-                }
-
-                if (ch === '/' && next === '/') {
-                    inSingleLine = true;
-                    i++;
-                    continue;
-                }
-
-                if (ch === '/' && next === '*') {
-                    inMultiLine = true;
-                    i++;
-                    continue;
-                }
-
-                if (ch === '{') {
-                    depth++;
-                    continue;
-                }
-
-                if (ch === '}') {
-                    depth--;
-                    if (depth === 0) {
-                        let end = i + 1;
-                        while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
-                        if (raw_json[end] === ';') end++;
-                        ranges.push({ start: match.index, end });
-                        break;
-                    }
-                }
-            }
+            let end = bodyEnd;
+            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
+            if (raw_json[end] === ';') end++;
+            ranges.push({ start: match.index, end });
         }
 
         const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
@@ -3433,78 +3372,14 @@ function loadDataFromFile(raw_json) {
 
         while ((match = headerRe.exec(raw_json)) !== null) {
             const header = match[0];
-            const bodyStart = match.index + header.length - 1; // points to '{'
+            const bodyStart = match.index + header.length - 1;
+            const bodyEnd = findMatchingBracket(raw_json, bodyStart, '{', '}');
+            if (bodyEnd === -1) continue;
 
-            let i = bodyStart;
-            let depth = 0;
-            let inString = false;
-            let stringChar = '';
-            let escape = false;
-            let inSingleLine = false;
-            let inMultiLine = false;
-
-            for (; i < raw_json.length; i++) {
-                const ch = raw_json[i];
-                const next = raw_json[i + 1];
-
-                if (inSingleLine) {
-                    if (ch === '\n' || ch === '\r') inSingleLine = false;
-                    continue;
-                }
-
-                if (inMultiLine) {
-                    if (ch === '*' && next === '/') {
-                        inMultiLine = false;
-                        i++;
-                    }
-                    continue;
-                }
-
-                if (inString) {
-                    if (!escape && ch === stringChar) {
-                        inString = false;
-                        stringChar = '';
-                    }
-                    escape = (!escape && ch === '\\');
-                    if (escape && ch !== '\\') escape = false;
-                    continue;
-                }
-
-                if (ch === '"' || ch === "'" || ch === '`') {
-                    inString = true;
-                    stringChar = ch;
-                    escape = false;
-                    continue;
-                }
-
-                if (ch === '/' && next === '/') {
-                    inSingleLine = true;
-                    i++;
-                    continue;
-                }
-
-                if (ch === '/' && next === '*') {
-                    inMultiLine = true;
-                    i++;
-                    continue;
-                }
-
-                if (ch === '{') {
-                    depth++;
-                    continue;
-                }
-
-                if (ch === '}') {
-                    depth--;
-                    if (depth === 0) {
-                        let end = i + 1;
-                        while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
-                        if (raw_json[end] === ';') end++;
-                        ranges.push({ start: match.index, end });
-                        break;
-                    }
-                }
-            }
+            let end = bodyEnd;
+            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
+            if (raw_json[end] === ';') end++;
+            ranges.push({ start: match.index, end });
         }
 
         const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
@@ -3767,5 +3642,20 @@ function loadDataFromFile(raw_json) {
 
     duplicateCounters.forEach((count, label) => count > 0 && console.log(`Remapped ${count} duplicates in ${label}`));
 
-    return new TCTData(questions, answers, issues, state_issue_scores, candidate_issue_scores, running_mate_issue_scores, candidate_state_multipliers, answer_score_globals, answer_score_issues, answer_score_states, feedbacks, states, highest_pk, jet_data);
+    return new TCTData({
+        questions,
+        answers,
+        issues,
+        state_issue_scores,
+        candidate_issue_score: candidate_issue_scores,
+        running_mate_issue_score: running_mate_issue_scores,
+        candidate_state_multiplier: candidate_state_multipliers,
+        answer_score_global: answer_score_globals,
+        answer_score_issue: answer_score_issues,
+        answer_score_state: answer_score_states,
+        answer_feedback: feedbacks,
+        states,
+        highest_pk,
+        jet_data
+    });
 }
