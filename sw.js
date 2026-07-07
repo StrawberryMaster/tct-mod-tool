@@ -1,4 +1,5 @@
 const CACHE_NAME = 'tct-mod-tool-v2';
+
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -29,7 +30,6 @@ const ASSETS_TO_CACHE = [
   './js/code1/data/running_mate.json'
 ];
 
-// add first few templates to cache to ensure something loads if offline
 const INITIAL_TEMPLATES = [
   './public/1844-Clay.txt',
   './public/1844-Polk.txt',
@@ -61,62 +61,97 @@ const INITIAL_TEMPLATES = [
   './public/2020-Trump.txt'
 ];
 
+const CORE_ASSETS_SET = new Set(
+  ASSETS_TO_CACHE.map(asset => new URL(asset, self.registration.scope).href)
+);
+
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
+
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching assets');
-      return cache.addAll([...ASSETS_TO_CACHE, ...INITIAL_TEMPLATES]);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('Caching core assets...');
+      await cache.addAll(ASSETS_TO_CACHE);
+
+      console.log('Caching other template assets...');
+      const templatePromises = INITIAL_TEMPLATES.map(async (relativeUrl) => {
+        try {
+          const absoluteUrl = new URL(relativeUrl, self.registration.scope).href;
+          const response = await fetch(absoluteUrl);
+          if (response.ok) {
+            await cache.put(absoluteUrl, response);
+          } else {
+            console.warn(`Template failed to cache (${response.status}): ${relativeUrl}`);
+          }
+        } catch (err) {
+          console.warn(`Failed to retrieve optional template during installation: ${relativeUrl}`, err);
+        }
+      });
+
+      await Promise.allSettled(templatePromises);
     })
   );
 });
 
 self.addEventListener('activate', (event) => {
+  // take control of active clients
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log(`Deleting old cache: ${cacheName}`);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // check if we should use network first or cache first
-  const isCoreAsset = ASSETS_TO_CACHE.some(asset => event.request.url.includes(asset.replace('./', '')));
+  const request = event.request;
+
+  // handle GET requests and standard HTTP/HTTPS protocols
+  if (request.method !== 'GET' || !request.url.startsWith('http')) {
+    return;
+  }
+
+  const isCoreAsset = CORE_ASSETS_SET.has(request.url);
 
   if (isCoreAsset) {
     // network first for core assets
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then((networkResponse) => {
           if (networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
+              cache.put(request, responseClone);
             });
           }
           return networkResponse;
         })
         .catch(() => {
-          return caches.match(event.request);
+          return caches.match(request);
         })
     );
   } else {
-    // cache first for everything else
+    // cache first for templates and external dynamic resources
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request).then((fetchResponse) => {
-          if (fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone();
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
+              cache.put(request, responseClone);
             });
           }
-          return fetchResponse;
+          return networkResponse;
         });
       })
     );
