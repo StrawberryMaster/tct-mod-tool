@@ -2855,9 +2855,11 @@ endingPicker = (out, totv, aa, quickstats) => {
 
     return "";
 };
-`;
+`,
             "\n// [JETS_ENDINGS_END]\n"
         ].join("");
+
+        return parts;
     }
 
     getBunnyhopCode() {
