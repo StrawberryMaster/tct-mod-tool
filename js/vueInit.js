@@ -28,9 +28,16 @@ window.requestAutosaveDebounced = requestAutosaveDebounced;
 
 async function initAndLoad() {
     if (window.TCTDB) {
-        await TCTDB.migrate();
-        autosaveEnabled = (await TCTDB.get('settings', 'autosaveEnabled')) === "true";
-        autosaveData = await TCTDB.get('autosaves', 'autosave');
+        try {
+            await TCTDB.migrate();
+            autosaveEnabled = (await TCTDB.get('settings', 'autosaveEnabled')) === "true";
+            autosaveData = await TCTDB.get('autosaves', 'autosave');
+        } catch (e) {
+            console.warn("IndexedDB unavailable, falling back to localStorage:", e);
+            window.TCTDB = null;
+            autosaveEnabled = localStorage.getItem("autosaveEnabled") === "true";
+            autosaveData = localStorage.getItem("autosave");
+        }
     } else {
         autosaveEnabled = window.autosaveEnabled;
         autosaveData = localStorage.getItem("autosave");
@@ -244,4 +251,7 @@ function getListOfCandidates() {
 }
 
 // load default template on startup
-initAndLoad();
+initAndLoad().catch(e => {
+    console.error("Fatal init error:", e);
+    alert("Zoinks! Error loading data. Check console for details.");
+});
