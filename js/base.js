@@ -3230,7 +3230,15 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 function loadDataFromFile(raw_json) {
     const extractor = new CodeExtractor(raw_json);
     let highest_pk = -1;
-    let pkReplacements = new Map();
+
+    // partition replacements by the referenced model type to prevent cross-contamination
+    const pkReplacements = {
+        'question': new Map(),
+        'answer': new Map(),
+        'state': new Map(),
+        'issue': new Map(),
+        'candidate': new Map()
+    };
     const duplicateCounters = new Map();
 
     const parseStructuredLiteral = (source) => {
@@ -3487,9 +3495,21 @@ function loadDataFromFile(raw_json) {
             needsRemap = true;
         }
 
+        // dentify key referenced parent types to handle their remappings in partitioned maps
+        const modelToType = {
+            'campaign_trail.question': 'question',
+            'campaign_trail.answer': 'answer',
+            'campaign_trail.state': 'state',
+            'campaign_trail.issue': 'issue',
+            'campaign_trail.candidate': 'candidate'
+        };
+        const type = modelToType[obj.model];
+
         if (needsRemap) {
             let newPk = ++highest_pk;
-            pkReplacements.set(obj.pk, newPk);
+            if (type && pkReplacements[type]) {
+                pkReplacements[type].set(obj.pk, newPk);
+            }
             obj.pk = newPk;
         } else {
             obj.pk = pkNum;
@@ -3536,25 +3556,41 @@ function loadDataFromFile(raw_json) {
 
     collections.forEach(([cont, name]) => getSection(name).forEach(x => ensureUniqueAndStore(cont, x)));
 
-    // patch foreign keys for remapped IDs
-    if (pkReplacements.size > 0) {
-        console.log(`Patching ${pkReplacements.size} ID references (duplicates/overflows)...`);
+    // patch remapped foreign keys safely by looking up only in type-specific mappings
+    const hasReplacements = Object.values(pkReplacements).some(m => m.size > 0);
+    if (hasReplacements) {
+        const totalCount = Object.values(pkReplacements).reduce((acc, m) => acc + m.size, 0);
+        console.log(`Patching remapped ID references across models (${totalCount} replacements)...`);
+
         const allContainers = [
             questions, answers, states, feedbacks, answer_score_globals, answer_score_issues,
             answer_score_states, state_issue_scores, candidate_issue_scores,
             candidate_state_multipliers, running_mate_issue_scores, issues
         ];
-        const foreignKeyFields = ["question", "answer", "candidate", "issue", "state", "affected_candidate", "running_mate"];
+
+        const fkToType = {
+            'question': 'question',
+            'answer': 'answer',
+            'candidate': 'candidate',
+            'affected_candidate': 'candidate',
+            'running_mate': 'candidate',
+            'issue': 'issue',
+            'state': 'state'
+        };
 
         allContainers.forEach(container => {
             const values = container instanceof Map ? Array.from(container.values()) : Object.values(container);
             values.forEach(item => {
-                if (!item.fields) return;
-                foreignKeyFields.forEach(field => {
-                    if (item.fields[field] !== undefined && pkReplacements.has(item.fields[field])) {
-                        item.fields[field] = pkReplacements.get(item.fields[field]);
+                if (!item || !item.fields) return;
+                for (const [field, type] of Object.entries(fkToType)) {
+                    const oldVal = item.fields[field];
+                    if (oldVal !== undefined) {
+                        const repMap = pkReplacements[type];
+                        if (repMap && repMap.has(oldVal)) {
+                            item.fields[field] = repMap.get(oldVal);
+                        }
                     }
-                });
+                }
             });
         });
     }
