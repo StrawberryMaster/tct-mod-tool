@@ -214,7 +214,9 @@ registerComponent('toolbar', {
                 'dark': 'Dark',
                 'mallard': 'Mallard',
                 'xp-olive': 'Olive',
-                'xp-silver': 'Silver'
+                'xp-silver': 'Silver',
+                'xp-zune': 'Zune',
+                'xp-royale-dark': 'Royale Dark'
             };
             return names[theme] || 'Light';
         },
