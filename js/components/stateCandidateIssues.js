@@ -23,22 +23,22 @@ registerComponent('data-table', {
                 </button>
             </div>
         </div>
-        
+
         <!-- Batch Edit Mode -->
         <div v-if="batchMode" class="bg-gray-100 p-3 mb-4 rounded">
             <div class="flex items-center justify-between mb-2">
                 <h3 class="font-bold">Batch edit {{ selectedItems.length }} items</h3>
-                <button 
-                    v-if="deletable && selectedItems.length" 
-                    @click="deleteSelected" 
+                <button
+                    v-if="deletable && selectedItems.length"
+                    @click="deleteSelected"
                     class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600 text-sm"
                 >{{ deleteLabel || 'Delete selected' }}</button>
             </div>
             <div v-for="(col, idx) in safeColumns" :key="col.field || idx" class="mb-2" v-if="col && col.editable">
                 <label class="block text-sm">{{ col.label }}</label>
                 <div class="flex items-center">
-                    <input 
-                        v-model="batchValues[col.field]" 
+                    <input
+                        v-model="batchValues[col.field]"
                         :placeholder="col.label"
                         class="border p-1 rounded-sm mr-2 grow"
                         :type="col.type || 'text'"
@@ -52,41 +52,41 @@ registerComponent('data-table', {
                 </div>
             </div>
         </div>
-        
+
         <!-- Table Headers -->
         <div class="grid grid-cols-12 bg-gray-200 p-2 rounded-sm font-bold">
             <div v-if="batchMode" class="col-span-1">
                 <input type="checkbox" v-model="allSelected">
             </div>
-            <div 
-                v-for="(col, idx) in safeColumns" 
+            <div
+                v-for="(col, idx) in safeColumns"
                 :key="col.field || idx"
                 :class="['col-span-' + (col.width || '2'), 'cursor-pointer']"
                 @click="sortBy(col.field)"
             >
-                {{ col.label }} 
+                {{ col.label }}
                 <span v-if="sortKey === col.field">{{ sortDir === 1 ? '▲' : '▼' }}</span>
             </div>
         </div>
-        
+
         <!-- Table Rows -->
-        <div 
-            v-for="item in filteredItems" 
+        <div
+            v-for="item in filteredItems"
             :key="item[keyField]"
             class="grid grid-cols-12 border-b p-2 hover:bg-gray-100"
         >
             <div v-if="batchMode" class="col-span-1">
-                <input 
-                    type="checkbox" 
-                    :value="item[keyField]" 
+                <input
+                    type="checkbox"
+                    :value="item[keyField]"
                     v-model="selectedItems"
                 >
             </div>
             <template v-for="(col, idx) in safeColumns">
                 <div :class="['col-span-' + (col.width || '2')]" :key="col.field || idx">
-                    <input 
+                    <input
                         v-if="col && col.editable"
-                        :value="item[col.field]" 
+                        :value="item[col.field]"
                         @input="updateItem($event, item, col.field)"
                         :type="col.type || 'text'"
                         :min="col.min"
@@ -96,7 +96,7 @@ registerComponent('data-table', {
                         @click.stop
                         @keydown.stop
                     >
-                    <span 
+                    <span
                         v-else-if="col.field === keyField && pkChangeType"
                         class="font-mono"
                     >
@@ -292,10 +292,10 @@ registerComponent('state-shift-editor', {
                 <button @click="addShift" class="bg-green-500 text-white px-3 py-1 rounded-sm hover:bg-green-600">Add</button>
             </div>
         </div>
-        <data-table 
-            :items="items" 
-            :columns="columns" 
-            :title="'Shifts'" 
+        <data-table
+            :items="items"
+            :columns="columns"
+            :title="'Shifts'"
             keyField="state"
             :deletable="true"
             :deleteLabel="'Remove Selected'"
@@ -313,6 +313,7 @@ registerComponent('state', {
         return {
             temp: 1,
             activeTab: 'details',
+            targetPercentages: {},
             stateColumns: [
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'name', label: 'Name', editable: true, width: 3 },
@@ -369,14 +370,14 @@ registerComponent('state', {
         <!-- Tabs -->
         <div class="border-b">
             <nav class="flex space-x-4 px-4">
-                <button 
-                    v-for="tab in ['details', 'multipliers', 'issues']"
+                <button
+                    v-for="tab in ['details', 'multipliers', 'issues', 'margins']"
                     :key="tab"
                     @click="activeTab = tab"
                     :class="[
                         'px-3 py-2 text-sm font-medium border-b-2',
-                        activeTab === tab 
-                            ? 'border-blue-500 text-blue-600' 
+                        activeTab === tab
+                            ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     ]"
                 >
@@ -423,10 +424,10 @@ registerComponent('state', {
 
             <!-- Multipliers Tab -->
             <div v-if="activeTab === 'multipliers'">
-                <data-table 
-                    :items="stateMultipliersWithNames" 
-                    :columns="multiplierColumns" 
-                    title="Candidate State Multipliers" 
+                <data-table
+                    :items="stateMultipliersWithNames"
+                    :columns="multiplierColumns"
+                    title="Candidate State Multipliers"
                     keyField="pk"
                     pkChangeType="candidate_state_multiplier"
                     @update-item="updateMultiplier"
@@ -435,17 +436,145 @@ registerComponent('state', {
 
             <!-- Issue Scores Tab -->
             <div v-if="activeTab === 'issues'">
-                <data-table 
-                    :items="stateIssueScoresWithNames" 
-                    :columns="issueScoreColumns" 
-                    title="State Issue Scores" 
+                <data-table
+                    :items="stateIssueScoresWithNames"
+                    :columns="issueScoreColumns"
+                    title="State Issue Scores"
                     keyField="pk"
                     pkChangeType="state_issue_score"
                     @update-item="updateIssueScore"
                 ></data-table>
             </div>
-        </div>
-    </div>
+
+            <!-- Starting Margins Tab -->
+                        <div v-if="activeTab === 'margins'" class="space-y-6">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                                <!-- Live Margin Results Sidebar -->
+                                <div class="bg-gray-50 p-4 rounded-md border lg:col-span-1 h-fit">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="font-bold text-sm text-gray-700">Approx. starting PV</h3>
+                                        <button @click="refreshMargins" class="text-xs text-blue-600 hover:underline">Recalculate</button>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div v-for="m in currentStructuredMargins" :key="m.candidate" class="p-3 bg-white rounded-sm border border-gray-150 shadow-xs">
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="font-semibold text-xs text-gray-700 truncate max-w-[150px]">{{ m.nickname || 'Candidate ' + m.candidate }}</span>
+                                                <span class="text-xs font-bold text-blue-600">{{ (m.percent * 100).toFixed(2) }}%</span>
+                                            </div>
+                                            <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                <div class="bg-blue-500 h-full transition-all duration-150" :style="{ width: (m.percent * 100) + '%' }"></div>
+                                            </div>
+                                            <span class="text-[10px] text-gray-400 mt-1 block">{{ m.votes.toLocaleString() }} starting votes</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Direct Sliders & Solvers Panel -->
+                                <div class="lg:col-span-2 space-y-4">
+
+                                    <!-- Direct Real-time Tweaker -->
+                                    <div class="bg-white p-4 rounded-md border">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h3 class="font-semibold text-sm">Direct multiplier & stance tweaks</h3>
+                                            <span class="text-[10px] text-gray-400">Recalculates margins immediately</span>
+                                        </div>
+
+                                        <div class="space-y-4">
+                                            <!-- Candidate Multiplier Sliders -->
+                                            <div>
+                                                <h4 class="text-[11px] font-bold text-gray-500 mb-2">Candidate multipliers</h4>
+                                                <div class="space-y-2">
+                                                    <div v-for="mult in stateMultipliersWithNames" :key="mult.pk" class="flex items-center gap-3 bg-gray-50 p-2 rounded">
+                                                        <span class="w-28 text-xs font-medium truncate">{{ mult.candidateName || 'Candidate ' + mult.candidate }}</span>
+                                                        <input type="range" min="0.01" max="5.0" step="0.01"
+                                                            class="flex-1 h-1.5 accent-blue-600"
+                                                            :value="mult.state_multiplier"
+                                                            @input="updateMultiplierDirect(mult, $event.target.value)">
+                                                        <input type="number" step="0.01" min="0.01" max="25"
+                                                            class="w-16 border rounded-sm px-1 py-0.5 text-xs text-right"
+                                                            :value="mult.state_multiplier"
+                                                            @input="updateMultiplierDirect(mult, $event.target.value)">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Key Issue Sliders -->
+                                            <div v-if="topStateIssueScores.length > 0">
+                                                <h4 class="text-[11px] font-bold text-gray-500 mb-2">Key state issue scores (top 5 by weight)</h4>
+                                                <div class="space-y-2">
+                                                    <div v-for="score in topStateIssueScores" :key="score.pk" class="flex flex-col gap-1 bg-gray-50 p-2 rounded">
+                                                        <div class="flex justify-between text-[11px] font-medium text-gray-600">
+                                                            <span class="truncate max-w-[240px]">{{ score.issueName }}</span>
+                                                            <span>Weight: {{ score.weight }}</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-3">
+                                                            <input type="range" min="-1" max="1" step="0.05"
+                                                                class="flex-1 h-1.5 accent-green-600"
+                                                                :value="score.state_issue_score"
+                                                                @input="updateIssueScoreDirect(score, 'state_issue_score', $event.target.value)">
+                                                            <input type="number" step="0.05" min="-1" max="1"
+                                                                class="w-16 border rounded-sm px-1 py-0.5 text-xs text-right"
+                                                                :value="score.state_issue_score"
+                                                                @input="updateIssueScoreDirect(score, 'state_issue_score', $event.target.value)">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Target Margin Solver Tools -->
+                                    <div class="bg-gray-50 p-4 rounded-md border">
+                                        <h3 class="font-semibold text-sm mb-1">Target margin calculator</h3>
+                                        <p class="text-xs text-gray-500 mb-4">Input exact margin percentages to solve for the required multipliers. Experimental!</p>
+
+                                        <div class="space-y-3 mb-4">
+                                            <div v-for="c in candidateList" :key="c.pk" class="flex items-center gap-3">
+                                                <label class="w-28 text-xs font-medium truncate shrink-0">{{ c.nickname || 'Candidate ' + c.pk }}</label>
+                                                <input type="range" min="0" max="100" step="0.1"
+                                                    class="flex-1 h-1.5 accent-purple-600"
+                                                    :value="targetPct(c.pk)"
+                                                    @input="setTargetPct(c.pk, $event.target.value)"
+                                                    @change="normalizeTargets">
+                                                <input type="number" step="0.1" min="0" max="100"
+                                                    class="w-16 border rounded-sm px-1 py-0.5 text-xs text-right"
+                                                    :value="targetPct(c.pk)"
+                                                    @input="setTargetPct(c.pk, $event.target.value)"
+                                                    @blur="normalizeTargets">
+                                                <span class="text-xs text-gray-500 w-3">%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between border-t pt-3">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-medium text-gray-600">Total:</span>
+                                                <span :class="totalTargetPct === 100 ? 'text-green-600 font-bold' : 'text-red-500 font-semibold'" class="text-xs">{{ totalTargetPct }}%</span>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button @click="loadCurrentAsTarget" class="bg-white border text-gray-700 px-2.5 py-1 rounded text-xs hover:bg-gray-50 font-medium">
+                                                    Load current
+                                                </button>
+                                                <button @click="applyTargetMargins" :disabled="totalTargetPct !== 100"
+                                                    :class="[
+                                                        'px-3 py-1 rounded text-xs text-white font-medium',
+                                                        totalTargetPct === 100 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                                                    ]">
+                                                    Apply multipliers
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Global Reset Actions -->
+                                    <div class="flex justify-end gap-2">
+                                        <button @click="resetMultipliersToOne" class="bg-yellow-500 text-black px-3 py-1.5 rounded text-xs hover:bg-yellow-600 font-medium">
+                                            Reset multipliers to 1.0
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
     `,
 
     methods: {
@@ -482,7 +611,120 @@ registerComponent('state', {
             this.$TCT.state_issue_scores[item.pk].fields[field] = value;
             this.temp *= -1;
             this.$globalData.dataVersion++;
-        }
+        },
+
+        // --- Starting Margins methods ---
+
+        targetPct: function (candidatePk) {
+            const val = this.targetPercentages[candidatePk];
+            return val !== undefined ? val : 0;
+        },
+
+        setTargetPct: function (candidatePk, value) {
+            const num = parseFloat(value);
+            if (value === '' || value === '-' || value === '.') {
+                this.targetPercentages[candidatePk] = value;
+            } else if (!isNaN(num)) {
+                this.targetPercentages[candidatePk] = Math.max(0, Math.min(100, num));
+            }
+        },
+
+        normalizeTargets: function () {
+            const keys = this.candidateList.map(c => c.pk);
+            let total = 0;
+            const values = {};
+            for (const k of keys) {
+                const v = parseFloat(this.targetPercentages[k]);
+                values[k] = isNaN(v) ? 0 : v;
+                total += values[k];
+            }
+            if (total === 0) {
+                const even = Math.round(100 / keys.length * 10) / 10;
+                for (const k of keys) {
+                    this.targetPercentages[k] = even;
+                }
+                return;
+            }
+            if (total === 100) return;
+            const remainder = 100 - total;
+            const nonZeroKeys = keys.filter(k => values[k] > 0);
+            if (nonZeroKeys.length === 0) {
+                const even = Math.round(100 / keys.length * 10) / 10;
+                for (const k of keys) {
+                    this.targetPercentages[k] = even;
+                }
+                return;
+            }
+            const nonZeroTotal = nonZeroKeys.reduce((s, k) => s + values[k], 0);
+            const newVals = {};
+            for (const k of keys) {
+                if (values[k] > 0) {
+                    const adjusted = values[k] + remainder * (values[k] / nonZeroTotal);
+                    newVals[k] = Math.round(adjusted * 10) / 10;
+                } else {
+                    newVals[k] = 0;
+                }
+            }
+            // fix rounding drift by adjusting the largest entry
+            const sum = Object.values(newVals).reduce((s, v) => s + v, 0);
+            if (Math.abs(sum - 100) >= 0.1) {
+                let maxK = null, maxV = -1;
+                for (const k of keys) {
+                    if (newVals[k] > maxV) { maxV = newVals[k]; maxK = k; }
+                }
+                if (maxK != null) newVals[maxK] = Math.round((newVals[maxK] + 100 - sum) * 10) / 10;
+            }
+            for (const k of keys) {
+                this.targetPercentages[k] = newVals[k];
+            }
+        },
+
+        loadCurrentAsTarget: function () {
+            const margins = this.currentStructuredMargins;
+            for (const m of margins) {
+                this.targetPercentages[m.candidate] = Math.round(m.percent * 1000) / 10;
+            }
+            this.$nextTick(() => this.normalizeTargets());
+        },
+
+        resetMultipliersToOne: function () {
+            const entries = this.$TCT.getCandidateStateMultipliersForState(this.statePk);
+            for (const entry of entries) {
+                this.$TCT.candidate_state_multiplier[entry.pk].fields.state_multiplier = 1;
+            }
+            this.temp *= -1;
+            this.$globalData.dataVersion++;
+        },
+
+        applyTargetMargins: function () {
+            if (this.totalTargetPct !== 100) return;
+            const targets = {};
+            for (const c of this.candidateList) {
+                targets[c.pk] = parseFloat(this.targetPercentages[c.pk]) || 0;
+            }
+            this.$TCT.applyTargetMargins(this.statePk, targets);
+            this.temp *= -1;
+            this.$globalData.dataVersion++;
+        },
+
+        // --- Starting Margins methods ---
+        updateMultiplierDirect: function (mult, value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+                this.$TCT.candidate_state_multiplier[mult.pk].fields.state_multiplier = num;
+                this.temp *= -1;
+                this.$globalData.dataVersion++;
+            }
+        },
+
+        updateIssueScoreDirect: function (score, field, value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+                this.$TCT.state_issue_scores[score.pk].fields[field] = num;
+                this.temp *= -1;
+                this.$globalData.dataVersion++;
+            }
+        },
     },
 
     computed: {
@@ -554,6 +796,39 @@ registerComponent('state', {
         margins: function () {
             this.temp;
             return this.$TCT.getPVForState(this.statePk);
+        },
+
+        // --- Starting Margins computed ---
+
+      topStateIssueScores: function () {
+                  return [...this.stateIssueScoresWithNames]
+                      .sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))
+                      .slice(0, 5);
+              },
+
+      candidateList: function () {
+            this.$globalData.dataVersion;
+            const pks = this.$TCT.getAllCandidatePKs();
+            return pks.map(pk => ({
+                pk,
+                nickname: this.$TCT.getNicknameForCandidate(pk)
+            }));
+        },
+
+        currentStructuredMargins: function () {
+            this.temp;
+            this.$globalData.dataVersion;
+            return this.$TCT.getStructuredMargins(this.statePk);
+        },
+
+        totalTargetPct: function () {
+            const keys = this.candidateList.map(c => c.pk);
+            let total = 0;
+            for (const k of keys) {
+                const v = parseFloat(this.targetPercentages[k]);
+                if (!isNaN(v)) total += v;
+            }
+            return Math.round(total * 10) / 10;
         }
     }
 });
@@ -1429,14 +1704,14 @@ registerComponent('issue-state-map-editor', {
                     </path>
                 </g>
             </svg>
-            
+
             <div class="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
                 <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
                 <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomOut">-</button>
                 <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100" @click.stop="resetViewport">Fit</button>
                 <button class="bg-white shadow border rounded px-2 py-1 text-xs hover:bg-gray-100 font-semibold" @click.stop="toggleExpand">Expand</button>
             </div>
-            
+
             <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
                 <strong>Click</strong> to select, <strong>Drag</strong> to pan.
             </div>
@@ -1448,17 +1723,17 @@ registerComponent('issue-state-map-editor', {
 
         <div class="bg-gray-100 border rounded p-4 shadow-sm">
             <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
-                
+
                 <div class="grid grid-cols-2 gap-4 grow w-full md:w-auto">
                     <div>
                         <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Issue Score (-1 to 1)</label>
-                        <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore" 
+                        <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore"
                             class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Weight</label>
-                        <input type="number" step="0.1" min="0" v-model.number="editWeight" 
+                        <input type="number" step="0.1" min="0" v-model.number="editWeight"
                             class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             placeholder="1.0">
                     </div>
@@ -1472,7 +1747,7 @@ registerComponent('issue-state-map-editor', {
                     >
                         Apply to {{ selectedCount || 0 }} selected
                     </button>
-                    
+
                     <button class="bg-white border text-gray-700 px-3 py-2 rounded hover:bg-gray-50" @click="clearSelection">
                         Clear
                     </button>
@@ -1520,7 +1795,7 @@ registerComponent('issue-state-map-editor', {
                     </div>
                     <button class="text-2xl font-semibold leading-none p-1" @click="toggleExpand" aria-label="Close modal">✕</button>
                 </div>
-                
+
                 <!-- Body: Split Layout -->
                 <div class="p-6 flex flex-col md:flex-row gap-6 overflow-y-auto min-h-0 flex-1">
                     <!-- Left: Large Map Display -->
@@ -1528,7 +1803,7 @@ registerComponent('issue-state-map-editor', {
                         <div v-if="usingBasicShapes" class="bg-yellow-100 p-2 mb-2 text-xs rounded">
                             Using basic shapes (fallback map)
                         </div>
-                        
+
                         <div class="relative border rounded-lg overflow-hidden flex-1 min-h-[400px] bg-gray-50 flex items-stretch">
                             <svg
                                 version="1.1"
@@ -1569,7 +1844,7 @@ registerComponent('issue-state-map-editor', {
                                     </path>
                                 </g>
                             </svg>
-                            
+
                             <!-- Zoom Controls Overlay -->
                             <div class="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
                                 <button class="bg-white shadow border rounded px-3 py-1.5 text-md font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
@@ -1577,18 +1852,18 @@ registerComponent('issue-state-map-editor', {
                                 <button class="bg-white shadow border rounded px-2.5 py-1 text-xs hover:bg-gray-100 font-semibold" @click.stop="resetViewport">Fit</button>
                                 <button class="bg-blue-600 text-white shadow border border-blue-700 rounded px-2 py-1 text-xs hover:bg-blue-700 font-semibold" @click.stop="toggleExpand">Collapse</button>
                             </div>
-                            
+
                             <div class="absolute top-2 left-2 bg-white/90 shadow px-2 py-1 rounded text-xs border z-10">
                                 <strong>Click</strong> to select, <strong>Drag</strong> to pan, <strong>Scroll</strong> to zoom.
                             </div>
                         </div>
-                        
+
                         <div class="flex justify-between mt-3">
                             <button @click="selectAll" class="bg-blue-500 text-white px-3 py-1.5 text-xs rounded hover:bg-blue-600 font-medium">Select all</button>
                             <button @click="clearSelection" class="bg-red-500 text-white px-3 py-1.5 text-xs rounded hover:bg-red-600 font-medium">Clear selection</button>
                         </div>
                     </div>
-                    
+
                     <!-- Right: Controls Panel -->
                     <div class="md:w-2/5 flex flex-col overflow-y-auto pr-2">
                         <!-- Score/Weight Inputs -->
@@ -1596,18 +1871,18 @@ registerComponent('issue-state-map-editor', {
                             <div class="grid grid-cols-2 gap-4 w-full">
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Issue Score (-1 to 1)</label>
-                                    <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore" 
+                                    <input type="number" step="0.05" min="-1" max="1" v-model.number="editScore"
                                         class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                         placeholder="0.00">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Weight</label>
-                                    <input type="number" step="0.1" min="0" v-model.number="editWeight" 
+                                    <input type="number" step="0.1" min="0" v-model.number="editWeight"
                                         class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                         placeholder="1.0">
                                 </div>
                             </div>
-                            
+
                             <button
                                 class="w-full mt-4 bg-blue-600 text-white py-2 rounded shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
                                 :disabled="selectedCount === 0"
@@ -1649,4 +1924,3 @@ registerComponent('issue-state-map-editor', {
     </div>
     `
 });
-

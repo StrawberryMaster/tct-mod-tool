@@ -2249,6 +2249,108 @@ class TCTData {
         }
     }
 
+    getAlignmentSumsForState(statePk) {
+        const VOTE_VARIABLE = 1.125;
+        const pk = Number(statePk);
+        const candidates = this.getAllCandidatePKs();
+        const stateIssueMap = {};
+        const stateScores = this.getIssueScoreForState(pk);
+        for (const entry of stateScores) {
+            stateIssueMap[entry.fields.issue] = {
+                score: entry.fields.state_issue_score ?? 0,
+                weight: entry.fields.weight ?? 1
+            };
+        }
+        const result = {};
+        for (const candPk of candidates) {
+            const candScores = this.getIssueScoreForCandidate(candPk);
+            let sum = 0;
+            for (const entry of candScores) {
+                const issueId = entry.fields.issue;
+                const candScore = entry.fields.issue_score ?? 0;
+                const si = stateIssueMap[issueId] || { score: 0, weight: 1 };
+                const S = candScore * Math.abs(candScore);
+                const E = si.score * Math.abs(si.score);
+                sum += VOTE_VARIABLE - Math.abs((S - E) * si.weight);
+            }
+            result[candPk] = sum;
+        }
+        return result;
+    }
+
+    calculateTargetMultipliers(statePk, targetPcts) {
+        const pk = Number(statePk);
+        const alignments = this.getAlignmentSumsForState(pk);
+        const candidates = this.getAllCandidatePKs();
+        const currentMultipliers = this.getCandidateStateMultipliersForState(pk);
+        const currentMult = {};
+        for (const entry of currentMultipliers) {
+            currentMult[entry.fields.candidate] = entry.fields.state_multiplier;
+        }
+        let refCandidate = null;
+        for (const c of candidates) {
+            if ((alignments[c] ?? 0) > 0 && (targetPcts[c] ?? 0) > 0) {
+                refCandidate = c;
+                break;
+            }
+            if (!refCandidate) {
+                const fallback = {};
+                for (const c of candidates) fallback[c] = 1;
+                return fallback;
+            }
+            const refAlign = alignments[refCandidate];
+            const refTarget = targetPcts[refCandidate] / 100;
+            const refMult = currentMult[refCandidate] ?? 1;
+            const result = {};
+            for (const c of candidates) {
+                const align = alignments[c] ?? 0;
+                const target = (targetPcts[c] ?? 0) / 100;
+                if (c === refCandidate) {
+                    result[c] = Math.round(refMult * 10000) / 10000;
+                } else if (align <= 0 && target <= 0) {
+                    result[c] = 0.01;
+                } else if (align <= 0) {
+                    result[c] = 5.0;
+                } else if (target <= 0) {
+                    result[c] = 0.01;
+                } else {
+                    const calculated = (target * refAlign * refMult) / (refTarget * align);
+                    result[c] = Math.round(Math.min(25.0, Math.max(0.01, calculated)) * 10000) / 10000;
+                }
+            }
+            return result;
+        }
+    }
+
+    applyTargetMargins(statePk, targetPcts) {
+        const pk = Number(statePk);
+        const multipliers = this.calculateTargetMultipliers(pk, targetPcts);
+        const entries = this.getCandidateStateMultipliersForState(pk);
+        for (const entry of entries) {
+            const candPk = entry.fields.candidate;
+            if (multipliers[candPk] != null) {
+                this.candidate_state_multiplier[entry.pk].fields.state_multiplier = multipliers[candPk];
+            }
+        }
+        this._invalidateCache('candidate_state_multiplier_by_candidate');
+        this._invalidateCache('candidate_state_multiplier_by_state');
+    }
+
+    getStructuredMargins(statePk) {
+        try {
+            const stateResult = getCurrentVoteResults(this).find(x => x.state == Number(statePk));
+            if (!stateResult || !Array.isArray(stateResult.result)) return [];
+            return stateResult.result.map(x => ({
+                candidate: x.candidate,
+                nickname: this.getNicknameForCandidate(x.candidate),
+                percent: x.percent,
+                votes: x.votes
+            }));
+        } catch (e) {
+            return [];
+        }
+    }
+
     addStateMultipliersForCandidate(candidatePk) {
         const s = Object.keys(this.states);
         for (let i = 0; i < s.length; i++) {
