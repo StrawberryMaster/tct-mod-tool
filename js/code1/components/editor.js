@@ -70,6 +70,9 @@ registerCode1Component('code1-editor', {
                         <div v-if="$globalData.mode === 'THEME'">
                             <theme-editor></theme-editor>
                         </div>
+                        <div v-if="$globalData.mode === 'MOD_BOX'">
+                            <mod-box-editor></mod-box-editor>
+                        </div>
                         <div v-if="$globalData.mode === 'SETTINGS'">
                             <settings-editor></settings-editor>
                         </div>

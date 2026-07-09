@@ -16,6 +16,7 @@ registerCode1Component('mode-picker', {
                 { id: 'CANDIDATE', label: 'Candidates' },
                 { id: 'RUNNING_MATE', label: 'Running Mates' },
                 { id: 'THEME', label: 'Theme' },
+                { id: 'MOD_BOX', label: 'Mod Box' },
                 { id: 'SETTINGS', label: 'Global Params' }
             ]
         };
@@ -59,6 +60,10 @@ registerCode1Component('election-editor', {
             <div>
                 <label class="block text-sm font-medium text-gray-700">Summary (HTML)</label>
                 <textarea v-model="election.fields.summary" rows="5" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Site description (displayed on Campaign Trail Showcase in place of the summary)</label>
+                <textarea v-model="election.fields.site_description" rows="3" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
             </div>
             <div class="flex items-center gap-2">
                 <input id="recommended_reading_enabled" type="checkbox" v-model="election.fields.recommended_reading_enabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
@@ -116,7 +121,7 @@ registerCode1Component('candidate-editor', {
             <div class="flex gap-2 items-center mb-2">
                 <label class="text-sm font-medium text-gray-700">PK:</label>
                 <input :value="currentCand.pk" @change="changeCandidatePk($event)" type="number" class="w-24 rounded border-gray-300 text-sm">
-                <button @click="deleteCandidate" class="ml-auto text-red-600 hover:text-red-800" title="Delete candidate">
+                <button @click="deleteCandidate" class="ml-auto inline-flex items-center justify-center text-red-600 hover:text-red-800" title="Delete candidate">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
@@ -288,7 +293,7 @@ registerCode1Component('running-mate-editor', {
             <div class="flex gap-2 items-center mb-2">
                 <label class="text-sm font-medium text-gray-700">PK:</label>
                 <input :value="currentRm.pk" @change="changeRunningMatePk($event)" type="number" class="w-24 rounded border-gray-300 text-sm">
-                <button @click="deleteRunningMate" class="ml-auto text-red-600 hover:text-red-800" title="Delete running mate link">
+                <button @click="deleteRunningMate" class="ml-auto inline-flex items-center justify-center text-red-600 hover:text-red-800" title="Delete running mate link">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
@@ -520,6 +525,148 @@ registerCode1Component('theme-editor', {
     `,
     computed: {
         jetData() { return this.$TCT.jet_data; }
+    }
+});
+
+registerCode1Component('mod-box-editor', {
+    template: `
+    <div class="space-y-4">
+        <h3 class="text-lg font-bold border-b pb-1">Mod box theme</h3>
+        <p class="text-sm text-gray-500 italic">Customize how your mod card appears in the community mod selection screen.</p>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Suggest from tool theme</label>
+            <div class="flex flex-wrap gap-1">
+                <button v-for="(p, key) in presets" :key="key"
+                    @click="applyPreset(p)"
+                    class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition"
+                    :style="presetStyle(p)"
+                >
+                    {{ p.label }}
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Header color</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.header_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.header_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Header text color</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.header_text_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.header_text_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Main (card background)</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.main_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.main_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Secondary (UI elements)</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.secondary_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.secondary_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Description background color</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.description_background_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.description_background_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Description text color</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.description_text_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.description_text_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">UI text color</label>
+                <div class="flex gap-2">
+                    <input v-model="mbTheme.ui_text_color" type="color" class="h-8 w-8 border rounded">
+                    <input v-model="mbTheme.ui_text_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 rounded border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
+            <strong>Preview:</strong>
+            <div class="mt-2 flex justify-center">
+                <div :style="{ height: '400px', width: '217px', backgroundColor: mbTheme.main_color, borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'black', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }">
+                    <div :style="{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: '10px 10px 0 0', paddingTop: '10px', marginBottom: '10px', height: '15%', display: 'flex', fontSize: '18px', fontWeight: 'bolder', width: '100%', backgroundColor: mbTheme.header_color, color: mbTheme.header_text_color }">
+                        <p :style="{ padding: '10px', margin: 0 }">{{ $TCT.elections[0]?.fields?.display_year || $TCT.elections[0]?.fields?.year || 'Mod Title' }}</p>
+                    </div>
+                    <img class="mod-image" alt="Mod" :src="$TCT.elections[0]?.fields?.image_url || 'https://placekitten.com/g/180/100'" :style="{ width: '80%', border: '4px solid white', height: 'auto' }">
+                    <div :style="{ flex: '1 1 0%', height: '100%', overflowY: 'auto', textAlign: 'center', fontSize: '12px', width: '90%', margin: '5px auto', borderRadius: '5px', padding: '5px', backgroundColor: mbTheme.description_background_color, color: mbTheme.description_text_color }">
+                        {{ $TCT.elections[0]?.fields?.site_description || ($TCT.elections[0]?.fields?.summary || '').replace(/<[^>]*>/g, '').trim() || 'A Campaign Trail mod.' }}
+                    </div>
+                    <div :style="{ display: 'inline-flex', justifyContent: 'center', flexWrap: 'wrap', width: '100%', margin: '10px', height: '12%' }">
+                        <button :style="{ flexGrow: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textDecoration: 'none', outline: 'none', color: mbTheme.ui_text_color, backgroundColor: mbTheme.secondary_color, border: 'none', borderRadius: '10px', margin: '5px' }">
+                            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><path d="M8 5v14l11-7z"></path></svg>
+                        </button>
+                        <button :style="{ flexGrow: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textDecoration: 'none', outline: 'none', color: mbTheme.ui_text_color, backgroundColor: mbTheme.secondary_color, border: 'none', borderRadius: '10px', margin: '5px' }">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+                        </button>
+                    </div>
+                    <div :style="{ backgroundColor: mbTheme.secondary_color, width: '100%', borderRadius: '0 0 10px 10px', color: mbTheme.ui_text_color, paddingTop: '10px', paddingBottom: '5px', textAlign: 'center' }">
+                        <div :style="{ fontWeight: 'bold', fontSize: '20px' }">
+                            2 FAVORITES
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `,
+    computed: {
+        mbTheme() {
+            if (!this.$TCT.jet_data.modBoxTheme) {
+                this.$TCT.jet_data.modBoxTheme = {
+                    header_color: "#0f172a",
+                    header_text_color: "#ffffff",
+                    description_background_color: "#ffffff",
+                    description_text_color: "#111827",
+                    main_color: "#bfe6ff",
+                    secondary_color: "#2563eb",
+                    ui_text_color: "#ffffff",
+                    site_title: "",
+                    site_image_url: ""
+                };
+            }
+            return this.$TCT.jet_data.modBoxTheme;
+        },
+        presets() {
+            return TCTCode1Data.MOD_BOX_THEME_PRESETS;
+        }
+    },
+    methods: {
+        presetStyle(p) {
+            return {
+                borderColor: p.secondary_color,
+                color: p.header_text_color,
+                background: 'linear-gradient(to bottom, ' + p.header_color + ', ' + p.main_color + ')'
+            };
+        },
+        applyPreset(preset) {
+            const t = this.mbTheme;
+            t.header_color = preset.header_color;
+            t.header_text_color = preset.header_text_color;
+            t.description_background_color = preset.description_background_color;
+            t.description_text_color = preset.description_text_color;
+            t.main_color = preset.main_color;
+            t.secondary_color = preset.secondary_color;
+            t.ui_text_color = preset.ui_text_color;
+        }
     }
 });
 

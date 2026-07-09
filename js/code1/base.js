@@ -23,7 +23,18 @@ class TCTCode1Data {
             gameTitle: "THE CAMPAIGN TRAIL",
             customQuote: "",
             quoteTextColor: "#ffffff",
-            endingTextColor: "#000000"
+            endingTextColor: "#000000",
+            modBoxTheme: {
+                header_color: "#0f172a",
+                header_text_color: "#ffffff",
+                description_background_color: "#ffffff",
+                description_text_color: "#111827",
+                main_color: "#bfe6ff",
+                secondary_color: "#2563eb",
+                ui_text_color: "#ffffff",
+                site_title: "",
+                site_image_url: ""
+            }
         };
 
         this.loadDefaultData();
@@ -72,6 +83,9 @@ class TCTCode1Data {
             if (this.elections[0].fields.recommended_reading_enabled == null) {
                 this.elections[0].fields.recommended_reading_enabled = true;
             }
+            if (this.elections[0].fields.site_description == null) {
+                this.elections[0].fields.site_description = "";
+            }
 
             // update temp_election_list too
             this.temp_election_list = [{
@@ -112,7 +126,18 @@ class TCTCode1Data {
                 gameTitle: "THE CAMPAIGN TRAIL",
                 customQuote: "",
                 quoteTextColor: "#ffffff",
-                endingTextColor: "#000000"
+                endingTextColor: "#000000",
+                modBoxTheme: {
+                    header_color: "#0f172a",
+                    header_text_color: "#ffffff",
+                    description_background_color: "#ffffff",
+                    description_text_color: "#111827",
+                    main_color: "#bfe6ff",
+                    secondary_color: "#2563eb",
+                    ui_text_color: "#ffffff",
+                    site_title: "",
+                    site_image_url: ""
+                }
             };
 
             return true;
@@ -131,6 +156,7 @@ class TCTCode1Data {
                     "year": 2016,
                     "display_year": "2016",
                     "summary": "Put election description here. You can use html tags here too.",
+                    "site_description": "",
                     "image_url": "https://www.jetsimon.com/public/exampleelection.png",
                     "winning_electoral_vote_number": 270,
                     "advisor_url": "123",
@@ -325,6 +351,11 @@ class TCTCode1Data {
         const activeCandidates = this.candidates.filter(c => !c.fields.running_mate).map(c => c.pk);
         code += "campaignTrail_temp.opponents_default_json = " + JSON.stringify([{ "election": electionPk, "candidates": activeCandidates }], null, 4) + ";\n\n";
         code += "campaignTrail_temp.opponents_weighted_json = " + JSON.stringify([{ "election": electionPk, "candidates": activeCandidates }], null, 4) + ";\n\n";
+
+        // export modBoxTheme
+        if (this.jet_data.modBoxTheme) {
+            code += "campaignTrail_temp.modBoxTheme = " + JSON.stringify(this.jet_data.modBoxTheme, null, 4) + ";\n\n";
+        }
 
         // export jet_data (for theming)
         code += "jet_data = " + JSON.stringify(this.jet_data, null, 4) + ";\n\n";
@@ -546,6 +577,7 @@ applyTheme(theme);
             // extract theming from modBoxTheme if present
             if (ct.modBoxTheme) {
                 const mb = ct.modBoxTheme;
+                this.jet_data.modBoxTheme = { ...this.jet_data.modBoxTheme, ...mb };
                 if (mb.header_color) this.jet_data.headerColor = mb.header_color;
                 if (mb.header_text_color) this.jet_data.headerTextColor = mb.header_text_color;
                 if (mb.header_image_url) this.jet_data.bannerImageUrl = mb.header_image_url;
@@ -682,6 +714,19 @@ applyTheme(theme);
             }
         }
 
+        // parse modBoxTheme from fallback regex
+        const modBoxThemeMatch = source.match(/campaignTrail_temp\.modBoxTheme\s*=\s*(\{[\s\S]*?\})(?:;|\n)/);
+        if (modBoxThemeMatch) {
+            try {
+                const parsed = new Function(`return (${modBoxThemeMatch[1]});`)();
+                if (parsed && typeof parsed === 'object') {
+                    this.jet_data.modBoxTheme = { ...this.jet_data.modBoxTheme, ...parsed };
+                }
+            } catch (e) {
+                console.warn("Failed to parse modBoxTheme object literal via regex:", e);
+            }
+        }
+
         // fallback regex extractions
         this.jet_data.headerColor = extractString(/coloring_title\s*=\s*["']([^"']+)["']/, this.jet_data.headerColor);
         this.jet_data.windowColor = extractString(/coloring_window\s*=\s*["']([^"']+)["']/, this.jet_data.windowColor);
@@ -708,6 +753,91 @@ applyTheme(theme);
         }
 
         return this.elections.length > 0;
+    }
+
+    static get MOD_BOX_THEME_PRESETS() {
+        return {
+            light: {
+                label: 'Light',
+                header_color: '#0f172a',
+                header_text_color: '#ffffff',
+                description_background_color: '#ffffff',
+                description_text_color: '#111827',
+                main_color: '#bfe6ff',
+                secondary_color: '#2563eb',
+                ui_text_color: '#ffffff'
+            },
+            sepia: {
+                label: 'Sepia',
+                header_color: '#5f3d1d',
+                header_text_color: '#fff8ed',
+                description_background_color: '#fffaf2',
+                description_text_color: '#2f2518',
+                main_color: '#f4eadb',
+                secondary_color: '#c28539',
+                ui_text_color: '#fff8ed'
+            },
+            dark: {
+                label: 'Dark',
+                header_color: '#020617',
+                header_text_color: '#f9fafb',
+                description_background_color: '#1f2937',
+                description_text_color: '#e5e7eb',
+                main_color: '#0b1220',
+                secondary_color: '#2563eb',
+                ui_text_color: '#ffffff'
+            },
+            mallard: {
+                label: 'Mallard',
+                header_color: '#006064',
+                header_text_color: '#ffffff',
+                description_background_color: '#ffffff',
+                description_text_color: '#0f1a1a',
+                main_color: '#eef3f3',
+                secondary_color: '#00acc1',
+                ui_text_color: '#ffffff'
+            },
+            'xp-olive': {
+                label: 'XP Olive',
+                header_color: '#4a5a1a',
+                header_text_color: '#ffffff',
+                description_background_color: '#ffffff',
+                description_text_color: '#000000',
+                main_color: '#ece9d8',
+                secondary_color: '#8cb43a',
+                ui_text_color: '#ffffff'
+            },
+            'xp-silver': {
+                label: 'XP Silver',
+                header_color: '#1f2937',
+                header_text_color: '#ffffff',
+                description_background_color: '#ffffff',
+                description_text_color: '#111827',
+                main_color: '#f0f1f4',
+                secondary_color: '#4b5563',
+                ui_text_color: '#ffffff'
+            },
+            'xp-zune': {
+                label: 'XP Zune',
+                header_color: '#111111',
+                header_text_color: '#ffffff',
+                description_background_color: '#1e1e1e',
+                description_text_color: '#e5e7eb',
+                main_color: '#121212',
+                secondary_color: '#e05a10',
+                ui_text_color: '#ffffff'
+            },
+            'xp-royale-dark': {
+                label: 'XP Royale Dark',
+                header_color: '#050714',
+                header_text_color: '#ffffff',
+                description_background_color: '#121836',
+                description_text_color: '#f1f5f9',
+                main_color: '#070b19',
+                secondary_color: '#0055ff',
+                ui_text_color: '#ffffff'
+            }
+        };
     }
 }
 
