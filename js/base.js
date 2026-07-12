@@ -2188,7 +2188,7 @@ class TCTData {
     }
 
     getMapForPreview(svg) {
-        console.log("getMapForPreview called with SVG length:", svg?.length ?? 0);
+
         if (!svg || typeof svg !== 'string') {
             console.error("Invalid SVG data: not a string");
             return [];
@@ -2342,7 +2342,7 @@ class TCTData {
 
     getStructuredMargins(statePk) {
         try {
-            const stateResult = getCurrentVoteResults(this).find(x => x.state == Number(statePk));
+            const stateResult = getCurrentVoteResults(this).find(x => x.state === Number(statePk));
             if (!stateResult || !Array.isArray(stateResult.result)) return [];
             return stateResult.result.map(x => ({
                 candidate: x.candidate,
@@ -3479,7 +3479,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
                 try {
                     let candidate = jsonText.replace(/,\s*([}\]])/g, "$1");
-                    if (end == "]") candidate = "[" + candidate + "]";
+                    if (end === "]") candidate = "[" + candidate + "]";
                     let res = JSON.parse(candidate);
 
                     if (outRange) {
@@ -3522,13 +3522,13 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
         jsonAttempt = jsonAttempt.replace(commentCleanerRegex, (match, str) => str ? str : "").replace(/,\s*([}\]])/g, "$1");
 
         try {
-            let finalizedJson = end == "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
+            let finalizedJson = end === "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
             let res = JSON.parse(finalizedJson);
             if (outRange) { outRange.start = startIndex; outRange.end = startIndex + start.length + endIdx + end.length; }
             return res;
         } catch (e) {
             try {
-                let evalAttempt = end == "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
+                let evalAttempt = end === "]" ? "[" + jsonAttempt + "]" : jsonAttempt;
                 if (evalAttempt.trim().startsWith("[") || evalAttempt.trim().startsWith("{")) {
                     let res = new Function("return " + evalAttempt)();
                     if (outRange) { outRange.start = startIndex; outRange.end = startIndex + start.length + endIdx + end.length; }

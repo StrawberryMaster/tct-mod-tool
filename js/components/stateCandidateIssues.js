@@ -1319,7 +1319,7 @@ registerComponent('issue-state-map-editor', {
         };
         window.addEventListener('keydown', this._onKeydown);
     },
-    beforeDestroy() {
+        beforeUnmount() {
         window.removeEventListener('resize', this.onResize);
         window.removeEventListener('keydown', this._onKeydown);
     },

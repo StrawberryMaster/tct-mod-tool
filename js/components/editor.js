@@ -266,7 +266,7 @@ registerComponent('toolbar', {
             const file = evt.target.files[0];
 
             if (file) {
-                var reader = new FileReader();
+                const reader = new FileReader();
                 reader.readAsText(file, "UTF-8");
 
                 // remove JS-style comments but preserve strings

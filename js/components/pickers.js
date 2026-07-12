@@ -210,7 +210,7 @@ registerComponent('question-picker', {
         };
         window.addEventListener('keydown', this._onKeydown);
     },
-    beforeDestroy() {
+        beforeUnmount() {
         window.removeEventListener('keydown', this._onKeydown);
     },
 

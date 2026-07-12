@@ -1,5 +1,5 @@
 function loadDefaultUSMap() {
-    console.log("Called function to load default US map...");
+
     return fetch('js/components/resources/us.svg')
         .then(response => response.text())
         .catch(error => {
@@ -28,7 +28,7 @@ registerComponent('question', {
         window.addEventListener('tct:autosaved', this.onAutosaved);
         this.localDescription = this.description || '';
     },
-    beforeDestroy() {
+        beforeUnmount() {
         window.removeEventListener('tct:autosaved', this.onAutosaved);
     },
 
@@ -1624,7 +1624,7 @@ registerComponent('integrated-state-effect-visualizer', {
         window.addEventListener('keydown', this._onKeydown);
     },
 
-    beforeDestroy() {
+        beforeUnmount() {
         window.removeEventListener('keydown', this._onKeydown);
     },
 

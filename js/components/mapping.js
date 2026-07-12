@@ -326,7 +326,7 @@ registerComponent('map-preview', {
 
         mapCode: function () {
             if (this.svg == null || this.svg == "") {
-                console.log("no svg")
+                // no svg
                 return [];
             }
 
