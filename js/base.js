@@ -1065,6 +1065,16 @@ const TEMPLATE_NAMES =
     ]
 
 class TCTData {
+    static DEFAULT_VOTE_VARIABLE = 1.125;
+    static DEFAULT_ISSUE_WEIGHT = 1.5;
+    static DEFAULT_ELECTORAL_VOTES = 1;
+    static DEFAULT_POPULAR_VOTES = 10;
+    static DEFAULT_POLL_CLOSING_TIME = 120;
+    static DEFAULT_WINNER_TAKE_ALL = 1;
+    static DEFAULT_ENDING_ACCENT = '#11299e';
+    static DEFAULT_ENDING_BG = '#ffffff';
+    static DEFAULT_ENDING_TEXT = '#000000';
+
     constructor({ questions, answers, issues, state_issue_scores, candidate_issue_score, running_mate_issue_score, candidate_state_multiplier, answer_score_global, answer_score_issue, answer_score_state, answer_feedback, states, highest_pk, jet_data }) {
         this.highest_pk = highest_pk
         this.questions = questions
@@ -1352,7 +1362,7 @@ class TCTData {
         this._indices = {};
 
         if (newPk > this.highest_pk && newPk < Number.MAX_SAFE_INTEGER) {
-            this.highest_pk = Math.ceil(newPk);
+            this.highest_pk = newPk;
         }
 
         console.log(`Successfully changed ${type} PK ${oldPk} to ${newPk}`);
@@ -1617,14 +1627,6 @@ class TCTData {
         return this._getFromIndex('running_mate_issue_score_by_issue', this.running_mate_issue_score, 'issue', pk);
     }
 
-    getRunningMateIssueScoreForCandidate(pk) {
-        return this._getFromIndex('running_mate_issue_score_by_candidate', this.running_mate_issue_score, 'candidate', pk);
-    }
-
-    getAnswerScoreIssuesForIssue(pk) {
-        return this._getFromIndex('answer_score_issue_by_issue', this.answer_score_issue, 'issue', pk);
-    }
-
     getCandidateStateMultipliersForState(pk) {
         return this._getFromIndex('candidate_state_multiplier_by_state', this.candidate_state_multiplier, 'state', pk);
     }
@@ -1695,9 +1697,9 @@ class TCTData {
             if (entry.audioArtist == null) entry.audioArtist = "";
             if (entry.audioCover == null) entry.audioCover = "";
             if (entry.audioUrl == null) entry.audioUrl = "";
-            if (entry.endingAccentColor == null) entry.endingAccentColor = "#11299e";
-            if (entry.endingBackgroundColor == null) entry.endingBackgroundColor = "#ffffff";
-            if (entry.endingTextColor == null) entry.endingTextColor = "#000000";
+            if (entry.endingAccentColor == null) entry.endingAccentColor = TCTData.DEFAULT_ENDING_ACCENT;
+            if (entry.endingBackgroundColor == null) entry.endingBackgroundColor = TCTData.DEFAULT_ENDING_BG;
+            if (entry.endingTextColor == null) entry.endingTextColor = TCTData.DEFAULT_ENDING_TEXT;
             if (entry.variableConditionEnabled == null) entry.variableConditionEnabled = false;
             if (entry.variableConditionName == null) entry.variableConditionName = "";
             if (entry.variableConditionOperator == null) entry.variableConditionOperator = "==";
@@ -2206,26 +2208,28 @@ class TCTData {
     }
 
     deleteCandidate(pk) {
-        const stateMultipliers = Object.keys(this.candidate_state_multiplier);
-        const issueScores = Object.keys(this.candidate_issue_score);
-
-        for (let i = 0; i < stateMultipliers.length; i++) {
-            const sPk = stateMultipliers[i];
-            if (this.candidate_state_multiplier[sPk].fields.candidate == pk) {
-                delete this.candidate_state_multiplier[sPk];
+        const cleanupCollection = (col, field) => {
+            for (const key of Object.keys(col)) {
+                if (col[key]?.fields?.[field] == pk) {
+                    delete col[key];
+                }
             }
-        }
-        this._invalidateCache('candidate_state_multiplier_by_candidate');
-        this._invalidateCache('candidate_state_multiplier_by_state');
+        };
 
-        for (let i = 0; i < issueScores.length; i++) {
-            const iPk = issueScores[i];
-            if (this.candidate_issue_score[iPk].fields.candidate == pk) {
-                delete this.candidate_issue_score[iPk];
-            }
+        cleanupCollection(this.candidate_state_multiplier, 'candidate');
+        cleanupCollection(this.candidate_issue_score, 'candidate');
+        cleanupCollection(this.running_mate_issue_score, 'candidate');
+        cleanupCollection(this.answer_score_global, 'candidate');
+        cleanupCollection(this.answer_score_global, 'affected_candidate');
+        cleanupCollection(this.answer_score_state, 'candidate');
+        cleanupCollection(this.answer_score_state, 'affected_candidate');
+        cleanupCollection(this.answer_feedback, 'candidate');
+
+        if (this.jet_data?.nicknames?.[pk] !== undefined) {
+            delete this.jet_data.nicknames[pk];
         }
-        this._invalidateCache('candidate_issue_score_by_candidate');
-        this._invalidateCache('candidate_issue_score_by_issue');
+
+        this._indices = {};
     }
 
     getPVForState(pk) {
@@ -2250,7 +2254,7 @@ class TCTData {
     }
 
     getAlignmentSumsForState(statePk) {
-        const VOTE_VARIABLE = 1.125;
+        const VOTE_VARIABLE = TCTData.DEFAULT_VOTE_VARIABLE;
         const pk = Number(statePk);
         const candidates = this.getAllCandidatePKs();
         const stateIssueMap = {};
@@ -2420,7 +2424,7 @@ class TCTData {
                     "state": statePk,
                     "issue": Number(issuePks[i]),
                     "state_issue_score": 0,
-                    "weight": 1.5
+                    "weight": TCTData.DEFAULT_ISSUE_WEIGHT
                 }
             };
         }
@@ -2437,10 +2441,10 @@ class TCTData {
             "fields": {
                 "name": "New State",
                 "abbr": "NST",
-                "electoral_votes": 1,
-                "popular_votes": 10,
-                "poll_closing_time": 120,
-                "winner_take_all_flg": 1,
+                "electoral_votes": TCTData.DEFAULT_ELECTORAL_VOTES,
+                "popular_votes": TCTData.DEFAULT_POPULAR_VOTES,
+                "poll_closing_time": TCTData.DEFAULT_POLL_CLOSING_TIME,
+                "winner_take_all_flg": TCTData.DEFAULT_WINNER_TAKE_ALL,
                 "election": -1,
             }
         }
@@ -2505,35 +2509,8 @@ class TCTData {
     }
 
     getMapCode() {
-        const viewboxCode = false ? "this.paper.setViewBox(0,0,c,u,false);" : `this.paper.setViewBox(${this.jet_data.mapping_data.dx}, ${this.jet_data.mapping_data.dy}, ${this.jet_data.mapping_data.x}, ${this.jet_data.mapping_data.y}, false);`;
+        const viewboxCode = `this.paper.setViewBox(${this.jet_data.mapping_data.dx}, ${this.jet_data.mapping_data.dy}, ${this.jet_data.mapping_data.x}, ${this.jet_data.mapping_data.y}, false);`;
         return `(function(e,t,n,r,i){function s(e,t,n,r){r=r instanceof Array?r:[];var i={};for(var s=0;s<r.length;s++){i[r[s]]=true}var o=function(e){this.element=e};o.prototype=n;e.fn[t]=function(){var n=arguments;var r=this;this.each(function(){var s=e(this);var u=s.data("plugin-"+t);if(!u){u=new o(s);s.data("plugin-"+t,u);if(u._init){u._init.apply(u,n)}}else if(typeof n[0]=="string"&&n[0].charAt(0)!="_"&&typeof u[n[0]]=="function"){var a=Array.prototype.slice.call(n,1);var f=u[n[0]].apply(u,a);if(n[0]in i){r=f}}});return r}}var o=370,u=215,a=10;var f={stateStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},stateHoverStyles:{fill:"#33c",stroke:"#000",scale:[1.1,1.1]},stateSpecificStyles:{},stateSpecificHoverStyles:{},click:null,mouseover:null,mouseout:null,clickState:{},mouseoverState:{},mouseoutState:{},showLabels:true,labelWidth:20,labelHeight:15,labelGap:6,labelRadius:3,labelBackingStyles:{fill:"#333",stroke:"#666","stroke-width":1,"stroke-linejoin":"round",scale:[1,1]},labelBackingHoverStyles:{fill:"#33c",stroke:"#000"},stateSpecificLabelBackingStyles:{},stateSpecificLabelBackingHoverStyles:{},labelTextStyles:{fill:"#fff",stroke:"none","font-weight":300,"stroke-width":0,"font-size":"10px"},labelTextHoverStyles:{},stateSpecificLabelTextStyles:{},stateSpecificLabelTextHoverStyles:{}};var l={_init:function(t){this.options={};e.extend(this.options,f,t);var n=this.element.width();var i=this.element.height();var s=this.element.width()/o;var l=this.element.height()/u;this.scale=Math.min(s,l);this.labelAreaWidth=Math.ceil(a/this.scale);var c=o+Math.max(0,this.labelAreaWidth-a);this.paper=r(this.element.get(0),c,u);this.paper.setSize(n,i);${viewboxCode}this.stateHitAreas={};this.stateShapes={};this.topShape=null;this._initCreateStates();this.labelShapes={};this.labelTexts={};this.labelHitAreas={};if(this.options.showLabels){this._initCreateLabels()}},_initCreateStates:function(){var t=this.options.stateStyles;var n=this.paper;var r={${this.getStateJavascriptForMapping()}};var tr={${this.getStateTransformJavascriptForMapping()}};var i={};for(var s in r){i={};if(this.options.stateSpecificStyles[s]){e.extend(i,t,this.options.stateSpecificStyles[s])}else{i=t}this.stateShapes[s]=n.path(r[s]).attr(i);if(tr[s]){if(this.stateShapes[s].node&&this.stateShapes[s].node.setAttribute){this.stateShapes[s].node.setAttribute("transform",tr[s])}else{this.stateShapes[s].transform(tr[s])}}this.topShape=this.stateShapes[s];this.stateHitAreas[s]=n.path(r[s]).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});if(tr[s]){if(this.stateHitAreas[s].node&&this.stateHitAreas[s].node.setAttribute){this.stateHitAreas[s].node.setAttribute("transform",tr[s])}else{this.stateHitAreas[s].transform(tr[s])}}this.stateHitAreas[s].node.dataState=s}this._onClickProxy=e.proxy(this,"_onClick");this._onMouseOverProxy=e.proxy(this,"_onMouseOver"),this._onMouseOutProxy=e.proxy(this,"_onMouseOut");for(var s in this.stateHitAreas){this.stateHitAreas[s].toFront();e(this.stateHitAreas[s].node).bind("mouseout",this._onMouseOutProxy);e(this.stateHitAreas[s].node).bind("click",this._onClickProxy);e(this.stateHitAreas[s].node).bind("mouseover",this._onMouseOverProxy)}},_initCreateLabels:function(){var t=this.paper;var n=[];var r=860;var i=220;var s=this.options.labelWidth;var o=this.options.labelHeight;var u=this.options.labelGap;var a=this.options.labelRadius;var f=s/this.scale;var l=o/this.scale;var c=(s+u)/this.scale;var h=(o+u)/this.scale*.5;var p=a/this.scale;var d=this.options.labelBackingStyles;var v=this.options.labelTextStyles;var m={};for(var g=0,y,b,w;g<n.length;++g){w=n[g];y=(g+1)%2*c+r;b=g*h+i,m={};if(this.options.stateSpecificLabelBackingStyles[w]){e.extend(m,d,this.options.stateSpecificLabelBackingStyles[w])}else{m=d}this.labelShapes[w]=t.rect(y,b,f,l,p).attr(m);m={};if(this.options.stateSpecificLabelTextStyles[w]){e.extend(m,v,this.options.stateSpecificLabelTextStyles[w])}else{e.extend(m,v)}if(m["font-size"]){m["font-size"]=parseInt(m["font-size"])/this.scale+"px"}this.labelTexts[w]=t.text(y+f/2,b+l/2,w).attr(m);this.labelHitAreas[w]=t.rect(y,b,f,l,p).attr({fill:"#000","stroke-width":0,opacity:0,cursor:"pointer"});this.labelHitAreas[w].node.dataState=w}for(var w in this.labelHitAreas){this.labelHitAreas[w].toFront();e(this.labelHitAreas[w].node).bind("mouseout",this._onMouseOutProxy);e(this.labelHitAreas[w].node).bind("click",this._onClickProxy);e(this.labelHitAreas[w].node).bind("mouseover",this._onMouseOverProxy)}},_getStateFromEvent:function(e){var t=e.target&&e.target.dataState||e.dataState;return this._getState(t)},_getState:function(e){var t=this.stateShapes[e];var n=this.stateHitAreas[e];var r=this.labelShapes[e];var i=this.labelTexts[e];var s=this.labelHitAreas[e];return{shape:t,hitArea:n,name:e,labelBacking:r,labelText:i,labelHitArea:s}},_onMouseOut:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseout",e,t)},_defaultMouseOutAction:function(t){var n={};if(this.options.stateSpecificStyles[t.name]){e.extend(n,this.options.stateStyles,this.options.stateSpecificStyles[t.name])}else{n=this.options.stateStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingStyles[t.name]){e.extend(n,this.options.labelBackingStyles,this.options.stateSpecificLabelBackingStyles[t.name])}else{n=this.options.labelBackingStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_onClick:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("click",e,t)},_onMouseOver:function(e){var t=this._getStateFromEvent(e);if(!t.hitArea){return}return!this._triggerEvent("mouseover",e,t)},_defaultMouseOverAction:function(t){this.bringShapeToFront(t.shape);this.paper.safari();var n={};if(this.options.stateSpecificHoverStyles[t.name]){e.extend(n,this.options.stateHoverStyles,this.options.stateSpecificHoverStyles[t.name])}else{n=this.options.stateHoverStyles}t.shape.animate(n,this.options.stateHoverAnimation);if(t.labelBacking){var n={};if(this.options.stateSpecificLabelBackingHoverStyles[t.name]){e.extend(n,this.options.labelBackingHoverStyles,this.options.stateSpecificLabelBackingHoverStyles[t.name])}else{n=this.options.labelBackingHoverStyles}t.labelBacking.animate(n,this.options.stateHoverAnimation)}},_triggerEvent:function(t,n,r){var i=r.name;var s=false;var o=e.Event("usmap"+t+i);o.originalEvent=n;if(this.options[t+"State"][i]){s=this.options[t+"State"][i](o,r)===false}if(o.isPropagationStopped()){this.element.trigger(o,[r]);s=s||o.isDefaultPrevented()}if(!o.isPropagationStopped()){var u=e.Event("usmap"+t);u.originalEvent=n;if(this.options[t]){s=this.options[t](u,r)===false||s}if(!u.isPropagationStopped()){this.element.trigger(u,[r]);s=s||u.isDefaultPrevented()}}if(!s){switch(t){case"mouseover":this._defaultMouseOverAction(r);break;case"mouseout":this._defaultMouseOutAction(r);break}}return!s},trigger:function(e,t,n){t=t.replace("usmap","");e=e.toUpperCase();var r=this._getState(e);this._triggerEvent(t,n,r)},bringShapeToFront:function(e){if(this.topShape){e.insertAfter(this.topShape)}this.topShape=e}};var c=[];s(e,"usmap",l,c)})(jQuery,document,window,Raphael)`
-    }
-
-    getStateJavascriptForMapping() {
-        const states = Object.values(this.states);
-        const parts = [];
-
-        for (let i = 0; i < states.length; i++) {
-            parts.push(`"${states[i].fields.abbr}":"${states[i].d}"`);
-        }
-
-        return parts.join(", ");
-    }
-
-    getStateTransformJavascriptForMapping() {
-        const chunks = [];
-        const states = Object.values(this.states);
-
-        for (let i = 0; i < states.length; i++) {
-            const abbr = states[i].fields.abbr;
-            const transform = states[i].transform || "";
-            if (transform) {
-                const escapedTransform = String(transform).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-                chunks.push(`"${abbr}":"${escapedTransform}"`);
-            }
-        }
-
-        return chunks.join(',');
     }
 
     exportCode2() {

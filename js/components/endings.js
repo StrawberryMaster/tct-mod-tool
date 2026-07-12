@@ -17,10 +17,10 @@ registerComponent('endings', {
         <h1 class="text-xl font-semibold mb-3">Custom endings</h1>
 
         <div class="flex flex-wrap gap-2 mb-4">
-            <button v-if="!enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">Enable custom endings</button>
-            <button v-if="enabled" class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">Disable custom endings</button>
+            <button v-if="!enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" @click="toggleEnabled()">Enable custom endings</button>
+            <button v-if="enabled" class="bg-red-500 text-white p-2 rounded-sm hover:bg-red-600" @click="toggleEnabled()">Disable custom endings</button>
 
-            <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" v-on:click="addEnding()">Add custom ending</button>
+            <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" @click="addEnding()">Add custom ending</button>
             <button v-if="enabled && endings.length > 0" class="bg-gray-500 text-white p-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
                 Manage endings
             </button>
@@ -136,9 +136,9 @@ registerComponent('endings', {
                 'audioArtist':'',
                 'audioCover':'',
                 'audioUrl':'',
-                'endingAccentColor':'#11299e',
-                'endingBackgroundColor':'#ffffff',
-                'endingTextColor':'#000000',
+                'endingAccentColor': TCTData.DEFAULT_ENDING_ACCENT,
+                'endingBackgroundColor': TCTData.DEFAULT_ENDING_BG,
+                'endingTextColor': TCTData.DEFAULT_ENDING_TEXT,
                 'variableConditions':[],
                 'variableConditionOperator':'AND',
                 'outcomeCondition':'ignore',
@@ -1107,9 +1107,9 @@ registerComponent('ending', {
                     endingText: '',
                     endingImage: '',
                     endingHideImage: false,
-                    endingAccentColor: '#11299e',
-                    endingBackgroundColor: '#ffffff',
-                    endingTextColor: '#000000',
+                    endingAccentColor: TCTData.DEFAULT_ENDING_ACCENT,
+                    endingBackgroundColor: TCTData.DEFAULT_ENDING_BG,
+                    endingTextColor: TCTData.DEFAULT_ENDING_TEXT,
                     audioTitle: '',
                     audioArtist: '',
                     audioCover: '',
@@ -1124,11 +1124,7 @@ registerComponent('ending', {
                     answerConditionAnswers: ''
                 };
 
-                if (typeof this.$set === 'function') {
-                    this.$set(jet.ending_data, this.id, row);
-                } else {
-                    jet.ending_data[this.id] = row;
-                }
+                jet.ending_data[this.id] = row;
             }
 
             const row = jet.ending_data[this.id];
@@ -1142,9 +1138,9 @@ registerComponent('ending', {
                 endingText: '',
                 endingImage: '',
                 endingHideImage: false,
-                endingAccentColor: '#11299e',
-                endingBackgroundColor: '#ffffff',
-                endingTextColor: '#000000',
+                endingAccentColor: TCTData.DEFAULT_ENDING_ACCENT,
+                endingBackgroundColor: TCTData.DEFAULT_ENDING_BG,
+                endingTextColor: TCTData.DEFAULT_ENDING_TEXT,
                 audioTitle: '',
                 audioArtist: '',
                 audioCover: '',
@@ -1171,11 +1167,7 @@ registerComponent('ending', {
 
             for (const [key, value] of Object.entries(defaults)) {
                 if (row[key] == null) {
-                    if (typeof this.$set === 'function') {
-                        this.$set(row, key, value);
-                    } else {
-                        row[key] = value;
-                    }
+                    row[key] = value;
                 }
             }
 

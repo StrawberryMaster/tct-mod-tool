@@ -62,9 +62,9 @@ registerComponent('bulk', {
                 </div>
 
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAll()">Check All</button>
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="invertAll()">Invert All Values</button>
-                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="generate()">Generate State Scores</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" @click="checkAll()">Check All</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" @click="invertAll()">Invert All Values</button>
+                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" @click="generate()">Generate State Scores</button>
                 </div>
 
                 <ul class="divide-y border rounded overflow-hidden">
@@ -113,11 +113,11 @@ registerComponent('bulk', {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 mb-3">
-                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" v-on:click="checkAllIssues()">Check all</button>
-                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" v-on:click="uncheckAllIssues()">Uncheck all</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" @click="checkAllIssues()">Check all</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-300" @click="uncheckAllIssues()">Uncheck all</button>
                     <div class="flex-grow"></div>
                     <input v-model="issueFilter" placeholder="Filter states..." class="p-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-500 w-48">
-                    <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setIssueScores()">Apply bulk updates</button>
+                    <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" @click="setIssueScores()">Apply bulk updates</button>
                 </div>
 
                 <ul class="divide-y border rounded overflow-hidden max-h-96 overflow-y-auto">
@@ -201,7 +201,7 @@ registerComponent('bulk', {
 
                 <div class="flex justify-end">
                     <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm transition-all active:transform active:scale-95"
-                            v-on:click="applyBulkAnswerEffects()">
+                            @click="applyBulkAnswerEffects()">
                         Apply to selected answers
                     </button>
                 </div>
@@ -258,7 +258,7 @@ registerComponent('bulk', {
 
                     <div class="flex justify-end">
                         <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 shadow-sm transition-all active:transform active:scale-95"
-                                v-on:click="applySmartRandomEffects()">
+                                @click="applySmartRandomEffects()">
                             Apply smart random effects
                         </button>
                     </div>
@@ -286,9 +286,9 @@ registerComponent('bulk', {
                 </div>
 
                 <div class="flex gap-2 mb-3">
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="checkAllStates()">Check All</button>
-                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" v-on:click="uncheckAllStates()">Uncheck All</button>
-                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="setStateMultipliers()">Set State Multipliers</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" @click="checkAllStates()">Check All</button>
+                    <button class="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300" @click="uncheckAllStates()">Uncheck All</button>
+                    <button class="ml-auto bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" @click="setStateMultipliers()">Set State Multipliers</button>
                 </div>
 
                 <ul class="divide-y border rounded overflow-hidden mb-3">
@@ -307,7 +307,7 @@ registerComponent('bulk', {
                                class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-xs focus:ring-3 focus:ring-blue-400 focus:border-blue-500">
                     </div>
                     <div class="flex justify-end">
-                        <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" v-on:click="multiplyStateMultipliers()">Multiply</button>
+                        <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600" @click="multiplyStateMultipliers()">Multiply</button>
                     </div>
                 </div>
             </div>

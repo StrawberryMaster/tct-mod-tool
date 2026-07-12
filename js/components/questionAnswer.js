@@ -104,7 +104,7 @@ registerComponent('question', {
                     </svg>
                     Save
                 </button>
-                <button class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 flex items-center" v-on:click="deleteQuestion()">
+                <button class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 flex items-center" @click="deleteQuestion()">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -132,7 +132,7 @@ registerComponent('question', {
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="p-4 border-b flex justify-between items-center">
                 <h2 class="font-bold text-lg">Answers ({{this.answers.length}})</h2>
-                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 flex items-center" v-on:click="addAnswer()">
+                <button class="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 flex items-center" @click="addAnswer()">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
@@ -762,12 +762,12 @@ registerComponent('answer', {
         <label for="description">Description:</label><br>
         <textarea @input="onInput($event)" :value="description" name="description" rows="4" cols="50"></textarea><br>
 
-        <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" v-on:click="deleteAnswer()">Delete answer</button>
-        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" v-on:click="cloneAnswer()">Clone answer</button>
+        <button class="bg-red-500 text-white p-2 my-2 rounded hover:bg-red-600" @click="deleteAnswer()">Delete answer</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded hover:bg-blue-600" @click="cloneAnswer()">Clone answer</button>
 
         <details>
         <summary>Answer feedback ({{this.feedbacks.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addFeedback()">Add feedback</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" @click="addFeedback()">Add feedback</button>
         <ul>
             <answer-feedback @deleteFeedback="deleteFeedback" v-for="feedback in feedbacks" :pk="feedback.pk" :key="feedback.pk"></answer-feedback>
         </ul>
@@ -775,7 +775,7 @@ registerComponent('answer', {
 
         <details>
         <summary>Global scores ({{this.globalScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addGlobalScore()">Add global scores</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" @click="addGlobalScore()">Add global scores</button>
         <ul>
             <global-score @deleteGlobalScore="deleteGlobalScore" v-for="x in globalScores" :pk="x.pk" :key="x.pk"></global-score>
         </ul>
@@ -783,7 +783,7 @@ registerComponent('answer', {
 
         <details>
         <summary>Issue scores ({{this.issueScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addIssueScore()">Add issue score</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" @click="addIssueScore()">Add issue score</button>
         <ul>
             <issue-score @deleteIssueScore="deleteIssueScore" v-for="x in issueScores" :pk="x.pk" :key="x.pk"></issue-score>
         </ul>
@@ -791,7 +791,7 @@ registerComponent('answer', {
 
         <details>
         <summary>State scores ({{this.stateScores.length}})</summary>
-        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" v-on:click="addStateScore()">Add state score</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded hover:bg-green-600" @click="addStateScore()">Add state score</button>
         <ul>
             <state-score @deleteStateScore="deleteStateScore" v-for="x in stateScores" :pk="x.pk" :key="x.pk"></state-score>
         </ul>

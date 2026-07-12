@@ -956,7 +956,7 @@ registerComponent('issue', {
                 <h1 class="font-bold text-xl">{{ name || 'Issue' }}</h1>
                 <span class="text-gray-500">PK: <pk-editor type="issue" :pk="pk"></pk-editor></span>
             </div>
-            <button :class="['px-3 py-1 rounded-sm', canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed']" :disabled="!canDelete" v-on:click="deleteIssue()">Delete Issue</button>
+            <button :class="['px-3 py-1 rounded-sm', canDelete ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white opacity-50 cursor-not-allowed']" :disabled="!canDelete" @click="deleteIssue()">Delete Issue</button>
         </div>
         <div class="p-4 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

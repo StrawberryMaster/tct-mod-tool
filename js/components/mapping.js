@@ -21,10 +21,10 @@ registerComponent('mapping', {
         <div class="flex items-center justify-between mb-4">
             <h1 class="font-bold text-xl">Mapping settings</h1>
             <div class="space-x-2">
-                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()">
+                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" @click="toggleEnabled()">
                     Enable custom map
                 </button>
-                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()">
+                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" @click="toggleEnabled()">
                     Disable custom map
                 </button>
             </div>
@@ -54,7 +54,7 @@ registerComponent('mapping', {
 
                     <div class="border-t pt-4">
                         <button class="bg-green-500 text-white px-4 py-2 rounded-sm hover:bg-green-600 font-medium" 
-                                v-on:click="loadMapFromSVG()">
+                                @click="loadMapFromSVG()">
                             Load map from SVG
                         </button>
                         <p class="text-sm text-gray-600 italic mt-2">

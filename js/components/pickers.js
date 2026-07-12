@@ -108,8 +108,8 @@ registerComponent('question-picker', {
     <br>
 
     <div class="flex flex-wrap gap-2">
-        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addQuestion()">Add question</button>
-        <button class="bg-blue-500 text-white p-2 my-2 rounded-sm hover:bg-blue-600" v-on:click="cloneQuestion()">Clone question</button>
+        <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" @click="addQuestion()">Add question</button>
+        <button class="bg-blue-500 text-white p-2 my-2 rounded-sm hover:bg-blue-600" @click="cloneQuestion()">Clone question</button>
         <button class="bg-gray-500 text-white p-2 my-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
             Manage questions
         </button>
@@ -183,7 +183,7 @@ registerComponent('question-picker', {
                                 <button class="text-red-500 hover:text=red-700 ml-auto"
                                     :aria-label="'Delete question #' + item.pk"  
                                     :title="'Delete question #' + item.pk" 
-                                    v-on:click="deleteQuestion(item.pk)"
+                                    @click="deleteQuestion(item.pk)"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -430,7 +430,7 @@ registerComponent('state-picker', {
     </select>
 
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addState()">Add state</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" @click="addState()">Add state</button>
 
     <p class="text-xs text-gray-700 italic">WARNING: If you add a state with the Add State button the abbreviation will need to exist in your map svg. Also change the election pk to your election. Use only if you know what you're doing.</p>
 
@@ -571,7 +571,7 @@ registerComponent('candidate-picker', {
         <option v-for="c in candidates" :selected="currentCandidate == c[0]" :value="c[0]" :key="c[0]">{{c[1]}}</option>
     </select>
     <br>
-    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" v-on:click="addCandidate()">Add candidate</button>
+    <button class="bg-green-500 text-white p-2 my-2 rounded-sm hover:bg-green-600" @click="addCandidate()">Add candidate</button>
 
     </div>
     `,
@@ -614,7 +614,7 @@ registerComponent('cyoa-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoCyoa()">CYOA</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" @click="gotoCyoa()">CYOA</button>
 
     </div>
     `,
@@ -631,7 +631,7 @@ registerComponent('banner-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBanner()">Banner settings</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" @click="gotoBanner()">Banner settings</button>
 
     </div>
     `,
@@ -681,7 +681,7 @@ registerComponent('ending-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoEndings()">Custom Endings</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" @click="gotoEndings()">Custom Endings</button>
 
     </div>
     `,
@@ -698,7 +698,7 @@ registerComponent('mapping-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoMapping()">Custom Map Tools</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" @click="gotoMapping()">Custom Map Tools</button>
 
     </div>
     `,
@@ -715,7 +715,7 @@ registerComponent('bulk-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
-    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" v-on:click="gotoBulk()">Bulk Tools</button>
+    <button class="bg-gray-300 p-2 my-2 rounded-sm hover:bg-gray-500" @click="gotoBulk()">Bulk Tools</button>
 
     </div>
     `,
@@ -758,7 +758,7 @@ registerComponent('unified-tools-picker', {
                 <h4 class="text-sm font-medium text-gray-700 mb-2">Specialized tools</h4>
                 <div class="grid grid-cols-2 gap-2">
                     <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-sm hover:from-blue-600 hover:to-blue-700 text-sm transition-colors" 
-                            v-on:click="gotoCyoa()">
+                            @click="gotoCyoa()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
@@ -766,7 +766,7 @@ registerComponent('unified-tools-picker', {
                     </button>
                     
                     <button class="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-sm hover:from-green-600 hover:to-green-700 text-sm transition-colors" 
-                            v-on:click="gotoBanner()">
+                            @click="gotoBanner()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -774,7 +774,7 @@ registerComponent('unified-tools-picker', {
                     </button>
                     
                     <button class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-2 rounded-sm hover:from-purple-600 hover:to-purple-700 text-sm transition-colors" 
-                            v-on:click="gotoEndings()">
+                            @click="gotoEndings()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -782,7 +782,7 @@ registerComponent('unified-tools-picker', {
                     </button>
                     
                     <button class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-2 rounded-sm hover:from-orange-600 hover:to-orange-700 text-sm transition-colors" 
-                            v-on:click="gotoMapping()">
+                            @click="gotoMapping()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
@@ -790,7 +790,7 @@ registerComponent('unified-tools-picker', {
                     </button>
                     
                     <button class="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-sm hover:from-red-600 hover:to-red-700 text-sm transition-colors col-span-2" 
-                            v-on:click="gotoBulk()">
+                            @click="gotoBulk()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>

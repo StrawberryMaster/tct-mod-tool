@@ -45,20 +45,20 @@ registerComponent('toolbar', {
             <div class="space-y-3">
                 <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
                 <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="importCode2()">Import Code 2</button>
-                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="exportCode2()">Export Code 2</button>
-                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="clipboardCode2()">{{ clipboardText }}</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="importCode2()">Import Code 2</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="exportCode2()">Export Code 2</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="clipboardCode2()">{{ clipboardText }}</button>
                 </div>
 
                 <div class="grid gap-2 lg:grid-cols-3">
-                    <button class="theme-control theme-control--primary w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="toggleModPresets()">
+                    <button class="theme-control theme-control--primary w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="toggleModPresets()">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
                         </svg>
                         Mod presets
                     </button>
-                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" v-on:click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
-                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors text-left" v-on:click="toggleThemeMode()">
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors text-left" @click="toggleThemeMode()">
                         <span class="block text-[11px] uppercase tracking-wide opacity-80">Theme</span>
                         <span class="block font-medium leading-tight">{{ getThemeDisplayName(currentTheme) }}</span>
                     </button>

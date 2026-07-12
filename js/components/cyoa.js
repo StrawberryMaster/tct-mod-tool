@@ -15,8 +15,8 @@ registerComponent('cyoa', {
         <div class="flex items-center justify-between mb-3">
             <h1 class="font-bold text-xl">CYOA toolkit</h1>
             <div class="space-x-2">
-                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" v-on:click="toggleEnabled()" aria-label="Enable CYOA">Enable</button>
-                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" v-on:click="toggleEnabled()" aria-label="Disable CYOA">Disable</button>
+                <button v-if="!enabled" class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600" @click="toggleEnabled()" aria-label="Enable CYOA">Enable</button>
+                <button v-else class="bg-red-500 text-white px-3 py-2 rounded-sm hover:bg-red-600" @click="toggleEnabled()" aria-label="Disable CYOA">Disable</button>
             </div>
         </div>
 
@@ -29,7 +29,7 @@ registerComponent('cyoa', {
                     <div class="flex items-center gap-2">
                         <button
                             class="bg-blue-500 text-white px-3 py-2 rounded-sm hover:bg-blue-600"
-                            v-on:click="addVariable()"
+                            @click="addVariable()"
                         >
                             Add variable
                         </button>
@@ -95,7 +95,7 @@ registerComponent('cyoa', {
                     <div class="flex items-center gap-2">
                         <button
                             class="bg-green-500 text-white px-3 py-2 rounded-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                            v-on:click="addCyoaEvent()"
+                            @click="addCyoaEvent()"
                             :disabled="!canAdd"
                             :title="canAdd ? 'Add a new branching rule' : 'Need at least one question and one answer'"
                         >
@@ -1449,7 +1449,7 @@ registerComponent('cyoa-event', {
                     </span>
                 </div>
             </div>
-            <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" v-on:click="deleteEvent()">Delete</button>
+            <button class="bg-red-500 text-white px-3 py-1 rounded-sm hover:bg-red-600" @click="deleteEvent()">Delete</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1686,7 +1686,7 @@ registerComponent('cyoa-variable', {
             <div class="text-sm text-gray-700">
                 <div class="font-medium">Variable</div>
             </div>
-            <button class="text-red-600 hover:text-red-800 text-sm" v-on:click="deleteVariable()" aria-label="Delete variable">
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="deleteVariable()" aria-label="Delete variable">
                 ✕
             </button>
         </div>
