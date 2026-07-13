@@ -2,7 +2,6 @@ registerComponent('endings', {
 
     data() {
         return {
-            temp_endings: [],
             showManageModal: false,
             manageTab: 'list', // 'list' | 'reorder'
             orderList: [],       // [{ id, text }]
@@ -146,13 +145,11 @@ registerComponent('endings', {
                 'answerConditionAnswer':'',
                 'answerConditionAnswers':''
             }
-            this.temp_endings = [];
             this.$globalData.dataVersion++;
         },
 
         deleteEnding: function(id) {
             delete this.$TCT.jet_data.ending_data[id];
-            this.temp_endings = [];
             this.$globalData.dataVersion++;
         },
 
@@ -203,9 +200,6 @@ registerComponent('endings', {
                 // this avoids relying on object insertion order
                 if (!this.$TCT.jet_data) this.$TCT.jet_data = {};
                 this.$TCT.jet_data.endings_order = orderedIds;
-
-                // force re-render of the component list by clearing any temp cache
-                this.temp_endings = [];
 
                 // autosave if enabled
                 if (window.autosaveEnabled) {
@@ -360,8 +354,8 @@ registerComponent('endings', {
     computed: {
 
         endings: function() {
-            let a = [this.$globalData.dataVersion];
-            return this.temp_endings.concat(this.$TCT.getAllEndings());
+            void this.$globalData.dataVersion;
+            return this.$TCT.getAllEndings();
         },
 
         enabled: function() {
@@ -735,31 +729,26 @@ registerComponent('ending', {
         },
 
         serializeSlide: function(slide) {
-            const normalized = this.normalizeSlide(slide);
+            const s = this.normalizeSlide(slide);
             const payload = {
-                variable: Number(normalized.variable ?? 0),
-                operator: normalized.operator || '>',
-                amount: Number(normalized.amount ?? 0),
-                outcomeCondition: normalized.outcomeCondition || 'ignore',
-                title: normalized.title || '',
-                subtitle: normalized.subtitle || '',
-                content: normalized.content || '',
-                image: normalized.hideImage ? false : (normalized.image || ''),
-                slideGroup: normalized.slideGroup || 'main',
-                variableConditions: Array.isArray(normalized.variableConditions) ? normalized.variableConditions : [],
-                variableConditionOperator: normalized.variableConditionOperator || 'AND',
-                answerConditionType: normalized.answerConditionType || 'ignore',
-                answerConditionAnswer: normalized.answerConditionAnswer || '',
-                answerConditionAnswers: normalized.answerConditionAnswers || ''
+                variable: s.variable,
+                operator: s.operator,
+                amount: s.amount,
+                outcomeCondition: s.outcomeCondition,
+                title: s.title,
+                subtitle: s.subtitle,
+                content: s.content,
+                image: s.hideImage ? false : (s.image || ''),
+                slideGroup: s.slideGroup,
+                variableConditions: s.variableConditions,
+                variableConditionOperator: s.variableConditionOperator,
+                answerConditionType: s.answerConditionType,
+                answerConditionAnswer: s.answerConditionAnswer,
+                answerConditionAnswers: s.answerConditionAnswers
             };
 
-            if (normalized.audio && (normalized.audio.title || normalized.audio.artist || normalized.audio.cover || normalized.audio.url)) {
-                payload.audio = {
-                    title: normalized.audio.title || '',
-                    artist: normalized.audio.artist || '',
-                    cover: normalized.audio.cover || '',
-                    url: normalized.audio.url || ''
-                };
+            if (s.audio && (s.audio.title || s.audio.artist || s.audio.cover || s.audio.url)) {
+                payload.audio = { ...s.audio };
             }
 
             return payload;
@@ -1091,67 +1080,31 @@ registerComponent('ending', {
 
         getEndingRow: function() {
             const jet = this.$TCT.jet_data || (this.$TCT.jet_data = {});
-            if (!jet.ending_data) {
-                jet.ending_data = {};
-            }
+            if (!jet.ending_data) jet.ending_data = {};
 
-            if (!jet.ending_data[this.id]) {
-                const row = {
-                    id: this.id,
-                    variable: 0,
-                    operator: '>',
-                    amount: 0,
-                    outcomeCondition: 'ignore',
-                    endingTitle: '',
-                    endingSubtitle: '',
-                    endingText: '',
-                    endingImage: '',
-                    endingHideImage: false,
-                    endingAccentColor: TCTData.DEFAULT_ENDING_ACCENT,
-                    endingBackgroundColor: TCTData.DEFAULT_ENDING_BG,
-                    endingTextColor: TCTData.DEFAULT_ENDING_TEXT,
-                    audioTitle: '',
-                    audioArtist: '',
-                    audioCover: '',
-                    endingSlidesJson: '',
-
-
-                    audioUrl: '',
-                    variableConditions: [],
-                    variableConditionOperator: 'AND',
-                    answerConditionType: 'ignore',
-                    answerConditionAnswer: '',
-                    answerConditionAnswers: ''
-                };
-
-                jet.ending_data[this.id] = row;
-            }
-
-            const row = jet.ending_data[this.id];
-            const defaults = {
+            const DEFAULTS = {
                 variable: 0,
                 operator: '>',
                 amount: 0,
                 outcomeCondition: 'ignore',
-                endingTitle: '',
-                endingSubtitle: '',
-                endingText: '',
-                endingImage: '',
+                endingTitle: '', endingSubtitle: '', endingText: '', endingImage: '',
                 endingHideImage: false,
                 endingAccentColor: TCTData.DEFAULT_ENDING_ACCENT,
                 endingBackgroundColor: TCTData.DEFAULT_ENDING_BG,
                 endingTextColor: TCTData.DEFAULT_ENDING_TEXT,
-                audioTitle: '',
-                audioArtist: '',
-                audioCover: '',
-                audioUrl: '',
+                audioTitle: '', audioArtist: '', audioCover: '', audioUrl: '',
                 endingSlidesJson: '',
                 variableConditions: [],
                 variableConditionOperator: 'AND',
                 answerConditionType: 'ignore',
-                answerConditionAnswer: '',
-                answerConditionAnswers: ''
+                answerConditionAnswer: '', answerConditionAnswers: ''
             };
+
+            if (!jet.ending_data[this.id]) {
+                jet.ending_data[this.id] = { id: this.id, ...DEFAULTS };
+            }
+
+            const row = jet.ending_data[this.id];
 
             // migrate old single-condition format to new multi-condition format
             if (row.variableConditionEnabled && row.variableConditionName && !Array.isArray(row.variableConditions)) {
@@ -1160,15 +1113,12 @@ registerComponent('ending', {
                     comparator: row.variableConditionOperator || '==',
                     value: row.variableConditionValue ? Number(row.variableConditionValue) : 0
                 }];
-                // clean up old fields
                 delete row.variableConditionEnabled;
                 delete row.variableConditionName;
             }
 
-            for (const [key, value] of Object.entries(defaults)) {
-                if (row[key] == null) {
-                    row[key] = value;
-                }
+            for (const [key, value] of Object.entries(DEFAULTS)) {
+                if (row[key] == null) row[key] = value;
             }
 
             return row;

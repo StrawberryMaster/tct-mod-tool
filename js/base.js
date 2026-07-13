@@ -1092,12 +1092,14 @@ class TCTData {
         this.jet_data = jet_data
         this._indices = {};
 
-        if (this.jet_data.bunnyhop_enabled == null) {
-            this.jet_data.bunnyhop_enabled = false;
-        }
-        if (this.jet_data.bunnyhop_pools == null) {
-            this.jet_data.bunnyhop_pools = [];
-        }
+        if (this.jet_data.bunnyhop_enabled == null) this.jet_data.bunnyhop_enabled = false;
+        if (this.jet_data.bunnyhop_pools == null) this.jet_data.bunnyhop_pools = [];
+        if (this.jet_data.cyoa_enabled == null) this.jet_data.cyoa_enabled = false;
+        if (this.jet_data.cyoa_data == null) this.jet_data.cyoa_data = {};
+        if (this.jet_data.cyoa_variables == null) this.jet_data.cyoa_variables = {};
+        if (this.jet_data.cyoa_variable_effects == null) this.jet_data.cyoa_variable_effects = {};
+        if (this.jet_data.endings_enabled == null) this.jet_data.endings_enabled = false;
+        if (this.jet_data.ending_data == null) this.jet_data.ending_data = {};
 
         this.cleanAllData();
     }
@@ -1165,9 +1167,7 @@ class TCTData {
 
     cleanItems(obj) {
         if (!obj || typeof obj !== 'object') return;
-        const keys = Object.keys(obj);
-        for (let i = 0; i < keys.length; i++) {
-            const val = obj[keys[i]];
+        for (const val of Object.values(obj)) {
             if (val && typeof val === 'object') {
                 this.clean(val);
             }
@@ -1176,10 +1176,7 @@ class TCTData {
 
     clean(obj) {
         if (!obj || typeof obj !== 'object') return;
-        const keys = Object.keys(obj);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            const val = obj[key];
+        for (const [key, val] of Object.entries(obj)) {
             if (typeof val === 'string') {
                 const trimmed = val.trim();
                 if (trimmed !== '') {
@@ -1640,51 +1637,24 @@ class TCTData {
     }
 
     getAllCyoaEvents() {
-        if (this.jet_data.cyoa_enabled == null) {
-            this.jet_data.cyoa_enabled = false;
-        }
-
-        if (this.jet_data.cyoa_data == null) {
-            this.jet_data.cyoa_data = {};
-        }
-
-        // ensure deterministic ordering
         const out = Object.values(this.jet_data.cyoa_data);
         out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
         return out;
     }
 
     getAllCyoaVariables() {
-        if (this.jet_data.cyoa_variables == null) {
-            this.jet_data.cyoa_variables = {};
-        }
-
-        // ensure deterministic ordering
         const out = Object.values(this.jet_data.cyoa_variables);
         out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
         return out;
     }
 
     getAllCyoaVariableEffects() {
-        if (this.jet_data.cyoa_variable_effects == null) {
-            this.jet_data.cyoa_variable_effects = {};
-        }
-
-        // ensure deterministic ordering
         const out = Object.values(this.jet_data.cyoa_variable_effects);
         out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
         return out;
     }
 
     getAllEndings() {
-        if (this.jet_data.endings_enabled == null) {
-            this.jet_data.endings_enabled = false;
-        }
-
-        if (this.jet_data.ending_data == null) {
-            this.jet_data.ending_data = {};
-        }
-
         const normalizeEnding = (entry) => {
             if (!entry || typeof entry !== "object") return entry;
 
@@ -1739,7 +1709,7 @@ class TCTData {
                 }
             }
 
-            if (entry.endingMode != null) {
+            if (entry.endingMode == null) {
                 entry.endingMode = "simple";
             }
 
@@ -2209,8 +2179,8 @@ class TCTData {
 
     deleteCandidate(pk) {
         const cleanupCollection = (col, field) => {
-            for (const key of Object.keys(col)) {
-                if (col[key]?.fields?.[field] == pk) {
+            for (const [key, item] of Object.entries(col)) {
+                if (item?.fields?.[field] == pk) {
                     delete col[key];
                 }
             }
@@ -3648,6 +3618,12 @@ function loadDataFromFile(raw_json) {
     const findBalancedLiteralEnd = (text, startIndex, openChar, closeChar) =>
         findMatchingBracket(text, startIndex, openChar, closeChar);
 
+    const skipWhitespaceAndSemicolon = (pos) => {
+        while (pos < raw_json.length && /\s/.test(raw_json[pos])) pos++;
+        if (raw_json[pos] === ';') pos++;
+        return pos;
+    };
+
     const excludeAllButLastRegex = (regex) => {
         const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
         const scan = new RegExp(regex.source, flags);
@@ -3678,10 +3654,8 @@ function loadDataFromFile(raw_json) {
             const bodyEnd = findMatchingBracket(raw_json, bodyStart, '{', '}');
             if (bodyEnd === -1) continue;
 
-            let end = bodyEnd;
-            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
-            if (raw_json[end] === ';') end++;
-            ranges.push({ start: match.index, end });
+            const rangeEnd = skipWhitespaceAndSemicolon(bodyEnd);
+            ranges.push({ start: match.index, end: rangeEnd });
         }
 
         const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
@@ -3701,10 +3675,8 @@ function loadDataFromFile(raw_json) {
             const bodyEnd = findMatchingBracket(raw_json, bodyStart, '{', '}');
             if (bodyEnd === -1) continue;
 
-            let end = bodyEnd;
-            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
-            if (raw_json[end] === ';') end++;
-            ranges.push({ start: match.index, end });
+            const rangeEnd = skipWhitespaceAndSemicolon(bodyEnd);
+            ranges.push({ start: match.index, end: rangeEnd });
         }
 
         const keepFrom = keepLast ? ranges.length - 1 : ranges.length;
@@ -3722,10 +3694,7 @@ function loadDataFromFile(raw_json) {
             const literalEnd = findBalancedLiteralEnd(raw_json, literalStart, openChar, closeChar);
             if (literalEnd === -1) continue;
 
-            let end = literalEnd;
-            while (end < raw_json.length && /\s/.test(raw_json[end])) end++;
-            if (raw_json[end] === ';') end++;
-            extractor.exclude(match.index, end);
+            extractor.exclude(match.index, skipWhitespaceAndSemicolon(literalEnd));
         }
     };
 
@@ -3771,9 +3740,7 @@ function loadDataFromFile(raw_json) {
                     const parsedLiteral = parseStructuredLiteral(literalText);
 
                     if (parsedLiteral != null) {
-                        let sectionEnd = literalEnd;
-                        while (sectionEnd < raw_json.length && /\s/.test(raw_json[sectionEnd])) sectionEnd++;
-                        if (raw_json[sectionEnd] === ';') sectionEnd++;
+                        let sectionEnd = skipWhitespaceAndSemicolon(literalEnd);
 
                         extractor.exclude(current.index, sectionEnd);
                         resolved = parsedLiteral;

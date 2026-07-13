@@ -373,10 +373,7 @@ registerComponent('question-picker', {
         },
 
         questionDescription: function (question) {
-            if (!question.fields.description) {
-                return "ERR BAD DESCRIPTION";
-            }
-            return String(question.fields.description).slice(0, 33) + "...";
+            return (question.fields.description || "ERR BAD DESCRIPTION").slice(0, 33) + "...";
         },
 
         onChange: function (evt) {
@@ -393,7 +390,8 @@ registerComponent('question-picker', {
 
     computed: {
         questions: function () {
-            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            void this.$globalData.filename;
+            void this.$globalData.dataVersion;
             return Array.from(this.$TCT.questions.values());
         },
 
@@ -464,7 +462,8 @@ registerComponent('state-picker', {
 
     computed: {
         states: function () {
-            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            void this.$globalData.filename;
+            void this.$globalData.dataVersion;
             return Object.values(this.$TCT.states);
         },
 
@@ -550,7 +549,8 @@ registerComponent('issue-picker', {
 
     computed: {
         issues: function () {
-            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            void this.$globalData.filename;
+            void this.$globalData.dataVersion;
             return Object.values(this.$TCT.issues);
         },
 
@@ -603,7 +603,8 @@ registerComponent('candidate-picker', {
             return this.$globalData.candidate;
         },
         candidates: function () {
-            let a = [this.$globalData.filename, this.$globalData.dataVersion];
+            void this.$globalData.filename;
+            void this.$globalData.dataVersion;
             return getListOfCandidates();
         }
     }
