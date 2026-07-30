@@ -6,6 +6,9 @@ registerComponent('endings', {
             manageTab: 'list', // 'list' | 'reorder'
             orderList: [],       // [{ id, text }]
             dragIndex: null,
+            dragOverIndex: null,
+            caseDragInfo: null,  // { endingId, rawIndex }
+            caseDragOverInfo: null, // { endingId, rawIndex }
             slideDrafts: {}
         };
     },
@@ -22,9 +25,6 @@ registerComponent('endings', {
             <button v-if="enabled" class="bg-green-500 text-white p-2 rounded-sm hover:bg-green-600" @click="addEnding()">Add custom ending</button>
             <button v-if="enabled && endings.length > 0" class="bg-gray-500 text-white p-2 rounded-sm hover:bg-gray-600" @click="openManageModal('reorder')">
                 Manage endings
-            </button>
-            <button v-if="enabled && endings.length > 0" class="bg-blue-500 text-white p-2 rounded-sm hover:bg-blue-600" @click="autoOrder()">
-                Auto order
             </button>
         </div>
 
@@ -55,52 +55,95 @@ registerComponent('endings', {
 
                     <div class="p-3 overflow-auto">
                         <!-- List tab -->
-                        <div v-if="manageTab==='list'">
-                            <ul class="divide-y">
-                                <li v-for="ending in endings" :key="ending.id"
-                                    class="py-2 px-2 hover:bg-gray-50 flex items-center justify-between">
-                                    <span>
-                                        <span class="font-mono text-gray-700">#{{ ending.id }}</span>
-                                        <span class="text-gray-700"> - {{ endingDescription(ending) }}</span>
-                                    </span>
-                                    <button class="text-xs bg-red-500 text-white px-2 py-1 rounded-sm hover:bg-red-600" @click="deleteEnding(ending.id)">Delete</button>
-                                </li>
-                            </ul>
+                        <div v-if="manageTab==='list'" class="space-y-3">
+                            <div v-for="ending in endings" :key="ending.id" class="border rounded-sm bg-white p-3 shadow-sm">
+                                <div class="flex items-center justify-between font-semibold border-b pb-2 mb-2">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <span class="font-mono text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">#{{ ending.id }}</span>
+                                        <span class="text-sm text-gray-800 truncate">{{ endingDescription(ending) }}</span>
+                                    </div>
+                                    <button class="text-xs bg-red-500 text-white px-2 py-1 rounded-sm hover:bg-red-600 shrink-0" @click="deleteEnding(ending.id)">Delete ending</button>
+                                </div>
+
+                                <div class="space-y-1">
+                                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Slide Cases ({{ getEndingCases(ending).length }})</div>
+                                    <div v-for="(c, cIdx) in getEndingCases(ending)" :key="cIdx" class="text-xs text-gray-700 flex items-center justify-between bg-gray-50 p-2 rounded border">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="bg-indigo-100 text-indigo-800 font-mono px-1.5 py-0.5 rounded text-[11px] shrink-0">Page {{ c.pageIndex + 1 }} · Case {{ c.caseIndex + 1 }}</span>
+                                            <span class="font-medium text-gray-800 shrink-0">{{ c.title || 'Untitled case' }}</span>
+                                            <span class="text-gray-500 truncate">- {{ c.summary }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Reorder tab -->
                         <div v-else>
                             <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-semibold text-sm">Drag to reorder (top = highest priority)</h3>
+                                <div>
+                                    <h3 class="font-semibold text-sm">Drag to reorder endings &amp; cases (or use ▲/▼)</h3>
+                                    <p class="text-xs text-gray-500">The game checks endings from top to bottom, and cases within an ending from Case 1 downwards.</p>
+                                </div>
                                 <div class="flex gap-2">
                                     <button class="bg-gray-200 px-2 py-1 rounded-sm text-sm hover:bg-gray-300" @click="resetOrderFromMap()">Reset</button>
                                     <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-blue-600" @click="autoOrder()">Auto order</button>
                                     <button class="bg-green-500 text-white px-2 py-1 rounded-sm text-sm hover:bg-green-600" @click="applyOrder()">Save order</button>
                                 </div>
                             </div>
-                            <ul class="divide-y">
+
+                            <ul class="divide-y border rounded-sm">
                                 <li v-for="(item, idx) in orderList"
                                     :key="item.id"
-                                    class="py-2 px-2 flex items-center gap-3 hover:bg-gray-50"
+                                    class="p-2 space-y-2 bg-white transition-colors"
+                                    :class="{'bg-blue-50 border-blue-300': dragOverIndex === idx, 'opacity-50': dragIndex === idx}"
                                     draggable="true"
-                                    @dragstart="onDragStart(idx)"
-                                    @dragover.prevent
-                                    @drop="onDrop(idx)"
+                                    @dragstart="onDragStart(idx, $event)"
+                                    @dragover.prevent="onDragOver(idx, $event)"
+                                    @drop="onDrop(idx, $event)"
                                     @dragend="onDragEnd">
-                                    <span class="w-6 text-xs text-gray-500">{{ idx + 1 }}</span>
-                                    <span class="cursor-move select-none inline-flex items-center text-xs text-gray-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M7 4a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 9a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 14a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2z"/>
-                                        </svg>
-                                        Drag
-                                    </span>
-                                    <span class="text-sm">
-                                        <span class="font-mono text-gray-700">#{{ item.id }}</span>
-                                        <span class="text-gray-700">- {{ item.text }}</span>
-                                    </span>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="w-6 text-xs font-bold text-gray-500 shrink-0">{{ idx + 1 }}</span>
+                                            <span class="cursor-grab active:cursor-grabbing select-none inline-flex items-center text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M7 4a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 9a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2zM7 14a1 1 0 100-2 1 1 0 000 2zm6-1a1 1 0 110 2 1 1 0 010-2z"/>
+                                                </svg>
+                                                Drag ending
+                                            </span>
+                                            <span class="text-sm font-medium truncate">
+                                                <span class="font-mono text-gray-700">#{{ item.id }}</span>
+                                                <span class="text-gray-800"> - {{ item.text }}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Cases inside this ending -->
+                                    <div v-if="getItemCases(item.id).length > 0" class="pl-9 space-y-1">
+                                        <div v-for="(c, cIdx) in getItemCases(item.id)"
+                                             :key="cIdx"
+                                             class="text-xs bg-gray-50 border rounded p-1.5 flex items-center justify-between transition-colors"
+                                             :class="{'bg-indigo-50 border-indigo-300': caseDragOverInfo && caseDragOverInfo.endingId === item.id && caseDragOverInfo.rawIndex === c.rawIndex, 'opacity-50': caseDragInfo && caseDragInfo.endingId === item.id && caseDragInfo.rawIndex === c.rawIndex}"
+                                             draggable="true"
+                                             @dragstart.stop="onCaseDragStart(item.id, c.rawIndex, $event)"
+                                             @dragover.prevent.stop="onCaseDragOver(item.id, c.rawIndex, $event)"
+                                             @drop.stop="onCaseDrop(item.id, c.rawIndex, $event)"
+                                             @dragend.stop="onCaseDragEnd">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 px-1" title="Drag case to reorder">⋮⋮</span>
+                                                <span class="bg-gray-200 text-gray-700 font-mono px-1.5 py-0.5 rounded text-[10px] shrink-0">Page {{ c.pageIndex + 1 }} · Case {{ c.caseIndex + 1 }}</span>
+                                                <span class="font-medium text-gray-800 shrink-0">{{ c.title || 'Untitled case' }}</span>
+                                                <span class="text-gray-500 truncate">- {{ c.summary }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1 shrink-0 ml-2">
+                                                <button v-if="c.canMoveUp" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-1.5 py-0.5 rounded text-[10px]" @click.stop="moveEndingCaseInModal(item.id, c.rawIndex, -1)">▲ Up</button>
+                                                <button v-if="c.canMoveDown" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-1.5 py-0.5 rounded text-[10px]" @click.stop="moveEndingCaseInModal(item.id, c.rawIndex, 1)">▼ Down</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </li>
                             </ul>
-                            <div class="text-xs text-gray-500 mt-2">Tip: Auto order prioritizes specific endings first (more variable or answer conditions), then falls back to variable type and amount.</div>
+                            <div class="text-xs text-gray-500 mt-2">Tip: Auto order prioritizes specific endings and specific cases first (more variable or answer conditions), then falls back to variable type and threshold. Keep this in mind when ordering endings!</div>
                         </div>
                     </div>
                 </div>
@@ -173,19 +216,86 @@ registerComponent('endings', {
             }));
         },
 
-        onDragStart(index) {
+        onDragStart(index, evt) {
             this.dragIndex = index;
+            if (evt?.dataTransfer) {
+                evt.dataTransfer.effectAllowed = 'move';
+                evt.dataTransfer.setData('text/plain', String(index));
+            }
         },
 
-        onDrop(index) {
-            if (this.dragIndex === null || this.dragIndex === index) return;
-            const moved = this.orderList.splice(this.dragIndex, 1)[0];
-            this.orderList.splice(index, 0, moved);
+        onDragOver(index, evt) {
+            if (evt) evt.preventDefault();
+            if (this.dragIndex !== null && this.dragIndex !== index) {
+                this.dragOverIndex = index;
+            }
+        },
+
+        onDrop(index, evt) {
+            if (evt) evt.preventDefault();
+            if (this.dragIndex !== null && this.dragIndex !== index) {
+                const moved = this.orderList.splice(this.dragIndex, 1)[0];
+                this.orderList.splice(index, 0, moved);
+            }
             this.dragIndex = null;
+            this.dragOverIndex = null;
         },
 
         onDragEnd() {
             this.dragIndex = null;
+            this.dragOverIndex = null;
+        },
+
+        onCaseDragStart(endingId, rawIndex, evt) {
+            this.caseDragInfo = { endingId, rawIndex };
+            if (evt?.dataTransfer) {
+                evt.dataTransfer.effectAllowed = 'move';
+                evt.dataTransfer.setData('text/plain', `${endingId}:${rawIndex}`);
+            }
+        },
+
+        onCaseDragOver(endingId, rawIndex, evt) {
+            if (evt) evt.preventDefault();
+            if (this.caseDragInfo && this.caseDragInfo.endingId === endingId && this.caseDragInfo.rawIndex !== rawIndex) {
+                this.caseDragOverInfo = { endingId, rawIndex };
+            }
+        },
+
+        onCaseDrop(endingId, targetRawIndex, evt) {
+            if (evt) evt.preventDefault();
+            if (!this.caseDragInfo || this.caseDragInfo.endingId !== endingId) return;
+            const sourceRawIndex = this.caseDragInfo.rawIndex;
+            if (sourceRawIndex === targetRawIndex) return;
+
+            const ending = (this.$TCT.jet_data?.ending_data || {})[endingId];
+            if (ending && ending.endingSlidesJson) {
+                try {
+                    const slides = JSON.parse(ending.endingSlidesJson);
+                    if (Array.isArray(slides) && sourceRawIndex >= 0 && sourceRawIndex < slides.length && targetRawIndex >= 0 && targetRawIndex < slides.length) {
+                        const groupA = slides[sourceRawIndex]?.slideGroup || 'main';
+                        const groupB = slides[targetRawIndex]?.slideGroup || 'main';
+                        if (groupA === groupB) {
+                            const moved = slides.splice(sourceRawIndex, 1)[0];
+                            slides.splice(targetRawIndex, 0, moved);
+                            ending.endingSlidesJson = JSON.stringify(slides, null, 2);
+                            this.$globalData.dataVersion++;
+                            if (window.autosaveEnabled) {
+                                window.requestAutosaveDebounced?.(0);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Case drag error:", e);
+                }
+            }
+
+            this.caseDragInfo = null;
+            this.caseDragOverInfo = null;
+        },
+
+        onCaseDragEnd() {
+            this.caseDragInfo = null;
+            this.caseDragOverInfo = null;
         },
 
         applyOrder() {
@@ -216,7 +326,38 @@ registerComponent('endings', {
         },
 
         autoOrder() {
-            // sort endings by specificity so narrow/special endings are evaluated first
+            // first, sort cases within each ending by specificity score
+            Object.values(this.$TCT.jet_data?.ending_data || {}).forEach((ending) => {
+                if (!ending.endingSlidesJson) return;
+                try {
+                    const slides = JSON.parse(ending.endingSlidesJson);
+                    if (Array.isArray(slides) && slides.length > 0) {
+                        const groupMap = new Map();
+                        const groupOrder = [];
+                        slides.forEach((slide) => {
+                            const key = slide?.slideGroup || 'main';
+                            if (!groupMap.has(key)) {
+                                groupMap.set(key, []);
+                                groupOrder.push(key);
+                            }
+                            groupMap.get(key).push(slide);
+                        });
+
+                        const sortedSlides = [];
+                        groupOrder.forEach((key) => {
+                            const groupSlides = groupMap.get(key);
+                            groupSlides.sort((a, b) => this.getCaseSpecificityScore(b) - this.getCaseSpecificityScore(a));
+                            sortedSlides.push(...groupSlides);
+                        });
+
+                        ending.endingSlidesJson = JSON.stringify(sortedSlides, null, 2);
+                    }
+                } catch (_err) {
+                    // ignore malformed
+                }
+            });
+
+            // second, sort endings by specificity score
             const priorityMap = { 0: 3, 1: 2, 2: 1 }; // EVs=3, Pop%=2, Raw=1
             const sorted = [...this.endings].sort((a, b) => {
                 const specA = this.getEndingSpecificityScore(a);
@@ -244,8 +385,140 @@ registerComponent('endings', {
                 text: this.endingDescription(ending)
             }));
 
-            // apply the new order
-            this.applyOrder();
+            // force reactivity update to show new order in the modal without closing it
+            this.$globalData.dataVersion++;
+        },
+
+        getCaseSpecificityScore(slide) {
+            let score = 0;
+            const conds = Array.isArray(slide?.variableConditions) ? slide.variableConditions.length : 0;
+            score += conds * 120;
+
+            const answerType = slide?.answerConditionType || 'ignore';
+            const answerRaw = String(slide?.answerConditionAnswers || slide?.answerConditionAnswer || '').trim();
+            const answerCount = answerRaw ? answerRaw.split(/[\s,]+/).filter((v) => v.length > 0).length : 0;
+            if (answerType !== 'ignore' && answerCount > 0) {
+                score += 80 + (answerCount * 20);
+            }
+
+            if ((slide?.outcomeCondition || 'ignore') !== 'ignore') {
+                score += 70;
+            }
+
+            const priorityMap = { 0: 3, 1: 2, 2: 1 };
+            score += (priorityMap[slide?.variable] || 0) * 10;
+
+            const op = String(slide?.operator || '>');
+            if (op === '==' || op === '!=') score += 20;
+            else if (op === '>=' || op === '<=') score += 10;
+
+            score += Math.abs(Number(slide?.amount) || 0) * 0.001;
+            return score;
+        },
+
+        getEndingCases(ending) {
+            if (!ending) return [];
+            const rawSlides = ending.endingSlidesJson;
+            let slides = [];
+            if (rawSlides) {
+                try {
+                    slides = JSON.parse(rawSlides);
+                } catch (_e) {
+                    slides = [];
+                }
+            }
+
+            if (!Array.isArray(slides) || slides.length === 0) {
+                return [{
+                    rawIndex: 0,
+                    pageIndex: 0,
+                    caseIndex: 0,
+                    title: ending.endingTitle || 'Main ending',
+                    summary: this.endingDescription(ending),
+                    canMoveUp: false,
+                    canMoveDown: false
+                }];
+            }
+
+            const groupMap = new Map();
+            const groupOrder = [];
+            slides.forEach((slide, idx) => {
+                const key = slide?.slideGroup || 'main';
+                if (!groupMap.has(key)) {
+                    groupMap.set(key, []);
+                    groupOrder.push(key);
+                }
+                groupMap.get(key).push({ slide, rawIndex: idx });
+            });
+
+            const out = [];
+            groupOrder.forEach((groupKey, pageIndex) => {
+                const groupItems = groupMap.get(groupKey);
+                groupItems.forEach((item, caseIndex) => {
+                    out.push({
+                        rawIndex: item.rawIndex,
+                        pageIndex,
+                        caseIndex,
+                        title: item.slide.title || '',
+                        summary: this.getCaseSummaryText(item.slide),
+                        canMoveUp: caseIndex > 0,
+                        canMoveDown: caseIndex < groupItems.length - 1
+                    });
+                });
+            });
+
+            return out;
+        },
+
+        getItemCases(endingId) {
+            const ending = (this.$TCT.jet_data?.ending_data || {})[endingId];
+            return this.getEndingCases(ending);
+        },
+
+        getCaseSummaryText(slide) {
+            const varNames = ['Electoral Votes', 'Popular Vote %', 'Raw Vote Total'];
+            const varName = varNames[Number(slide.variable) || 0] || 'Unknown';
+            const amount = slide.amount ?? 0;
+            const outcomeCondition = slide?.outcomeCondition || 'ignore';
+            const base = outcomeCondition === 'ignore'
+                ? `${varName} ${slide.operator || '>'} ${amount}`
+                : this.getOutcomeConditionLabel(outcomeCondition);
+            const count = Array.isArray(slide.variableConditions) ? slide.variableConditions.length : 0;
+            const variableSummary = count === 0
+                ? ''
+                : ` | var ${count} ${slide.variableConditionOperator || 'AND'}`;
+            const answerType = slide.answerConditionType || 'ignore';
+            const answerRaw = String(slide.answerConditionAnswers || slide.answerConditionAnswer || '').trim();
+            const answerSummary = (answerType !== 'ignore' && answerRaw)
+                ? ` | answer ${answerType} ${answerRaw}`
+                : '';
+            return `${base}${variableSummary}${answerSummary}`;
+        },
+
+        moveEndingCaseInModal(endingId, rawIndex, direction) {
+            const ending = (this.$TCT.jet_data?.ending_data || {})[endingId];
+            if (!ending || !ending.endingSlidesJson) return;
+            try {
+                const slides = JSON.parse(ending.endingSlidesJson);
+                if (!Array.isArray(slides) || rawIndex < 0 || rawIndex >= slides.length) return;
+                const targetIndex = rawIndex + direction;
+                if (targetIndex < 0 || targetIndex >= slides.length) return;
+
+                const groupA = slides[rawIndex]?.slideGroup || 'main';
+                const groupB = slides[targetIndex]?.slideGroup || 'main';
+                if (groupA !== groupB) return;
+
+                const moved = slides.splice(rawIndex, 1)[0];
+                slides.splice(targetIndex, 0, moved);
+                ending.endingSlidesJson = JSON.stringify(slides, null, 2);
+
+                this.$globalData.dataVersion++;
+                if (window.autosaveEnabled) {
+                    window.requestAutosaveDebounced?.(0);
+                }
+            } catch (err) {
+                console.error("Failed to move case:", err);
+            }
         },
 
         getAnswerConditionCount(ending) {
@@ -426,7 +699,11 @@ registerComponent('ending', {
                             {{ group.slides.length }} case{{ group.slides.length === 1 ? '' : 's' }} inside this page
                         </div>
                     </div>
-                    <button v-if="groupIndex > 0" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideGroup(groupIndex)">Delete page</button>
+                    <div class="flex items-center gap-2">
+                        <button v-if="groupIndex > 0" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-xs" @click.stop="moveSlideGroupUp(groupIndex)">▲ Move page up</button>
+                        <button v-if="groupIndex < slideGroups.length - 1" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-xs" @click.stop="moveSlideGroupDown(groupIndex)">▼ Move page down</button>
+                        <button v-if="groupIndex > 0" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideGroup(groupIndex)">Delete page</button>
+                    </div>
                 </summary>
 
                 <div class="p-3 space-y-3">
@@ -450,7 +727,11 @@ registerComponent('ending', {
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1 truncate">{{ slideConditionSummary(slide) }}</div>
                             </div>
-                            <button v-if="!(groupIndex === 0 && group.slides.length === 1)" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideCase(groupIndex, slideIndex)">Delete case</button>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button v-if="slideIndex > 0" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-xs" @click.stop="moveSlideCaseUp(groupIndex, slideIndex)">▲ Move up</button>
+                                <button v-if="slideIndex < group.slides.length - 1" type="button" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-xs" @click.stop="moveSlideCaseDown(groupIndex, slideIndex)">▼ Move down</button>
+                                <button v-if="!(groupIndex === 0 && group.slides.length === 1)" type="button" class="text-red-600 hover:text-red-800 text-xs" @click.stop="removeSlideCase(groupIndex, slideIndex)">Delete case</button>
+                            </div>
                         </summary>
 
                         <div class="p-3 space-y-3">
@@ -911,6 +1192,40 @@ registerComponent('ending', {
             if (groups[groupIndex].slides.length === 0) {
                 groups.splice(groupIndex, 1);
             }
+            this.syncSlideGroups(groups);
+        },
+
+        moveSlideCaseUp: function(groupIndex, slideIndex) {
+            if (slideIndex <= 0) return;
+            const groups = this.getSlideGroups();
+            if (!groups[groupIndex] || !groups[groupIndex].slides[slideIndex]) return;
+            const moved = groups[groupIndex].slides.splice(slideIndex, 1)[0];
+            groups[groupIndex].slides.splice(slideIndex - 1, 0, moved);
+            this.syncSlideGroups(groups);
+        },
+
+        moveSlideCaseDown: function(groupIndex, slideIndex) {
+            const groups = this.getSlideGroups();
+            if (!groups[groupIndex] || !groups[groupIndex].slides[slideIndex]) return;
+            if (slideIndex >= groups[groupIndex].slides.length - 1) return;
+            const moved = groups[groupIndex].slides.splice(slideIndex, 1)[0];
+            groups[groupIndex].slides.splice(slideIndex + 1, 0, moved);
+            this.syncSlideGroups(groups);
+        },
+
+        moveSlideGroupUp: function(groupIndex) {
+            if (groupIndex <= 0) return;
+            const groups = this.getSlideGroups();
+            const moved = groups.splice(groupIndex, 1)[0];
+            groups.splice(groupIndex - 1, 0, moved);
+            this.syncSlideGroups(groups);
+        },
+
+        moveSlideGroupDown: function(groupIndex) {
+            const groups = this.getSlideGroups();
+            if (groupIndex >= groups.length - 1) return;
+            const moved = groups.splice(groupIndex, 1)[0];
+            groups.splice(groupIndex + 1, 0, moved);
             this.syncSlideGroups(groups);
         },
 
