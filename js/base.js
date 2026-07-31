@@ -1098,6 +1098,7 @@ class TCTData {
         if (this.jet_data.cyoa_data == null) this.jet_data.cyoa_data = {};
         if (this.jet_data.cyoa_variables == null) this.jet_data.cyoa_variables = {};
         if (this.jet_data.cyoa_variable_effects == null) this.jet_data.cyoa_variable_effects = {};
+        if (this.jet_data.cyoa_candidate_switches == null) this.jet_data.cyoa_candidate_switches = {};
         if (this.jet_data.endings_enabled == null) this.jet_data.endings_enabled = false;
         if (this.jet_data.ending_data == null) this.jet_data.ending_data = {};
 

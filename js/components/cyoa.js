@@ -160,6 +160,31 @@ registerComponent('cyoa', {
                 </div>
             </details>
 
+            <!-- Candidate switching section -->
+            <details open class="bg-gray-50 rounded-sm border">
+                <summary class="px-3 py-2 font-medium cursor-pointer">Candidate switching</summary>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Change a candidate's first name, last name, color, and issue scores at runtime based on player answers and variable conditions.</p>
+                <div class="p-3 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <button class="bg-amber-500 text-white px-3 py-2 rounded-sm hover:bg-amber-600" @click="addCandidateSwitchRule">
+                            Add candidate switch
+                        </button>
+                        <span class="text-sm text-gray-600" v-if="cyoaCandidateSwitches.length">Total: {{ cyoaCandidateSwitches.length }}</span>
+                    </div>
+                    <p v-if="cyoaCandidateSwitches.length === 0" class="text-gray-500 italic">
+                        No candidate switches yet. Click "Add candidate switch" to create one.
+                    </p>
+                    <div v-else class="space-y-2">
+                        <cyoa-candidate-switch
+                            v-for="r in cyoaCandidateSwitches"
+                            :id="r.id"
+                            :key="r.id"
+                            @deleteRule="deleteCandidateSwitchRule">
+                        </cyoa-candidate-switch>
+                    </div>
+                </div>
+            </details>
+
             <!-- Customizable Bunnyhop section -->
             <details open class="bg-gray-50 rounded-sm border mt-4">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Bunnyhop (randomized question pools)</summary>
@@ -219,6 +244,7 @@ registerComponent('cyoa', {
             if (jet.cyoa_answer_swaps == null) { jet.cyoa_answer_swaps = {}; changed = true; }
             if (jet.cyoa_campaign_data_enabled == null) { jet.cyoa_campaign_data_enabled = false; changed = true; }
             if (jet.cyoa_campaign_data_stats == null) { jet.cyoa_campaign_data_stats = {}; changed = true; }
+            if (jet.cyoa_candidate_switches == null) { jet.cyoa_candidate_switches = {}; changed = true; }
             if (jet.bunnyhop_enabled == null) { jet.bunnyhop_enabled = false; changed = true; }
             if (jet.bunnyhop_pools == null) { jet.bunnyhop_pools = []; changed = true; }
 
@@ -421,6 +447,35 @@ registerComponent('cyoa', {
             window.requestAutosaveIfEnabled?.();
         },
 
+        // candidate switching rules
+        addCandidateSwitchRule() {
+            if (!this.$TCT.jet_data.cyoa_candidate_switches) {
+                this.$TCT.jet_data.cyoa_candidate_switches = {};
+            }
+            const jet = this.$TCT.jet_data;
+            const id = this.generateId([jet.cyoa_candidate_switches]);
+            jet.cyoa_candidate_switches[id] = {
+                id,
+                triggers: [],
+                conditions: [],
+                conditionOperator: 'AND',
+                candidate: null,
+                first_name: '',
+                last_name: '',
+                color_hex: '',
+                issue_scores: []
+            };
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        deleteCandidateSwitchRule(id) {
+            if (!this.$TCT.jet_data.cyoa_candidate_switches) return;
+            delete this.$TCT.jet_data.cyoa_candidate_switches[id];
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
         toggleBunnyhopEnabled() {
             this.$TCT.jet_data.bunnyhop_enabled = !this.$TCT.jet_data.bunnyhop_enabled;
             this.$globalData.dataVersion++;
@@ -493,6 +548,11 @@ registerComponent('cyoa', {
 
         cyoaAnswerSwaps() {
             const src = this.$TCT.jet_data.cyoa_answer_swaps || {};
+            return Object.values(src).sort((a, b) => a.id - b.id);
+        },
+
+        cyoaCandidateSwitches() {
+            const src = this.$TCT.jet_data.cyoa_candidate_switches || {};
             return Object.values(src).sort((a, b) => a.id - b.id);
         },
 
@@ -828,6 +888,58 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
 `.trim();
     },
 
+    buildCandidateSwitchFunction() {
+      return `
+// Candidate switching wahoo - from Moonbeam
+function setCandidateIdentity(candidatePk, options) {
+    const cand = campaignTrail_temp.candidate_json.find(p => Number(p.pk) === Number(candidatePk));
+    if (cand?.fields) {
+        if (options.first !== undefined) cand.fields.first_name = options.first;
+        if (options.last !== undefined) cand.fields.last_name = options.last;
+        if (options.color !== undefined) cand.fields.color_hex = options.color;
+    }
+
+    if (Number(campaignTrail_temp.candidate_id) === Number(candidatePk)) {
+        if (options.last !== undefined) campaignTrail_temp.candidate_last_name = options.last;
+        if (options.first !== undefined) campaignTrail_temp.candidate_first_name = options.first;
+    }
+
+    if (options.issueScores && campaignTrail_temp.candidate_issue_score_json) {
+        const updateScore = (issueId, score) => {
+            let targetScore = campaignTrail_temp.candidate_issue_score_json.find(
+                item => Number(item.fields.candidate) === Number(candidatePk) &&
+                        Number(item.fields.issue) === Number(issueId)
+            );
+
+            if (targetScore?.fields) {
+                targetScore.fields.issue_score = Number(score);
+            } else {
+                campaignTrail_temp.candidate_issue_score_json.push({
+                    model: "campaign_trail.candidate_issue_score",
+                    fields: {
+                        candidate: Number(candidatePk),
+                        issue: Number(issueId),
+                        issue_score: Number(score)
+                    }
+                });
+            }
+        };
+
+        if (!Array.isArray(options.issueScores) && typeof options.issueScores === 'object') {
+            Object.entries(options.issueScores).forEach(([issueId, score]) => {
+                updateScore(issueId, score);
+            });
+        }
+        else if (Array.isArray(options.issueScores)) {
+            options.issueScores.forEach(({ issue, score }) => {
+                updateScore(issue, score);
+            });
+        }
+    }
+}
+`.trim();
+    },
+
     buildQuestionSwapBlocks() {
         const rulesSrc = window.$TCT.jet_data?.cyoa_question_swaps || {};
         const rules = Object.values(rulesSrc);
@@ -933,6 +1045,73 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         return `// answer swap CYOA here\n${blocks.join('\n')}`;
     },
 
+    buildCandidateSwitchBlocks() {
+        const rulesSrc = window.$TCT.jet_data?.cyoa_candidate_switches || {};
+        const rules = Object.values(rulesSrc);
+        if (!rules.length) return '';
+
+        const blocks = rules.map(rule => {
+            const triggers = Array.isArray(rule.triggers) ? rule.triggers.filter(x => Number.isFinite(x)) : [];
+            const hasConditions = rule.conditions && Array.isArray(rule.conditions) && rule.conditions.some(c => c && c.variable);
+            if (!triggers.length && !hasConditions) return '';
+
+            const candidatePk = Number(rule.candidate);
+            if (!Number.isFinite(candidatePk)) return '';
+
+            const opts = [];
+            const firstName = String(rule.first_name ?? '').trim();
+            const lastName = String(rule.last_name ?? '').trim();
+            const colorHex = String(rule.color_hex ?? '').trim();
+
+            if (firstName) opts.push(`first: ${JSON.stringify(firstName)}`);
+            if (lastName) opts.push(`last: ${JSON.stringify(lastName)}`);
+            if (colorHex) opts.push(`color: ${JSON.stringify(colorHex)}`);
+
+            const issueScores = (Array.isArray(rule.issue_scores) ? rule.issue_scores : [])
+                .filter(s => s && Number.isFinite(Number(s.issue)) && Number.isFinite(Number(s.score)));
+            if (issueScores.length) {
+                const issuePairs = issueScores.map(s => `{ issue: ${Number(s.issue)}, score: ${Number(s.score)} }`).join(', ');
+                opts.push(`issueScores: [${issuePairs}]`);
+            }
+
+            if (!opts.length) return '';
+
+            let conditionStr = '';
+            if (hasConditions) {
+                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                if (validConditions.length > 0) {
+                    const conditionParts = validConditions.map(c => {
+                        const left = this.getConditionOperand(c.variable);
+                        return `${left} ${c.comparator} ${Number(c.value)}`;
+                    });
+                    const operator = rule.conditionOperator || 'AND';
+                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
+                    conditionStr = conditionParts.join(joinStr);
+                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
+                }
+            }
+
+            let triggerStr = '';
+            if (triggers.length > 0) {
+                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
+                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
+            }
+
+            let combinedCond = '';
+            if (triggerStr && conditionStr) {
+                combinedCond = `${triggerStr} && ${conditionStr}`;
+            } else {
+                combinedCond = triggerStr || conditionStr;
+            }
+
+            return `if (${combinedCond}) {\n    setCandidateIdentity(${candidatePk}, { ${opts.join(', ')} });\n}`;
+        }).filter(Boolean);
+
+        if (!blocks.length) return '';
+
+        return `// candidate switch CYOA here\n${blocks.join('\n')}`;
+    },
+
     indentBlock(block, indent) {
         if (!block) return '';
         return block
@@ -945,7 +1124,8 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         const cleanBlock = (s) => String(s || '').replace(/\r\n/g, '\n').trim();
         let questionBlock = cleanBlock(blocksByType.question);
         let answerBlock = cleanBlock(blocksByType.answer);
-        let combinedForInsert = [questionBlock, answerBlock].filter(Boolean).join('\n\n');
+        let candidateBlock = cleanBlock(blocksByType.candidate);
+        let combinedForInsert = [questionBlock, answerBlock, candidateBlock].filter(Boolean).join('\n\n');
 
         if (!combinedForInsert) return out;
 
@@ -999,8 +1179,12 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             const hasManualAnswerSection = /\/\/\s*answer swap CYOA here[\s\S]*?answerSwapper\s*\(/m.test(body);
             if (hasManualAnswerSection) answerBlock = '';
         }
+        if (candidateBlock) {
+            const hasManualCandidateSection = /\/\/\s*candidate switch CYOA here[\s\S]*?setCandidateIdentity\s*\(/m.test(body);
+            if (hasManualCandidateSection) candidateBlock = '';
+        }
 
-        combinedForInsert = [questionBlock, answerBlock].filter(Boolean).join('\n\n');
+        combinedForInsert = [questionBlock, answerBlock, candidateBlock].filter(Boolean).join('\n\n');
         if (!combinedForInsert) return out;
 
         // prefer to insert after noCounter assignment, otherwise after 'ans ='
@@ -1065,6 +1249,11 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             body = resA.body;
             replacedAny = replacedAny || resA.replaced;
         }
+        if (candidateBlock) {
+            const resC = replaceSectionByHeader(body, 'candidate switch CYOA here', candidateBlock);
+            body = resC.body;
+            replacedAny = replacedAny || resC.replaced;
+        }
 
         if (replacedAny) {
             body = body.replace(/\n{3,}/g, '\n\n');
@@ -1086,16 +1275,19 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
     insertSwapperAfterHelper(out) {
         const questionSwapFunc = this.buildQuestionSwapperFunction();
         const answerSwapFunc = this.buildAnswerSwapperFunction();
+        const candidateSwitchFunc = this.buildCandidateSwitchFunction();
         const hasQuestionSwapper = /function\s+questionSwapper\s*\(/m.test(out);
         const hasAnswerSwapper = /function\s+answerSwapper\s*\(/m.test(out);
+        const hasCandidateSwitch = /function\s+setCandidateIdentity\s*\(/m.test(out);
 
-        if (hasQuestionSwapper && hasAnswerSwapper) {
+        if (hasQuestionSwapper && hasAnswerSwapper && hasCandidateSwitch) {
             return out;
         }
 
         const funcsToInsert = [];
         if (!hasQuestionSwapper) funcsToInsert.push(questionSwapFunc);
         if (!hasAnswerSwapper) funcsToInsert.push(answerSwapFunc);
+        if (!hasCandidateSwitch) funcsToInsert.push(candidateSwitchFunc);
         const combinedFuncs = funcsToInsert.join('\n\n');
 
         // try to find getQuestionNumberFromPk function
@@ -1122,12 +1314,34 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
             return src.replace(pattern, '\n');
         };
 
+        // remove a generated section (header comment + contiguous if-blocks) without
+        // accidentally eating adjacent manual branching logic
+        const removeGeneratedSection = (src, headerText) => {
+            const headerRe = new RegExp(`^\\s*//\\s*${escapeRegExp(headerText)}\\s*\\n?`, 'm');
+            const m = headerRe.exec(src);
+            if (!m) return src;
+
+            let end = m.index + m[0].length;
+            const ifBlockRe = /[ \t]*if\s*\([\s\S]*?\n[ \t]*\}\n?/y;
+            ifBlockRe.lastIndex = end;
+            let ifMatch;
+            while ((ifMatch = ifBlockRe.exec(src)) !== null && ifMatch.index === end) {
+                end = ifMatch.index + ifMatch[0].length;
+                ifBlockRe.lastIndex = end;
+            }
+
+            const after = src.slice(end).replace(/^\n+/, '');
+            return src.slice(0, m.index) + after;
+        };
+
         out = removeExactBlock(out, this.buildQuestionSwapperFunction());
         out = removeExactBlock(out, this.buildAnswerSwapperFunction());
+        out = removeExactBlock(out, this.buildCandidateSwitchFunction());
 
         out = out.replace(/^\s*\/\/\s*BEGIN_TCT_ANSWER_SWAP_RULES[\s\S]*?^\s*\/\/\s*END_TCT_ANSWER_SWAP_RULES\s*/gm, '');
-        out = out.replace(/^\s*\/\/\s*question swap CYOA here\s*\n(?:[ \t]*if\s*\([\s\S]*?\n[ \t]*\}\s*\n?)*/gm, '');
-        out = out.replace(/^\s*\/\/\s*answer swap CYOA here\s*\n(?:[ \t]*if\s*\([\s\S]*?\n[ \t]*\}\s*\n?)*/gm, '');
+        out = removeGeneratedSection(out, 'question swap CYOA here');
+        out = removeGeneratedSection(out, 'answer swap CYOA here');
+        out = removeGeneratedSection(out, 'candidate switch CYOA here');
 
         return out;
     },
@@ -1144,11 +1358,13 @@ function answerSwapper(pk1, pk2, takeEffects = true) {
         if (window.$TCT.jet_data.cyoa_enabled) {
             const questionBlocks = this.buildQuestionSwapBlocks();
             const answerBlocks = this.buildAnswerSwapBlocks();
+            const candidateBlocks = this.buildCandidateSwitchBlocks();
             const injectInto = (src) => {
                 let next = this.insertSwapperAfterHelper(src);
                 next = this.insertSwapsInsideCyoAdventure(next, {
                     question: questionBlocks,
-                    answer: answerBlocks
+                    answer: answerBlocks,
+                    candidate: candidateBlocks
                 });
                 return next;
             };
@@ -2452,6 +2668,382 @@ registerComponent('cyoa-answer-swap', {
                 </div>
             </div>
             <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-sm text-xs" @click="addSwap">Add another swap</button>
+        </div>
+    </div>
+    `
+})
+
+registerComponent('cyoa-candidate-switch', {
+    props: ['id'],
+
+    data() {
+        return {
+            triggerToAdd: null,
+            newIssuePk: null,
+            conditionToAdd: {
+                variable: '',
+                comparator: '>=',
+                value: 0
+            }
+        };
+    },
+
+    methods: {
+        getRule() {
+            if (!this.$TCT.jet_data.cyoa_candidate_switches) {
+                this.$TCT.jet_data.cyoa_candidate_switches = {};
+            }
+            if (!this.$TCT.jet_data.cyoa_candidate_switches[this.id]) {
+                this.$TCT.jet_data.cyoa_candidate_switches[this.id] = {
+                    id: this.id,
+                    triggers: [],
+                    conditions: [],
+                    conditionOperator: 'AND',
+                    candidate: null,
+                    first_name: '',
+                    last_name: '',
+                    color_hex: '',
+                    issue_scores: []
+                };
+            }
+            const rule = this.$TCT.jet_data.cyoa_candidate_switches[this.id];
+            if (!Array.isArray(rule.conditions)) rule.conditions = [];
+            if (!rule.conditionOperator) rule.conditionOperator = 'AND';
+            if (!Array.isArray(rule.issue_scores)) rule.issue_scores = [];
+            return rule;
+        },
+
+        addTrigger() {
+            const rule = this.getRule();
+            const val = Number(this.triggerToAdd);
+            if (!val) return;
+            if (!rule.triggers.includes(val)) {
+                rule.triggers.push(val);
+                this.triggerToAdd = null;
+                this.$globalData.dataVersion++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        removeTrigger(pk) {
+            const rule = this.getRule();
+            rule.triggers = rule.triggers.filter(x => x !== pk);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        addCondition() {
+            const rule = this.getRule();
+            if (!this.conditionToAdd.variable) {
+                alert('Please select a variable.');
+                return;
+            }
+
+            rule.conditions.push({
+                variable: this.conditionToAdd.variable,
+                comparator: this.conditionToAdd.comparator,
+                value: Number(this.conditionToAdd.value)
+            });
+
+            this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeCondition(index) {
+            const rule = this.getRule();
+            if (rule.conditions) {
+                rule.conditions.splice(index, 1);
+                this.$globalData.dataVersion++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        updateConditionOperator(value) {
+            const rule = this.getRule();
+            rule.conditionOperator = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        updateField(field, value) {
+            const rule = this.getRule();
+            rule[field] = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        getCandidateIssueScore(issuePk) {
+            const cand = Number(this.rule.candidate);
+            if (!Number.isFinite(cand)) return 0;
+            const row = Object.values(this.$TCT.candidate_issue_score || {}).find(
+                s => Number(s.fields?.candidate) === cand && Number(s.fields?.issue) === Number(issuePk)
+            );
+            return row ? Number(row.fields.issue_score) : 0;
+        },
+
+        addIssueScore() {
+            const rule = this.getRule();
+            const val = Number(this.newIssuePk);
+            if (!val) return;
+            if (!rule.issue_scores.some(s => Number(s.issue) === val)) {
+                rule.issue_scores.push({
+                    issue: val,
+                    score: this.getCandidateIssueScore(val)
+                });
+                this.newIssuePk = null;
+                this.$globalData.dataVersion++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        updateIssueScore(index, field, value) {
+            const rule = this.getRule();
+            if (!rule.issue_scores[index]) return;
+            const newRow = { ...rule.issue_scores[index] };
+            if (field === 'issue') {
+                newRow.issue = Number(value) || null;
+            } else {
+                newRow.score = Number(value) || 0;
+            }
+            rule.issue_scores[index] = newRow;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeIssueScore(index) {
+            const rule = this.getRule();
+            rule.issue_scores.splice(index, 1);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        displayConditionVariable(name) {
+            return window.TCTAnswerSwapHelper.getConditionLabel(name);
+        },
+
+        displayConditionTooltip(name) {
+            return window.TCTAnswerSwapHelper.getConditionTooltip(name);
+        }
+    },
+
+    computed: {
+        rule() {
+            this.$globalData.dataVersion;
+            return this.getRule();
+        },
+
+        tick() {
+            return this.$globalData.dataVersion;
+        },
+
+        conditionTargets() {
+            const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+        },
+
+        answers() {
+            return Object.values(this.$TCT.answers || {});
+        },
+
+        candidates() {
+            const pks = new Set();
+            Object.values(this.$TCT.candidate_issue_score || {}).forEach(s => {
+                if (s?.fields?.candidate != null) pks.add(Number(s.fields.candidate));
+            });
+            Object.values(this.$TCT.candidate_state_multiplier || {}).forEach(s => {
+                if (s?.fields?.candidate != null) pks.add(Number(s.fields.candidate));
+            });
+            Object.values(this.$TCT.running_mate_issue_score || {}).forEach(s => {
+                if (s?.fields?.candidate != null) pks.add(Number(s.fields.candidate));
+            });
+            return Array.from(pks).sort((a, b) => a - b).map(pk => ({
+                pk,
+                label: this.$TCT.getNicknameForCandidate(pk) || `Candidate ${pk}`
+            }));
+        },
+
+        issues() {
+            return Object.values(this.$TCT.issues || {});
+        },
+
+        hasConditions() {
+            this.$globalData.dataVersion;
+            const rule = this.getRule();
+            return rule.conditions && rule.conditions.length > 0;
+        },
+
+        conditionsList() {
+            this.$globalData.dataVersion;
+            const rule = this.getRule();
+            return rule.conditions || [];
+        },
+
+        hasChanges() {
+            this.$globalData.dataVersion;
+            const rule = this.getRule();
+            return !!String(rule.first_name || '').trim()
+                || !!String(rule.last_name || '').trim()
+                || !!String(rule.color_hex || '').trim()
+                || (Array.isArray(rule.issue_scores) && rule.issue_scores.length > 0);
+        }
+    },
+
+    template: `
+    <div class="bg-white rounded-sm shadow-sm p-3 border-l-4 border-amber-400">
+        <div class="flex justify-between items-start mb-2">
+            <div class="text-sm text-gray-700">
+                <div class="font-medium">Candidate switch rule #{{ id }}</div>
+                <div class="text-xs text-gray-500">
+                    (Changes are applied after each answer is recorded, so the selected candidate takes the new name/color/issue scores from that point on.)
+                </div>
+            </div>
+            <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteRule', id)" aria-label="Delete rule">✕</button>
+        </div>
+
+        <div class="mb-3 p-2 bg-amber-50 rounded-sm text-sm text-amber-900 border border-amber-100">
+            <span class="font-bold mr-1">Switch summary:</span>
+            <span v-if="rule.triggers.length > 0">
+                When answers <span v-for="(pk, idx) in rule.triggers" :key="idx" class="font-mono bg-amber-200 px-1 rounded mx-0.5">#{{pk}}</span> are selected<span v-if="hasConditions"> and </span><span v-else>, </span>
+            </span>
+            <span v-if="hasConditions">
+                if <span v-for="(c, idx) in conditionsList" :key="idx">
+                    <span class="font-mono bg-amber-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                </span>,
+            </span>
+            <span>
+                switch candidate <span class="font-mono bg-amber-200 px-1 rounded mx-0.5">#{{ rule.candidate || '?' }}</span>
+            </span>
+            <span v-if="hasChanges">
+                to
+                <span v-if="String(rule.first_name || '').trim()" class="font-mono bg-amber-200 px-1 rounded mx-0.5">first "{{ rule.first_name }}"</span>
+                <span v-if="String(rule.last_name || '').trim()" class="font-mono bg-amber-200 px-1 rounded mx-0.5">last "{{ rule.last_name }}"</span>
+                <span v-if="String(rule.color_hex || '').trim()" class="font-mono bg-amber-200 px-1 rounded mx-0.5">color {{ rule.color_hex }}</span>
+                <span v-if="rule.issue_scores.length" v-for="(s, idx) in rule.issue_scores" :key="idx" class="font-mono bg-amber-200 px-1 rounded mx-0.5">#{{ s.issue }} &rarr; {{ s.score }}</span>
+            </span>
+            <span v-else class="italic text-gray-500">No changes defined yet.</span>
+        </div>
+
+        <!-- Triggers -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Trigger answers (optional):</label>
+            <div class="flex items-center gap-2">
+                <select v-model.number="triggerToAdd" class="border rounded-sm p-1 text-sm">
+                    <option :value="null" disabled>Select answer...</option>
+                    <option v-for="a in answers" :key="a.pk" :value="a.pk">
+                        {{ a.pk }} - {{ (a.fields?.description || '...').slice(0,50) }}
+                    </option>
+                </select>
+                <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1">
+                <span v-for="pk in rule.triggers" :key="'t-'+pk+'-'+tick" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
+                    #{{ pk }}
+                    <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
+                </span>
+            </div>
+        </div>
+
+        <!-- Multiple conditions -->
+        <div class="mb-3">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
+
+            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+                <span class="text-xs text-gray-600">Join with:</span>
+                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                    <option value="AND">AND (all must be true)</option>
+                    <option value="OR">OR (any can be true)</option>
+                </select>
+            </div>
+
+            <div v-if="hasConditions" class="mb-2 space-y-1">
+                <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
+                    <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
+                    <div class="text-xs">{{ c.comparator }}</div>
+                    <div class="text-xs">{{ c.value }}</div>
+                    <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 items-center">
+                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="" disabled>Target...</option>
+                    <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
+                </select>
+                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value=">=">&gt;= (greater than or equal)</option>
+                    <option value="<=">&lt;= (less than or equal)</option>
+                    <option value=">">&gt; (greater than)</option>
+                    <option value="<">&lt; (less than)</option>
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
+            </div>
+        </div>
+
+        <!-- Candidate + identity -->
+        <div class="mb-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Candidate to switch</label>
+                    <select :value="rule.candidate" @change="updateField('candidate', $event.target.value)" class="border rounded-sm p-1 text-sm w-full">
+                        <option :value="null" disabled>Select candidate...</option>
+                        <option v-for="c in candidates" :key="c.pk" :value="c.pk">{{ c.pk }} - {{ c.label }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">New color <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <div class="flex items-center gap-2">
+                        <input type="color" :value="rule.color_hex" @input="updateField('color_hex', $event.target.value)" class="h-8 w-10 border rounded-sm cursor-pointer">
+                        <input :value="rule.color_hex" @input="updateField('color_hex', $event.target.value)" type="text" placeholder="#11299e" class="border rounded-sm p-1 text-sm w-full font-mono">
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">New first name <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input :value="rule.first_name" @input="updateField('first_name', $event.target.value)" type="text" placeholder="e.g. Robert" class="border rounded-sm p-1 text-sm w-full">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">New last name <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <input :value="rule.last_name" @input="updateField('last_name', $event.target.value)" type="text" placeholder="e.g. Kennedy" class="border rounded-sm p-1 text-sm w-full">
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue scores -->
+        <div class="mb-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Issue score overrides (optional):</label>
+            <div v-for="(s, idx) in rule.issue_scores" :key="'s-'+idx+'-'+tick" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mb-2">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Issue</label>
+                    <select :value="s.issue" @change="updateIssueScore(idx,'issue',$event.target.value)" class="border rounded-sm p-1 text-sm w-full">
+                        <option :value="null" disabled>Select issue...</option>
+                        <option v-for="iss in issues" :key="'iss-'+iss.pk" :value="iss.pk">
+                            {{ iss.pk }} - {{ (iss.fields?.name || '...').slice(0,40) }}
+                        </option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] text-gray-500 mb-0.5">Score (-1 to 1)</label>
+                    <input :value="s.score" @input="updateIssueScore(idx,'score',$event.target.value)" type="number" step="0.01" min="-1" max="1" class="border rounded-sm p-1 text-sm w-full">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="text-red-600 hover:text-red-800 text-xs" @click="removeIssueScore(idx)">✕</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <select v-model.number="newIssuePk" class="border rounded-sm p-1 text-sm">
+                    <option :value="null" disabled>Select issue...</option>
+                    <option v-for="iss in issues" :key="'ni-'+iss.pk" :value="iss.pk">
+                        {{ iss.pk }} - {{ (iss.fields?.name || '...').slice(0,40) }}
+                    </option>
+                </select>
+                <button class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-sm text-xs" @click="addIssueScore">Add issue score</button>
+            </div>
         </div>
     </div>
     `
