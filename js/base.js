@@ -2726,8 +2726,8 @@ class TCTData {
         const parts = [
             "// [JETS_ENDINGS_START]\n",
             "campaignTrail_temp.multiple_endings = true;\n\n",
-            `const _tctEndingDefs = ${JSON.stringify(preparedEndings, null, 4)};\n\n`,
-            `const _tctOpMap = {
+            `const endingDefs = ${JSON.stringify(preparedEndings, null, 4)};\n\n`,
+            `const opMap = {
     ">": (a, b) => a > b,
     ">=": (a, b) => a >= b,
     "==": (a, b) => a == b,
@@ -2736,7 +2736,7 @@ class TCTData {
     "!=": (a, b) => a != b
 };
 
-const _tctGetEndingImageEl = () => {
+const getEndingImageEl = () => {
     const imageContainer = document.querySelector(".person_image");
     if (!imageContainer) return null;
     if (imageContainer.tagName && imageContainer.tagName.toLowerCase() === "img") {
@@ -2745,7 +2745,7 @@ const _tctGetEndingImageEl = () => {
     return imageContainer.querySelector("img");
 };
 
-const _tctReadVariable = (name) => {
+const readVariable = (name) => {
     if (!name || typeof name !== "string") return undefined;
     if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) return undefined;
     try {
@@ -2755,21 +2755,21 @@ const _tctReadVariable = (name) => {
     }
 };
 
-const _tctParseConditionValue = (value) => {
+const parseConditionValue = (value) => {
     if (value == null || value === "") return "";
     const n = Number(value);
     if (!Number.isNaN(n)) return n;
     return value;
 };
 
-const _tctCheckOutcomeCondition = (entry, finalOutcome) => {
+const checkOutcomeCondition = (entry, finalOutcome) => {
     const cond = String(entry?.outcomeCondition || "ignore");
     if (cond === "ignore") return true;
     return cond === String(finalOutcome || "");
 };
 
-const _tctMatchesPrimaryCondition = (entry, quickstats, finalOutcome) => {
-    if (!_tctCheckOutcomeCondition(entry, finalOutcome)) return false;
+const matchesPrimaryCondition = (entry, quickstats, finalOutcome) => {
+    if (!checkOutcomeCondition(entry, finalOutcome)) return false;
 
     const cond = String(entry?.outcomeCondition || "ignore");
     if (cond !== "ignore") {
@@ -2777,20 +2777,20 @@ const _tctMatchesPrimaryCondition = (entry, quickstats, finalOutcome) => {
         return true;
     }
 
-    const opFn = _tctOpMap[entry?.operator] || _tctOpMap[">"];
+    const opFn = opMap[entry?.operator] || opMap[">"];
     const left = quickstats?.[Number(entry?.variable) || 0];
     const right = Number(entry?.amount) || 0;
     return opFn(left, right);
 };
 
-const _tctCheckExtraConditions = (entry, playerAnswers) => {
+const checkExtraConditions = (entry, playerAnswers) => {
     // check variable conditions
     if (Array.isArray(entry.variableConditions) && entry.variableConditions.length > 0) {
         const operator = entry.variableConditionOperator || "AND";
         const results = entry.variableConditions.map((cond) => {
-            const left = _tctReadVariable(cond.variable);
-            const right = _tctParseConditionValue(cond.value);
-            const opFn = _tctOpMap[cond.comparator] || _tctOpMap["=="];
+            const left = readVariable(cond.variable);
+            const right = parseConditionValue(cond.value);
+            const opFn = opMap[cond.comparator] || opMap["=="];
             return opFn(left, right);
         });
 
@@ -2902,7 +2902,7 @@ const styleEndingDescription = () => {
 };
 
 const applyEndingImage = (slide) => {
-    const imageEl = _tctGetEndingImageEl();
+    const imageEl = getEndingImageEl();
     if (!imageEl || !slide) return;
 
     if (slide.image === false) {
@@ -2938,7 +2938,7 @@ const applyEndingImage = (slide) => {
 const applyEndingButtons = () => {
     const e = campaignTrail_temp;
     const theme = e._endingTheme || {};
-    const imageEl = _tctGetEndingImageEl();
+    const imageEl = getEndingImageEl();
     if (!imageEl || !imageEl.parentNode) return;
 
     let btnContainer = document.getElementById("ending_slide_buttons");
@@ -3014,7 +3014,7 @@ const syncEndingSlideDomDeferred = () => {
     });
 };
 
-const _tctBuildSlides = (entry, quickstats, finalOutcome) => {
+const buildSlides = (entry, quickstats, finalOutcome) => {
     if (entry && entry.endingSlidesJson) {
         try {
             const parsed = JSON.parse(entry.endingSlidesJson);
@@ -3058,8 +3058,8 @@ const _tctBuildSlides = (entry, quickstats, finalOutcome) => {
                 for (const groupKey of groupOrder) {
                     const groupSlides = groupMap.get(groupKey) || [];
                     let selected = groupSlides.find((slide) => {
-                        return _tctMatchesPrimaryCondition(slide, quickstats, finalOutcome)
-                            && _tctCheckExtraConditions(slide, playerAnswers);
+                        return matchesPrimaryCondition(slide, quickstats, finalOutcome)
+                            && checkExtraConditions(slide, playerAnswers);
                     });
                     if (!selected) selected = groupSlides[0];
                     if (selected) selectedSlides.push(normalizeSlide(selected));
@@ -3091,7 +3091,7 @@ const _tctBuildSlides = (entry, quickstats, finalOutcome) => {
     return [fallbackSlide];
 };
 
-const _tctConstructSlide = (direction = 1) => {
+const constructSlide = (direction = 1) => {
     const e = campaignTrail_temp;
     if (!Array.isArray(e.endingSlides) || e.endingSlides.length === 0) return "";
 
@@ -3112,13 +3112,13 @@ const _tctConstructSlide = (direction = 1) => {
 endingConstructor = (direction = 1) => {
     const desc = document.querySelector("#final_results_description");
     if (!desc) return;
-    desc.innerHTML = _tctConstructSlide(direction);
+    desc.innerHTML = constructSlide(direction);
     syncEndingSlideDomDeferred();
 };
 
 endingPicker = (out, totv, aa, quickstats) => {
     const playerAnswers = campaignTrail_temp?.player_answers || [];
-    for (const entry of _tctEndingDefs) {
+    for (const entry of endingDefs) {
         let isMatch = false;
 
         try {
@@ -3135,20 +3135,20 @@ endingPicker = (out, totv, aa, quickstats) => {
 
                 const mainSlides = groupMap.get("main") || parsed;
                 let validMain = mainSlides.find((slide) => {
-                    return _tctMatchesPrimaryCondition(slide, quickstats, out)
-                        && _tctCheckExtraConditions(slide, playerAnswers);
+                    return matchesPrimaryCondition(slide, quickstats, out)
+                        && checkExtraConditions(slide, playerAnswers);
                 });
 
                 if (validMain) isMatch = true;
             } else {
                 // legacy format without json slides
-                if (_tctMatchesPrimaryCondition(entry, quickstats, out) && _tctCheckExtraConditions(entry, playerAnswers)) {
+                if (matchesPrimaryCondition(entry, quickstats, out) && checkExtraConditions(entry, playerAnswers)) {
                     isMatch = true;
                 }
             }
         } catch(e) {
             // legacy format without json slides
-            if (_tctMatchesPrimaryCondition(entry, quickstats, out) && _tctCheckExtraConditions(entry, playerAnswers)) {
+            if (matchesPrimaryCondition(entry, quickstats, out) && checkExtraConditions(entry, playerAnswers)) {
                 isMatch = true;
             }
         }
@@ -3162,10 +3162,10 @@ endingPicker = (out, totv, aa, quickstats) => {
                 backgroundColor: entry?.endingBackgroundColor || "#ffffff",
                 textColor: entry?.endingTextColor || "#000000"
             };
-            e.endingSlides = _tctBuildSlides(entry, quickstats, out);
+            e.endingSlides = buildSlides(entry, quickstats, out);
             e._endingAudioPlayedKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";
 
-            const html = _tctConstructSlide(1);
+            const html = constructSlide(1);
             syncEndingSlideDomDeferred();
             return html;
         }
@@ -3968,23 +3968,23 @@ function loadDataFromFile(raw_json) {
     }
 
     // strip legacy generated endings helpers from //#startcode so a new export doesn't duplicate them
-    excludeConstLiteralAssignment("_tctEndingDefs", "[", "]");
-    excludeConstLiteralAssignment("_tctOpMap", "{", "}");
+    excludeConstLiteralAssignment("endingDefs", "[", "]");
+    excludeConstLiteralAssignment("opMap", "{", "}");
     [
-        "_tctGetEndingImageEl",
-        "_tctReadVariable",
-        "_tctParseConditionValue",
-        "_tctCheckOutcomeCondition",
-        "_tctMatchesPrimaryCondition",
-        "_tctCheckExtraConditions",
+        "getEndingImageEl",
+        "readVariable",
+        "parseConditionValue",
+        "checkOutcomeCondition",
+        "matchesPrimaryCondition",
+        "checkExtraConditions",
         "playEndingSong",
         "styleEndingDescription",
         "applyEndingImage",
         "applyEndingButtons",
         "syncEndingSlideDom",
         "syncEndingSlideDomDeferred",
-        "_tctBuildSlides",
-        "_tctConstructSlide"
+        "buildSlides",
+        "constructSlide"
     ].forEach((name) => excludeConstArrowFunctions(name));
 
     // ta-da!
