@@ -376,6 +376,7 @@ registerComponent('cyoa', {
                 id,
                 variable: chosenVariable,
                 label: chosenVariable,
+                showLabel: false,
                 lowMax: 0,
                 midMax: 2,
                 lowText: `${chosenVariable} is struggling.`,
@@ -1420,6 +1421,7 @@ function setCandidateIdentity(candidatePk, options) {
                     id: Number(row.id || (Date.now() + index)),
                     variable: String(row.variable).trim(),
                     label,
+                    showLabel: !!row.showLabel,
                     tiers: [
                         { max: sortedLow, text: lowText, color: defLow },
                         { max: sortedMid, text: midText, color: defMid },
@@ -1462,6 +1464,7 @@ function setCandidateIdentity(candidatePk, options) {
             return `    {
             getValue: () => ${row.variable},
             label: \`${escapeTemplateText(row.label)}\`,
+            showLabel: ${row.showLabel},
             tiers: [
                 [${max1}, \`${escapeTemplateText(t1.text)}\`, \"${t1.color}\"],
                 [${max2}, \`${escapeTemplateText(t2.text)}\`, \"${t2.color}\"],
@@ -1507,12 +1510,33 @@ function setCandidateIdentity(candidatePk, options) {
     const bold = (text, color) =>
         \`<span style="color: \${color}; font-weight: bold">\${text}</span>\`;
 
+    const escapeHtml = (text) =>
+        String(text ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     function matchTier(value, tiers) {
         for (const [max, text, color] of tiers) {
             if (value <= max) return [text, color];
         }
         const fallback = tiers.at(-1);
         return [fallback?.[1] || "", fallback?.[2] || "#e6e6e6"];
+    }
+
+    // parts wrapped in asterisks (*word*) are colored, while unmarked parts stay plain
+    // if the text has no asterisks, the whole sentence is colored
+    function highlight(text, color) {
+        const parts = String(text || "").split("*");
+        if (parts.length <= 1) return bold(text || "", color);
+        let out = "";
+        for (let i = 0; i < parts.length; i++) {
+            const seg = parts[i];
+            if (!seg) continue;
+            if (i % 2 === 1) {
+                out += bold(seg, color);
+            } else {
+                out += escapeHtml(seg);
+            }
+        }
+        return out;
     }
 
     const STATS = [
@@ -1523,11 +1547,12 @@ ${statsRows}
         const content = document.getElementById("gameStatsContent");
         if (!content) return;
 
-        const lines = STATS.map(({ getValue, tiers, label }) => {
+        const lines = STATS.map(({ getValue, tiers, label, showLabel }) => {
             const value = Number(getValue?.());
             const score = Number.isFinite(value) ? value : 0;
             const [text, color] = matchTier(score, tiers);
-            return \`• \${label}: \${bold(text, color)} (\${score})\`;
+            const prefix = showLabel && label ? escapeHtml(label) + ": " : "";
+            return "• " + prefix + highlight(text, color) + " " + bold("(" + score + ")", color);
         });
 
         content.innerHTML = \`
@@ -1983,6 +2008,7 @@ registerComponent('cyoa-campaign-stat', {
                     id: this.id,
                     variable: firstVar,
                     label: firstVar,
+                    showLabel: false,
                     lowMax: 0,
                     midMax: 2,
                     lowText: `${firstVar} is struggling.`,
@@ -2034,7 +2060,7 @@ registerComponent('cyoa-campaign-stat', {
             <button class="text-red-600 hover:text-red-800 text-sm" @click="$emit('deleteStat', id)" aria-label="Delete tracked variable">✕</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Variable</label>
                 <select :value="row.variable" @change="onVariableChanged($event.target.value)" class="w-full border rounded-sm p-2 text-sm">
@@ -2045,6 +2071,11 @@ registerComponent('cyoa-campaign-stat', {
                 <label class="block text-xs font-medium text-gray-600 mb-1">Display label</label>
                 <input :value="row.label" @input="updateField('label', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown in the modal">
             </div>
+        </div>
+
+        <div class="flex items-center gap-2 mb-3">
+            <input :id="'showLabel-' + id" type="checkbox" :checked="!!row.showLabel" @change="updateField('showLabel', $event.target.checked)" class="h-4 w-4">
+            <label :for="'showLabel-' + id" class="text-xs font-medium text-gray-600">Show the label in front of the flavor text</label>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -2059,17 +2090,18 @@ registerComponent('cyoa-campaign-stat', {
         </div>
 
         <div class="grid grid-cols-1 gap-2">
+            <p class="text-xs text-gray-500 italic">Wrap the part you want colored in asterisks, e.g. <code>*strong*</code>. Leave it unmarked to color the whole sentence.</p>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Low tier flavor text</label>
-                <input :value="row.lowText" @input="updateField('lowText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is low">
+                <input :value="row.lowText" @input="updateField('lowText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="e.g. *Liberal* is struggling.">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Mid tier flavor text</label>
-                <input :value="row.midText" @input="updateField('midText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is mid-tier">
+                <input :value="row.midText" @input="updateField('midText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="e.g. Bush has *strong* congressional relations.">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">High tier flavor text</label>
-                <input :value="row.highText" @input="updateField('highText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Shown when score is high">
+                <input :value="row.highText" @input="updateField('highText', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="e.g. Bush is *surging*.">
             </div>
         </div>
     </div>
