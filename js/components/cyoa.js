@@ -2,7 +2,9 @@ registerComponent('cyoa', {
 
     data() {
         return {
-            temp_events: []
+            temp_events: [],
+            campaignPreviewOpen: false,
+            campaignPreviewScores: {}
         };
     },
 
@@ -83,6 +85,91 @@ registerComponent('cyoa', {
                             :key="row.id"
                             @deleteStat="deleteCampaignDataStat">
                         </cyoa-campaign-stat>
+                    </div>
+
+                    <div v-if="campaignDataStats.length > 0" class="border-t pt-3">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-sm font-medium text-gray-700">Design &amp; live preview</span>
+                            <button
+                                class="bg-gray-200 px-2 py-1 rounded-sm text-xs hover:bg-gray-300"
+                                @click="toggleCampaignPreview"
+                            >
+                                {{ campaignPreviewOpen ? 'Hide preview' : 'Show preview' }}
+                            </button>
+                            <button
+                                class="text-xs text-gray-500 underline hover:text-gray-700"
+                                title="Clear custom colors and use the current theme defaults"
+                                @click="resetCampaignDesign"
+                            >
+                                Reset design
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Modal title</label>
+                                <input :value="campaignStyle.title" @input="updateCampaignStyle('title', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Campaign Data">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Width (px)</label>
+                                <input :value="campaignStyle.width" @input="updateCampaignStyle('width', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="160">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Corner radius (px)</label>
+                                <input :value="campaignStyle.cornerRadius" @input="updateCampaignStyle('cornerRadius', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Divider color</label>
+                                <input :value="campaignStyle.h3Border" @input="updateCampaignStyle('h3Border', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Modal background</label>
+                                <input :value="campaignStyle.bg" @input="updateCampaignStyle('bg', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Border color</label>
+                                <input :value="campaignStyle.border" @input="updateCampaignStyle('border', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Text color</label>
+                                <input :value="campaignStyle.text" @input="updateCampaignStyle('text', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Low tier color</label>
+                                <input :value="campaignStyle.tierLow" @input="updateCampaignStyle('tierLow', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Mid tier color</label>
+                                <input :value="campaignStyle.tierMid" @input="updateCampaignStyle('tierMid', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">High tier color</label>
+                                <input :value="campaignStyle.tierHigh" @input="updateCampaignStyle('tierHigh', $event.target.value)" type="color" class="w-full border rounded-sm p-1 h-9">
+                            </div>
+                        </div>
+
+                        <div v-if="campaignPreviewOpen" class="mt-3 border rounded-sm p-3">
+                            <p class="text-xs text-gray-500 mb-2">Live preview — adjust the sample score per stat to see each tier's text and color.</p>
+                            <div class="flex flex-wrap items-center gap-2 mb-3">
+                                <label class="text-xs font-medium text-gray-600">Sample scores:</label>
+                                <div v-for="row in campaignDataPreview" :key="row.id" class="flex items-center gap-1">
+                                    <span class="text-xs text-gray-500">{{ row.label || row.variable }}</span>
+                                    <input
+                                        type="number"
+                                        class="w-14 border rounded-sm p-1 text-xs"
+                                        :value="previewScoreFor(row.id)"
+                                        @input="updateCampaignPreviewScore(row.id, $event.target.value)"
+                                    >
+                                </div>
+                            </div>
+                            <div
+                                class="stats-preview"
+                                :style="campaignPreviewBoxStyle"
+                            >
+                                <h3 :style="campaignPreviewTitleStyle">{{ campaignStyle.title }}</h3>
+                                <div class="stats-list" v-html="campaignPreviewHtml"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </details>
@@ -244,6 +331,7 @@ registerComponent('cyoa', {
             if (jet.cyoa_answer_swaps == null) { jet.cyoa_answer_swaps = {}; changed = true; }
             if (jet.cyoa_campaign_data_enabled == null) { jet.cyoa_campaign_data_enabled = false; changed = true; }
             if (jet.cyoa_campaign_data_stats == null) { jet.cyoa_campaign_data_stats = {}; changed = true; }
+            if (jet.campaign_data_style == null) { jet.campaign_data_style = {}; changed = true; }
             if (jet.cyoa_candidate_switches == null) { jet.cyoa_candidate_switches = {}; changed = true; }
             if (jet.bunnyhop_enabled == null) { jet.bunnyhop_enabled = false; changed = true; }
             if (jet.bunnyhop_pools == null) { jet.bunnyhop_pools = []; changed = true; }
@@ -397,6 +485,75 @@ registerComponent('cyoa', {
             }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
+        },
+
+        getCampaignDataStyle() {
+            return window.TCTAnswerSwapHelper.getCampaignDataStyle?.();
+        },
+
+        getCampaignDataRows() {
+            return window.TCTAnswerSwapHelper.getCampaignDataRows?.() || [];
+        },
+
+        updateCampaignStyle(field, value) {
+            const jet = this.$TCT.jet_data;
+            if (!jet.campaign_data_style) {
+                jet.campaign_data_style = {};
+            }
+            jet.campaign_data_style[field] = value;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        resetCampaignDesign() {
+            this.$TCT.jet_data.campaign_data_style = {};
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        toggleCampaignPreview() {
+            this.campaignPreviewOpen = !this.campaignPreviewOpen;
+        },
+
+        updateCampaignPreviewScore(id, value) {
+            const n = Number(value);
+            this.campaignPreviewScores[id] = Number.isFinite(n) ? n : 0;
+        },
+
+        previewScoreFor(id) {
+            const s = this.campaignPreviewScores[id];
+            return Number.isFinite(Number(s)) ? Number(s) : 0;
+        },
+
+        campaignEsc(text) {
+            return String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        },
+
+        campaignBold(text, color) {
+            return `<span style="color: ${this.campaignEsc(color)}; font-weight: bold">${text}</span>`;
+        },
+
+        campaignHighlight(text, color) {
+            const parts = String(text || '').split('*');
+            if (parts.length <= 1) return this.campaignBold(text || '', color);
+            let out = '';
+            for (let i = 0; i < parts.length; i++) {
+                const seg = parts[i];
+                if (!seg) continue;
+                out += i % 2 === 1 ? this.campaignBold(this.campaignEsc(seg), color) : this.campaignEsc(seg);
+            }
+            return out;
+        },
+
+        campaignLineHtml(row) {
+            const style = this.getCampaignDataStyle();
+            const score = this.previewScoreFor(row.id);
+            const tiers = row.tiers || [];
+            let tier = tiers.find(t => score <= Number(t.max));
+            if (!tier) tier = tiers[tiers.length - 1] || { text: '', color: style.tierMid };
+            const prefix = row.showLabel && row.label ? this.campaignEsc(row.label) + ': ' : '';
+            return '• ' + prefix + this.campaignHighlight(tier.text, tier.color)
+                + ' ' + this.campaignBold('(' + score + ')', tier.color);
         },
 
         // Answer swap rules
@@ -569,6 +726,55 @@ registerComponent('cyoa', {
         canUseCampaignData() {
             this.$globalData.dataVersion;
             return (this.$TCT.getAllCyoaVariables?.() || []).length > 0;
+        },
+
+        campaignStyle() {
+            this.$globalData.dataVersion;
+            return this.getCampaignDataStyle();
+        },
+
+        campaignDataPreview() {
+            this.$globalData.dataVersion;
+            return this.getCampaignDataRows().map(r => ({
+                id: r.id,
+                label: r.label,
+                variable: r.variable
+            }));
+        },
+
+        campaignPreviewBoxStyle() {
+            this.$globalData.dataVersion;
+            const s = this.getCampaignDataStyle();
+            return {
+                width: s.width + 'px',
+                backgroundColor: s.bg,
+                border: '2px solid ' + s.border,
+                color: s.text,
+                borderRadius: s.cornerRadius + 'px',
+                padding: '10px 12px',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4)',
+                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                fontSize: '14px',
+                lineHeight: '1.5'
+            };
+        },
+
+        campaignPreviewTitleStyle() {
+            this.$globalData.dataVersion;
+            const s = this.getCampaignDataStyle();
+            return {
+                margin: '0 0 8px',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                borderBottom: '1px solid ' + s.h3Border,
+                paddingBottom: '4px'
+            };
+        },
+
+        campaignPreviewHtml() {
+            this.$globalData.dataVersion;
+            const rows = this.getCampaignDataRows();
+            return rows.map(r => this.campaignLineHtml(r)).join('<br>');
         },
 
         buildQuestionSwapperFunction() {
@@ -819,6 +1025,31 @@ window.TCTAnswerSwapHelper = {
             return 'Count of questions already answered. Here, a value of N means the condition activates after question N is answered (i.e., before question N+1). For example, a question number of 20 means the condition activates at question 21.';
         }
         return '';
+    },
+
+    getCampaignDataStyle() {
+        const cfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
+        const v = cfg.cssVars || {};
+        const s = window.$TCT?.jet_data?.campaign_data_style || {};
+        const num = (val, fallback, min = null) => {
+            if (val === undefined || val === null || val === '') return fallback;
+            const n = Number(val);
+            if (!Number.isFinite(n)) return fallback;
+            if (min !== null && n < min) return fallback;
+            return n;
+        };
+        return {
+            title: String(s.title || '').trim() || 'Campaign Data',
+            bg: s.bg || v['--cyoa-popup-bg'] || '#222449',
+            border: s.border || v['--cyoa-popup-border'] || '#727C96',
+            text: s.text || v['--cyoa-popup-text'] || '#ffffff',
+            h3Border: s.h3Border || v['--cyoa-popup-h3-border'] || '#cccccc',
+            tierLow: s.tierLow || v['--tier-low'] || '#ff4d4d',
+            tierMid: s.tierMid || v['--tier-mid'] || '#e6e6e6',
+            tierHigh: s.tierHigh || v['--tier-high'] || '#4dff4d',
+            width: num(s.width, 320, 160),
+            cornerRadius: num(s.cornerRadius, 2, 0)
+        };
     },
 
     buildQuestionSwapperFunction() {
@@ -1411,11 +1642,10 @@ function setCandidateIdentity(candidatePk, options) {
                 const sortedMid = Math.max(lowMax, midMax);
                 const label = String(row.label || row.variable || '').trim() || row.variable;
 
-                const tCfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
-                const tVars = tCfg.cssVars || {};
-                const defLow = tVars['--tier-low'] || '#ff4d4d';
-                const defMid = tVars['--tier-mid'] || '#e6e6e6';
-                const defHigh = tVars['--tier-high'] || '#4dff4d';
+                const style = this.getCampaignDataStyle();
+                const defLow = style.tierLow;
+                const defMid = style.tierMid;
+                const defHigh = style.tierHigh;
 
                 return {
                     id: Number(row.id || (Date.now() + index)),
@@ -1442,15 +1672,17 @@ function setCandidateIdentity(candidatePk, options) {
             .replaceAll('`', '\\`')
             .replaceAll('${', '\\${');
 
-        const cyoaCfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
-        const cyoaVars = cyoaCfg.cssVars || {};
-        const defLow = cyoaVars['--tier-low'] || '#ff4d4d';
-        const defMid = cyoaVars['--tier-mid'] || '#e6e6e6';
-        const defHigh = cyoaVars['--tier-high'] || '#4dff4d';
-        const cyoaBg = cyoaVars['--cyoa-popup-bg'] || '#222449';
-        const cyoaBorder = cyoaVars['--cyoa-popup-border'] || '#727C96';
-        const cyoaText = cyoaVars['--cyoa-popup-text'] || '#fff';
-        const cyoaH3Border = cyoaVars['--cyoa-popup-h3-border'] || '#ccc';
+        const style = this.getCampaignDataStyle();
+        const defLow = style.tierLow;
+        const defMid = style.tierMid;
+        const defHigh = style.tierHigh;
+        const cyoaBg = style.bg;
+        const cyoaBorder = style.border;
+        const cyoaText = style.text;
+        const cyoaH3Border = style.h3Border;
+        const cyoaWidth = style.width;
+        const cyoaRadius = style.cornerRadius;
+        const cyoaTitleJson = JSON.stringify(style.title);
 
         const statsRows = rows.map((row) => {
             const tiers = row.tiers || [];
@@ -1482,10 +1714,10 @@ function setCandidateIdentity(candidatePk, options) {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 320px;
+            width: ${cyoaWidth}px;
             background-color: ${cyoaBg};
             border: 2px solid ${cyoaBorder};
-            border-radius: 2px;
+            border-radius: ${cyoaRadius}px;
             padding: 10px 12px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
             z-index: 10000;
@@ -1506,6 +1738,8 @@ function setCandidateIdentity(candidatePk, options) {
         #btn_game_stats { margin-left: 1.5em; }
     \`;
     document.head.appendChild(styleEl);
+
+    const cyoaTitle = ${cyoaTitleJson};
 
     const bold = (text, color) =>
         \`<span style="color: \${color}; font-weight: bold">\${text}</span>\`;
@@ -1556,7 +1790,7 @@ ${statsRows}
         });
 
         content.innerHTML = \`
-            <h3>Campaign Data</h3>
+            <h3>\${cyoaTitle}</h3>
             <div class="stats-list">\${lines.join("<br>")}</div>
         \`;
     }
