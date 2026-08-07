@@ -108,15 +108,15 @@ registerComponent('cyoa', {
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Modal title</label>
-                                <input :value="campaignStyle.title" @input="updateCampaignStyle('title', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Campaign Data">
+                                <input :value="campaignRawValue('title')" @input="updateCampaignStyle('title', $event.target.value)" type="text" class="w-full border rounded-sm p-2 text-sm" placeholder="Campaign Data">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Width (px)</label>
-                                <input :value="campaignStyle.width" @input="updateCampaignStyle('width', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="160">
+                                <input :value="campaignRawValue('width')" @input="updateCampaignStyle('width', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="160" placeholder="320">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Corner radius (px)</label>
-                                <input :value="campaignStyle.cornerRadius" @input="updateCampaignStyle('cornerRadius', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="0">
+                                <input :value="campaignRawValue('cornerRadius')" @input="updateCampaignStyle('cornerRadius', $event.target.value)" type="number" class="w-full border rounded-sm p-2 text-sm" min="0" placeholder="2">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Divider color</label>
@@ -503,6 +503,10 @@ registerComponent('cyoa', {
             jet.campaign_data_style[field] = value;
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
+        },
+
+        campaignRawValue(field) {
+            return (this.$TCT?.jet_data?.campaign_data_style || {})[field] ?? '';
         },
 
         resetCampaignDesign() {
@@ -1031,6 +1035,9 @@ window.TCTAnswerSwapHelper = {
         const cfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
         const v = cfg.cssVars || {};
         const s = window.$TCT?.jet_data?.campaign_data_style || {};
+        const effectiveTitle = s.title === undefined || s.title === null || s.title === ''
+            ? 'Campaign Data'
+            : String(s.title);
         const num = (val, fallback, min = null) => {
             if (val === undefined || val === null || val === '') return fallback;
             const n = Number(val);
@@ -1039,7 +1046,7 @@ window.TCTAnswerSwapHelper = {
             return n;
         };
         return {
-            title: String(s.title || '').trim() || 'Campaign Data',
+            title: effectiveTitle,
             bg: s.bg || v['--cyoa-popup-bg'] || '#222449',
             border: s.border || v['--cyoa-popup-border'] || '#727C96',
             text: s.text || v['--cyoa-popup-text'] || '#ffffff',
@@ -1047,8 +1054,8 @@ window.TCTAnswerSwapHelper = {
             tierLow: s.tierLow || v['--tier-low'] || '#ff4d4d',
             tierMid: s.tierMid || v['--tier-mid'] || '#e6e6e6',
             tierHigh: s.tierHigh || v['--tier-high'] || '#4dff4d',
-            width: num(s.width, 320, 160),
-            cornerRadius: num(s.cornerRadius, 2, 0)
+            width: num(s.width, 320),
+            cornerRadius: num(s.cornerRadius, 2)
         };
     },
 
