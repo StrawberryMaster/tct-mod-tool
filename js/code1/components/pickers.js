@@ -510,13 +510,38 @@ registerCode1Component('running-mate-editor', {
         addRunningMate() {
             const actualCands = this.actualCandidates;
             const maxPk = Math.max(...this.$TCT.running_mates.map(rm => rm.pk), 0);
-            const runningMate = this.$TCT.candidates.find(c => c.fields.running_mate && !this.$TCT.running_mates.some(r => r.fields.running_mate === c.pk));
+            const maxCandidatePk = Math.max(...this.$TCT.candidates.map(c => c.pk), 0);
+            const runningMatePk = maxCandidatePk + 1;
+            const runningMate = {
+                "model": "campaign_trail.candidate",
+                "pk": runningMatePk,
+                "fields": {
+                    "first_name": "New",
+                    "last_name": "Running Mate",
+                    "election": this.$TCT.elections[0]?.pk,
+                    "party": "Party",
+                    "state": "State",
+                    "priority": 1,
+                    "description": "Running mate description here.",
+                    "color_hex": "#CCCCCC",
+                    "secondary_color_hex": null,
+                    "is_active": 0,
+                    "image_url": "",
+                    "electoral_victory_message": "Winner!",
+                    "electoral_loss_message": "Loser!",
+                    "no_electoral_majority_message": "Majority?",
+                    "description_as_running_mate": null,
+                    "candidate_score": 1,
+                    "running_mate": true
+                }
+            };
+            this.$TCT.candidates.push(runningMate);
             this.$TCT.running_mates.push({
                 "model": "campaign_trail.running_mate",
                 "pk": maxPk + 1,
                 "fields": {
                     "candidate": actualCands[0]?.pk,
-                    "running_mate": runningMate?.pk || this.$TCT.candidates.find(c => c.fields.running_mate)?.pk || actualCands[1]?.pk || actualCands[0]?.pk
+                    "running_mate": runningMatePk
                 }
             });
             this.selectedIdx = this.$TCT.running_mates.length - 1;
