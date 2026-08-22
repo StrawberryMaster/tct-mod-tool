@@ -225,7 +225,7 @@ registerCode1Component('candidate-editor', {
     <div class="space-y-4">
         <div class="flex justify-between items-center border-b pb-1">
             <h3 class="text-lg font-bold">Candidates</h3>
-            <button @click="addCandidate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add</button>
+            <button @click="addCandidate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add candidate</button>
         </div>
 
         <div v-if="visibleCandidates.length === 0" class="text-sm text-gray-500 italic py-4">
@@ -401,7 +401,7 @@ registerCode1Component('running-mate-editor', {
     <div class="space-y-4">
         <div class="flex justify-between items-center border-b pb-1">
             <h3 class="text-lg font-bold">Running mates</h3>
-            <button @click="addRunningMate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add link</button>
+            <button @click="addRunningMate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add running mate</button>
         </div>
 
         <div class="flex flex-wrap gap-2 mb-4">
