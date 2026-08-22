@@ -27,37 +27,19 @@ registerCode1Component('shadow-wrapper', {
 
 registerCode1Component('code1-editor', {
     template: `
-    <div class="flex flex-col h-full bg-gray-100 p-4 overflow-y-auto">
-        <input ref="code1ImportFile" type="file" accept=".txt,.js,.json,.html,text/plain,application/javascript" class="hidden" @change="fileUploaded($event)">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-bold">Code 1 Maker</h1>
-            <div class="flex gap-2 items-center">
-                <div class="mr-4 flex items-center gap-2">
-                    <label class="text-sm font-semibold text-gray-600">Template ({{$TCT.templates.length}}):</label>
-                    <select @change="loadTemplate" class="p-1 border rounded text-sm bg-white">
-                        <option value="">-- Select Scenario --</option>
-                        <option v-for="t in $TCT.templates" :key="t.pk" :value="t.pk">
-                            {{t.fields.display_year || t.fields.year}}
-                        </option>
-                    </select>
-                </div>
-                <button @click="copyCode" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Copy to Clipboard</button>
-                <button @click="exportCode" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Export Code 1</button>
-                <button @click="openImport" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition">Import Code 1</button>
-                <button @click="toggleWide" class="ml-4 px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium">
-                    {{ wideMode ? 'Split View' : 'Wide Preview' }}
-                </button>
-            </div>
+    <div class="flex flex-col h-full p-4 overflow-y-auto" style="background: var(--app-editor-bg)">
+        <div class="flex justify-end items-center mb-4">
+            <button @click="toggleWide" class="theme-control px-3 py-2 rounded text-sm font-medium">
+                {{ wideMode ? 'Split view' : 'Wide preview' }}
+            </button>
         </div>
 
         <div :class="wideMode ? 'flex flex-col gap-6' : 'grid grid-cols-1 xl:grid-cols-2 gap-6'">
             <!-- Left Side: Controls -->
             <div class="space-y-6">
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold mb-3">Settings</h2>
+                <div class="theme-panel p-4 rounded-lg shadow border">
+                    <h2 class="text-xl font-semibold mb-3" style="color: var(--app-text)">Settings</h2>
                     <div class="space-y-4">
-                        <mode-picker></mode-picker>
-                        <hr>
                         <div v-if="$globalData.mode === 'ELECTION'">
                             <election-editor></election-editor>
                         </div>
@@ -82,8 +64,8 @@ registerCode1Component('code1-editor', {
 
             <!-- Right Side: Preview -->
             <div :class="wideMode ? '' : 'sticky top-4'">
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <h2 class="text-xl font-semibold mb-3">Live Preview</h2>
+                <div class="theme-panel p-4 rounded-lg shadow border">
+                    <h2 class="text-xl font-semibold mb-3" style="color: var(--app-text)">Live preview</h2>
                     <div class="preview-container overflow-x-auto">
                         <shadow-wrapper>
                             <tct-preview :wide="wideMode"></tct-preview>
@@ -92,115 +74,16 @@ registerCode1Component('code1-editor', {
                 </div>
             </div>
         </div>
-
-        <!-- Import Modal -->
-        <div v-if="showImportModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl">
-                <h2 class="text-xl font-bold mb-4">Import Code 1</h2>
-                <div class="flex justify-between items-center mb-3">
-                    <p class="text-sm text-gray-600">Paste code below, or pick a file to import directly.</p>
-                    <button @click="openImportFilePicker" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm">Choose file</button>
-                </div>
-                <textarea v-model="importText" class="w-full h-64 p-2 border rounded mb-4 font-mono text-sm" placeholder="Paste your Code 1 here..."></textarea>
-                <div class="flex justify-end gap-2">
-                    <button @click="showImportModal = false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-                    <button @click="doImport" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Import</button>
-                </div>
-            </div>
-        </div>
     </div>
     `,
     data() {
         return {
-            showImportModal: false,
-            importText: '',
             wideMode: false
         };
     },
     methods: {
         toggleWide() {
             this.wideMode = !this.wideMode;
-        },
-        openImportFilePicker() {
-            const input = this.$refs.code1ImportFile;
-            if (input) {
-                input.value = '';
-                input.click();
-            }
-        },
-        async copyCode() {
-            const code = this.$TCT.exportCode1();
-            try {
-                await navigator.clipboard.writeText(code);
-                alert("Code copied to clipboard!");
-            } catch (err) {
-                console.error("Failed to copy:", err);
-                alert("Failed to copy naturally, checking console...");
-            }
-        },
-        async loadTemplate(e) {
-            const pk = e.target.value;
-            if (!pk) return;
-
-            if (confirm("This will overwrite your current work. Continue?")) {
-                const success = await this.$TCT.applyTemplate(pk);
-                if (success) {
-                    this.$globalData.dataVersion++;
-                    this.$globalData.selectedCandidate = 0;
-                    this.$globalData.selectedElection = 0;
-                    alert("Template loaded!");
-                }
-            }
-        },
-        exportCode() {
-            const code = this.$TCT.exportCode1();
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'code1.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        },
-        openImport() {
-            this.showImportModal = true;
-            this.importText = '';
-        },
-        fileUploaded(evt) {
-            const file = evt?.target?.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (loadEvt) => {
-                const text = loadEvt?.target?.result;
-                if (typeof text !== 'string') {
-                    alert('Error reading uploaded file!');
-                    return;
-                }
-
-                this.importText = text;
-                if (this.$TCT.loadCode1(text)) {
-                    this.showImportModal = false;
-                    this.$globalData.dataVersion++;
-                    alert('Import successful!');
-                } else {
-                    alert('Import failed. Check the console for details.');
-                }
-            };
-            reader.onerror = () => {
-                alert('Error reading uploaded file!');
-            };
-
-            reader.readAsText(file, 'UTF-8');
-        },
-        doImport() {
-            if (this.$TCT.loadCode1(this.importText)) {
-                this.showImportModal = false;
-                this.$globalData.dataVersion++;
-                alert("Import successful!");
-            } else {
-                alert("Import failed. Check the console for details.");
-            }
         }
     }
 });
@@ -385,7 +268,7 @@ registerCode1Component('tct-preview', {
                                 <form name="difficulty_level_selection">
                                 <p></p>
                                 <h3>Please choose your difficulty level:</h3>
-                                <select name="difficulty_level_id" id="difficulty_level_id"> 
+                                <select name="difficulty_level_id" id="difficulty_level_id">
                                     <option value="1">Cakewalk</option>
                                     <option value="2">Very Easy</option>
                                     <option value="3">Easy</option>

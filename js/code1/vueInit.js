@@ -59,6 +59,11 @@ function startAutosave() {
     if (autosaveInterval) clearInterval(autosaveInterval);
     autosaveInterval = setInterval(saveAutosave, 15000);
 }
+function stopAutosave() {
+    if (autosaveInterval) { clearInterval(autosaveInterval); autosaveInterval = null; }
+}
+window.code1StartAutosave = startAutosave;
+window.code1StopAutosave = stopAutosave;
 
 function saveAutosave() {
     const tct = window.$TCT;

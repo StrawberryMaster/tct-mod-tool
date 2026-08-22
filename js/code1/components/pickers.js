@@ -1,32 +1,148 @@
-registerCode1Component('mode-picker', {
-    template: `
-    <div class="flex flex-wrap gap-2">
-        <button v-for="m in modes" :key="m.id"
-            @click="setMode(m.id)"
-            :class="['px-3 py-1 rounded text-sm font-medium transition', $globalData.mode === m.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300']"
-        >
-            {{ m.label }}
-        </button>
-    </div>
-    `,
+registerCode1Component('code1-toolbar', {
     data() {
         return {
-            modes: [
-                { id: 'ELECTION', label: 'Election' },
-                { id: 'CANDIDATE', label: 'Candidates' },
-                { id: 'RUNNING_MATE', label: 'Running Mates' },
-                { id: 'THEME', label: 'Theme' },
-                { id: 'MOD_BOX', label: 'Mod Box' },
-                { id: 'SETTINGS', label: 'Global Params' }
-            ]
+            isMinimized: false,
+            currentTheme: (window.getCurrentTheme && window.getCurrentTheme()) || 'light',
+            localAutosaveEnabled: window.code1_autosaveEnabled,
+            clipboardText: 'Copy to Clipboard',
+            showImportModal: false,
+            importText: ''
         };
     },
+    created() { this.syncThemeState(); },
+    template: `
+    <div class="theme-panel shadow-lg rounded-lg mx-4 mb-4 border">
+        <div class="theme-panel-header p-3 rounded-t-lg">
+            <h3 class="font-semibold text-sm">Code 1 tools</h3>
+            <button @click="isMinimized = !isMinimized" class="text-white/90 hover:text-white transition-colors" :aria-label="isMinimized ? 'Expand toolbar' : 'Minimize toolbar'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" :class="isMinimized ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+        </div>
+        <div v-show="!isMinimized" class="p-4">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1" style="color: var(--app-text)">Template ({{$TCT.templates.length}}):</label>
+                    <select @change="loadTemplate" class="w-full p-2 border rounded-sm text-sm" style="background: var(--muted-surface); border-color: var(--border-color);">
+                        <option value="">-- Select scenario --</option>
+                        <option v-for="t in $TCT.templates" :key="t.pk" :value="t.pk">{{t.fields.display_year || t.fields.year}}</option>
+                    </select>
+                    <p class="text-xs italic mt-1" style="color: var(--utility-text-gray)">Choosing a template overwrites current work.</p>
+                </div>
+                <input ref="code1ImportFile" type="file" accept=".txt,.js,.json,.html,text/plain,application/javascript" class="hidden" @change="fileUploaded($event)">
+                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="openImport">Import Code 1</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="exportCode">Export Code 1</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="copyCode">{{ clipboardText }}</button>
+                </div>
+                <div class="grid gap-2 lg:grid-cols-2">
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="toggleAutosave()">{{localAutosaveEnabled ? "Disable autosave" : "Enable autosave"}}</button>
+                    <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors text-left" @click="toggleThemeMode()">
+                        <span class="block text-[11px] uppercase tracking-wide opacity-80">Theme</span>
+                        <span class="block font-medium leading-tight">{{ getThemeDisplayName(currentTheme) }}</span>
+                    </button>
+                </div>
+                <a href="./index.html" class="theme-control theme-control--primary inline-flex w-full justify-center px-3 py-2 rounded-sm text-sm transition-colors">Code 2 Tool Here</a>
+            </div>
+        </div>
+        <div v-if="showImportModal" class="fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-black/50" @click="showImportModal=false"></div>
+            <div class="absolute inset-0 flex items-center justify-center p-4">
+                <div class="theme-panel p-6 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="background: var(--utility-bg-white)">
+                    <h2 class="text-xl font-bold mb-4" style="color: var(--app-text)">Import Code 1</h2>
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm" style="color: var(--utility-text-gray)">Paste code below, or pick a file to import directly.</p>
+                        <button @click="openImportFilePicker" class="theme-control px-3 py-1 rounded text-sm">Choose file</button>
+                    </div>
+                    <textarea v-model="importText" class="w-full h-64 p-2 border rounded mb-4 font-mono text-sm" style="background: var(--utility-input-bg); color: var(--utility-input-text); border-color: var(--utility-input-border);" placeholder="Paste your Code 1 here..."></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button @click="showImportModal = false" class="theme-control px-4 py-2 rounded">Cancel</button>
+                        <button @click="doImport" class="theme-control theme-control--primary px-4 py-2 rounded">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `,
     methods: {
-        setMode(mode) {
-            this.$globalData.mode = mode;
+        syncThemeState(){ this.currentTheme = (window.getCurrentTheme && window.getCurrentTheme()) || 'light'; },
+        getThemeDisplayName(theme){
+            const names = {'light':'Light','sepia':'Sepia','dark':'Dark','mallard':'Mallard','xp-olive':'Olive','xp-silver':'Silver','xp-zune':'Zune','xp-royale-dark':'Royale Dark'};
+            return names[theme] || 'Light';
+        },
+        toggleThemeMode(){ if(window.toggleTheme) window.toggleTheme(); this.syncThemeState(); },
+        toggleAutosave(){
+            const newState = !window.code1_autosaveEnabled;
+            const newStateStr = newState ? "true" : "false";
+            if (window.TCTDB) {
+                TCTDB.set('settings', 'code1_autosaveEnabled', newStateStr).catch(err=>{ console.warn("Failed to save code1_autosaveEnabled", err); localStorage.setItem("code1_autosaveEnabled", newStateStr); });
+            } else { localStorage.setItem("code1_autosaveEnabled", newStateStr); }
+            if (newState) {
+                if (typeof window.code1StartAutosave === 'function') window.code1StartAutosave();
+                if (typeof window.requestCode1AutosaveDebounced === 'function') window.requestCode1AutosaveDebounced(0);
+            } else {
+                try { if (window.code1StopAutosave) window.code1StopAutosave(); } catch(e){ console.warn(e); }
+            }
+            window.code1_autosaveEnabled = newState;
+            this.localAutosaveEnabled = newState;
+        },
+        async copyCode(){
+            const code = this.$TCT.exportCode1();
+            try { await navigator.clipboard.writeText(code); this.clipboardText="Copied!"; setTimeout(()=> this.clipboardText="Copy to Clipboard",2000); } catch(err){ console.error("Failed to copy:",err); alert("Failed to copy, check console"); }
+        },
+        async loadTemplate(e){
+            const pk = e.target.value;
+            if (!pk) return;
+            if (confirm("This will overwrite your current work. Continue?")) {
+                const success = await this.$TCT.applyTemplate(pk);
+                if (success) { this.$globalData.dataVersion++; this.$globalData.selectedCandidate=0; this.$globalData.selectedElection=0; }
+            }
+            e.target.value="";
+        },
+        exportCode(){
+            const code = this.$TCT.exportCode1();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href=url; a.download='code1.txt'; a.click(); URL.revokeObjectURL(url);
+        },
+        openImport(){ this.showImportModal=true; this.importText=''; },
+        openImportFilePicker(){
+            const input = this.$refs.code1ImportFile;
+            if (input){ input.value=''; input.click(); }
+        },
+        fileUploaded(evt){
+            const file = evt?.target?.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (loadEvt)=>{
+                const text = loadEvt?.target?.result;
+                if (typeof text !== 'string'){ alert('Error reading uploaded file!'); return; }
+                this.importText = text;
+                if (this.$TCT.loadCode1(text)){ this.showImportModal=false; this.$globalData.dataVersion++; alert('Import successful!'); } else { alert('Import failed. Check the console for details.'); }
+            };
+            reader.onerror = ()=> alert('Error reading uploaded file!');
+            reader.readAsText(file,'UTF-8');
+        },
+        doImport(){
+            if (this.$TCT.loadCode1(this.importText)){ this.showImportModal=false; this.$globalData.dataVersion++; alert("Import successful!"); } else { alert("Import failed. Check the console for details."); }
         }
     }
 });
+
+registerCode1Component('code1-mode-picker', {
+    template: `
+    <div class="theme-panel shadow-lg rounded-lg mx-4 mb-4 border">
+        <div class="theme-panel-header p-3 rounded-t-lg"><h3 class="font-semibold text-sm">Sections</h3></div>
+        <div class="p-3 flex flex-col gap-2">
+            <button v-for="m in modes" :key="m.id" @click="setMode(m.id)"
+                :class="['w-full px-3 py-2 rounded-sm text-sm font-medium transition text-left', $globalData.mode === m.id ? 'theme-control--primary' : 'theme-control']"
+            >{{ m.label }}</button>
+        </div>
+    </div>
+    `,
+    data(){ return { modes: [ { id: 'ELECTION', label: 'Election' }, { id: 'CANDIDATE', label: 'Candidates' }, { id: 'RUNNING_MATE', label: 'Running mates' }, { id: 'THEME', label: 'Theme' }, { id: 'MOD_BOX', label: 'Mod box' }, { id: 'SETTINGS', label: 'Global params' } ] }; },
+    methods: { setMode(mode){ this.$globalData.mode = mode; } }
+});
+registerCode1Component('mode-picker', { template: `<code1-mode-picker></code1-mode-picker>` });
 
 registerCode1Component('election-editor', {
     template: `
@@ -62,8 +178,16 @@ registerCode1Component('election-editor', {
                 <textarea v-model="election.fields.summary" rows="5" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Site description (displayed on Campaign Trail Showcase in place of the summary)</label>
+                <label class="block text-sm font-medium text-gray-700">Site description <span class="font-normal text-gray-500">(for Campaign Trail Showcase)</span></label>
                 <textarea v-model="election.fields.site_description" rows="3" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                <div class="mt-2 rounded border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
+                    <template v-if="!election.fields.site_description || !election.fields.site_description.trim()">
+                        Leave this section blank to use the <span class="font-medium">Summary</span> section above on the Campaign Trail Showcase modboxes. In most cases, this can be left blank.
+                    </template>
+                    <template v-else>
+                        This section will be shown on the Campaign Trail Showcase modboxes <span class="font-medium">instead of</span> the summary text. Clear this field to fall back to the summary.
+                    </template>
+                </div>
             </div>
             <div class="flex items-center gap-2">
                 <input id="recommended_reading_enabled" type="checkbox" v-model="election.fields.recommended_reading_enabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
@@ -105,7 +229,7 @@ registerCode1Component('candidate-editor', {
         </div>
 
         <div v-if="visibleCandidates.length === 0" class="text-sm text-gray-500 italic py-4">
-            No candidates defined. Running mates are shown in the Running Mates tab.
+            No candidates defined. Running mates are shown in the Running mates tab.
         </div>
 
         <div class="flex flex-wrap gap-2 mb-4">
@@ -276,7 +400,7 @@ registerCode1Component('running-mate-editor', {
     template: `
     <div class="space-y-4">
         <div class="flex justify-between items-center border-b pb-1">
-            <h3 class="text-lg font-bold">Running Mates</h3>
+            <h3 class="text-lg font-bold">Running mates</h3>
             <button @click="addRunningMate" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">+ Add link</button>
         </div>
 
