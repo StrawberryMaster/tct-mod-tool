@@ -5,13 +5,14 @@
     "fields": {
       "year": 2020,
       "summary": "<p>Joe Biden and Donald Trump face off in a heated 2020 election campaign. Held in the wake of a COVID-19 pandemic and nationwide protests, turnout is expected to be through the roof. Can Joe Biden hold together a large enough coalition of anti-Trump voters to make Trump a one-term President, or will Trump pull of another huge upset after trailing in the polls?</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/2020-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/2020-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/dillon-stepien.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/dillon-stepien.jpg",
       "recommended_reading": "<ul>\n<li><a href=https://www.chicagotribune.com/opinion/editorials/ct-edit-chicago-tribune-biden-endorsement-20200925-lnyxsb5qvrftnjjmj3rnzj33jy-story.html>Our Case For Joe Biden</a></li>\n<li><a href=https://nationalinterest.org/feature/case-trump-166808>The Case For Trump</a></li>\n<li><a href=https://www.npr.org/2020/11/18/935730100/how-biden-won-ramping-up-the-base-and-expanding-margins-in-the-suburbs>How Biden Won: Ramping Up The Base And Expanding Margins In The Suburbs</a></li>\n<li><a href=https://www.prospectmagazine.co.uk/politics/donald-trump-joe-biden-us-election-almost-win-votes-concede>Why Did Trump Almost Win?</a></li>\n<li><a href=https://www.hoover.org/research/no-evidence-voter-fraud-guide-statistical-claims-about-2020-election>No Evidence For Voter Fraud: A Guide To Statistical Claims About The 2020 Election</a></li>\n</ul>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
     }
   },
   {
@@ -20,13 +21,14 @@
     "fields": {
       "year": 2016,
       "summary": "<p>Donald Trump and Hillary Clinton face off in the 2016 election. While he is well-known among the American public, Trump has never served in elected office. Clinton has served as First Lady, Senator, and Secretary of State. Clinton was the presumptive nominee from start to finish, while Trump has shocked the political world.</p><p>How will their campaign play out? Can Trump pull off an upset? Can Clinton continue the legacy of Obama?</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/2016-election-photo-v2.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/2016-election-photo-v2.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/bannon-mook-2016.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/bannon-mook-2016.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Articles</h4>FiveThirtyEight - <a href=\"http://projects.fivethirtyeight.com/2016-swing-the-election/\" target=\"_blank\"> What Would It Take To Turn Blue States Red?</a></br><a href=\"http://thehill.com/blogs/ballot-box/presidential-races/274317-anti-trump-forces-point-to-losing-match-ups-with-clinton\">Anti-Trump forces seize on grim polls for Clinton match-up</a></br><a href=\"http://www.slate.com/blogs/the_slatest/2016/02/24/donald_trump_could_beat_hillary_clinton_in_the_general.html\">Think Hillary Clinton Will Crush Donald Trump in the General Election? Don’t Be So Sure.</a></br><a href=\"http://www.slate.com/blogs/the_slatest/2016/03/01/hillary_clinton_plots_her_general_election_trump_strategy.html\">How Team Clinton Is Planning to Defeat Trump</a></br><a href=\"http://www.vox.com/2016/2/10/10961324/donald-trump-win-november\">Here's Donald Trump's Best Strategy for Winning the White House</a><h4>Books</h4>\nHillary Clinton - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1476751471/amhius20-20\" target=\"_blank\">Hard Choices</a></br>\nHillary Clinton - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0743222253/amhius20-20\" target=\"_blank\">Living History</a></br>\nDonald Trump - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1501137964/amhius20-20\" target=\"_blank\">Crippled America: How to Make America Great Again</a></br>\nDonald Trump - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0399594493/amhius20-20\" target=\"_blank\">The Art of the Deal</a></br>\nGary Johnson - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B008PXW0C0/amhius20-20\" target=\"_blank\">Seven Principles of Good Government</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
     }
   },
   {
@@ -35,14 +37,14 @@
     "fields": {
       "year": 2016,
       "summary": "<p>Hillary Clinton and Donald Trump face off in the 2016 election. Clinton has served as First Lady, Senator, and Secretary of State. Trump has never served in elected office. Clinton was the presumptive nominee from start to finish, while Trump has shocked the political world.</p><p>How will their campaign play out? Can Clinton continue the legacy of Obama? Can Trump pull off an upset?</p><p>(<em>NOTE: scenario created in March 2016, may not reflect subsequent events.</em>)</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/2016-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/2016-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/mook-lewandowski-2016.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/mook-lewandowski-2016.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Articles</h4>FiveThirtyEight - <a href=\"http://projects.fivethirtyeight.com/2016-swing-the-election/\" target=\"_blank\"> What Would It Take To Turn Blue States Red?</a></br><a href=\"http://thehill.com/blogs/ballot-box/presidential-races/274317-anti-trump-forces-point-to-losing-match-ups-with-clinton\">Anti-Trump forces seize on grim polls for Clinton match-up</a></br><a href=\"http://www.slate.com/blogs/the_slatest/2016/02/24/donald_trump_could_beat_hillary_clinton_in_the_general.html\">Think Hillary Clinton Will Crush Donald Trump in the General Election? Don’t Be So Sure.</a></br><a href=\"http://www.slate.com/blogs/the_slatest/2016/03/01/hillary_clinton_plots_her_general_election_trump_strategy.html\">How Team Clinton Is Planning to Defeat Trump</a></br><a href=\"http://www.vox.com/2016/2/10/10961324/donald-trump-win-november\">Here's Donald Trump's Best Strategy for Winning the White House</a><h4>Books</h4>\rHillary Clinton - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1476751471/amhius20-20\" target=\"_blank\">Hard Choices</a></br>\rHillary Clinton - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0743222253/amhius20-20\" target=\"_blank\">Living History</a></br>\rDonald Trump - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1501137964/amhius20-20\" target=\"_blank\">Crippled America: How to Make America Great Again</a></br>\rDonald Trump - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0399594493/amhius20-20\" target=\"_blank\">The Art of the Deal</a></br>\rGary Johnson - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B008PXW0C0/amhius20-20\" target=\"_blank\">Seven Principles of Good Government</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-       "creator":"Dan Bryan"
-
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": false
     }
   },
   {
@@ -51,13 +53,44 @@
     "fields": {
       "year": 2012,
       "summary": "<p>Barack Obama attempts to win reelection while Mitt Romney hopes to bring a more conservative vision to the White House. The poor economy and Obama's signature health care initiatives loom large in the 2012 election.</p> <ul><li>Obama will attempt to make the case that his stewardship prevented economic disaster after the 2008 financial crisis.</li><li>Romney will try to frame his business and executive experience as a contrast to the background and results of Obama.</li></ul>",
-      "image_url": "https://www.jetsimon.com/public/static/images/2012-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/2012-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/carville-rove.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/carville-rove.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Political News and Analysis</h4> <a href=\"http://www.realclearpolitics.com/\" target=\"_blank\">Real Clear Politics</a> -- <a href=\"http://www.theatlantic.com/\" target=\"_blank\">The Atlantic</a> -- <a href=\"http://www.politico.com/\" target=\"_blank\">Politico</a> -- <a href=\"http://www.huffingtonpost.com/\" target=\"_blank\">Huffington Post</a> -- <a href=\"http://www.foxnews.com/politics/index.html\" target=\"_blank\">Fox News Politics</a> <h4>Books by the Candidates</h4>Barack Obama - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1400082773/amhius20-20\" target=\"_blank\">Dreams from My Father: A Story of Race and Inheritance</a><br>Barack Obama - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0307455874/amhius20-20\" target=\"_blank\">The Audacity of Hope: Thoughts on Reclaiming the American Dream (Vintage)</a><br> Mitt Romney - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0312671733/amhius20-20\" target=\"_blank\">No Apology: Believe in America</a><br> Gary Johnson - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B008PXW0C0/amhius20-20\" target=\"_blank\">Seven Principles of Good Government</a><h4>Politics in 2012</h4> Edward Klein - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1596987855/amhius20-20\" target=\"_blank\">The Amateur</a><br>Michael Kranish & Scott Helman - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0062123289/amhius20-20\" target=\"_blank\">The Real Romney</a><br>Lawrence Lessig - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0446576433/amhius20-20\" target=\"_blank\">Republic, Lost: How Money Corrupts Congress--and a Plan to Stop It</a><br>Ron Suskind - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0061429252/amhius20-20\" target=\"_blank\">Confidence Men: Wall Street, Washington, and the Education of a President</a><h4>The Financial Crisis</h4> Johan Norberg - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1935308130/amhius20-20\" target=\"_blank\">Financial Fiasco: How America's Infatuation with Home Ownership and Easy Money Created the Economic Crisis</a><br>John Bellamy Foster & Fred Magdoff - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1583671846/amhius20-20\" target=\"_blank\">The Great Financial Crisis: Causes and Consequences</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 7,
+    "fields": {
+      "year": 2008,
+      "summary": "<p>As the United States heads into the 2008 election, the ongoing war in Iraq continues to divide the public.</p><ul><li>Barack Obama is a Senator from Illinois and is leading with a message of hope and change.</li><li>John McCain, Senator from Arizona and Vietnam War hero, takes the Republican mantle from the unpopular George W. Bush.</li></ul><p>As an economic crash turns into a deepening recession, many Americans are anxious for a departure from the status quo.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/2008.jpeg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/2008advisors.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">The 2008 Election and the Obama White House</h4><p>John Heilemann and Mark Halperin - <a href=\"https://www.amazon.com/Game-Change-Clintons-McCain-Lifetime/dp/0061733636/\" target=\"_blank\">Game Change: Obama and the Clintons, McCain and Palin, and the Race of a Lifetime</a><br>Michael Tesler and David O. Sears - <a href=\"https://press.uchicago.edu/ucp/books/book/chicago/O/bo10443910.html/\" target=\"_blank\">Obama’s Race: The 2008 Election and the Dream of a Post-Racial America</a><br>Ron Suskind - <a href=\"https://www.amazon.com/Confidence-Men-Washington-Education-President/dp/0061429252/\" target=\"_blank\">Confidence Men: Wall Street, Washington, and the Education of a President</a><br></p><h4>By the Candidates</h4><p>Barack Obama - <a href=\"&quot;https://www.amazon.com/Dreams-My-Father-Story-Inheritance/dp/1400082773//&quot;/\" target=\"&quot;_blank&quot;\">Dreams from My Father: A Story of Race and Inheritance</a><br>John McCain and Mark Salter - <a href=\"&quot;https://www.amazon.com/Restless-Wave-Causes-Fights-Appreciations/dp/1501178008/&quot;/\" target=\"&quot;_blank&quot;\">The Restless Wave: Good Times, Just Causes, Great Fights, and Other Appreciations</a></p>",
+      "has_visits": 1,
+      "creator": "CTA and Verbluffen",
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2008-no-majority.jpg"
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 6,
+    "fields": {
+      "year": 2004,
+      "summary": "<p>After a close win in 2000, President George Bush has pushed out several controversial policies during his first term. However, the United States is still reeling from 9/11, the first attacks on American soil in decades. All of this means Bush’s reelection will be close.</p><ul><li>George Bush aims to drum up support for the War on Terror, and motivate his evangelical base.</li><li>John Kerry aims to emphasize his popular domestic policy, while finessing the issue of terrorism.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/2004.jpg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/advisors-2004.jpg",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>Articles</h4><a href='https://news.gallup.com/poll/14275/moral-values-important-2004-exit-polls.aspx/' target='_blank'>Moral Values Important in the 2004 Exit Polls</a></br><a href='https://blog.smu.edu/2004-election/flip-flop//'> Flip-Flop</a></br><a href='https://www.politico.com/news/magazine/2020/12/19/2004-kerry-election-fraud-2020-448604/'>What Happened to the Democrats Who Never Accepted Bush’s Election</a></br><a href='https://www.cnn.com/2004/ALLPOLITICS/08/21/edwards.swiftboat/index.html/'>Bush adviser quits after appearing in swift boat ad</a></br><h4>Books</h4>Evan Thomas & Newsweek staff - <a href='https://www.amazon.com/Election-2004-Bush-Expect-Future/dp/1586482939/' target='_blank'>Election 2004: How Bush Won and What You Can Expect in the Future</a></br>Larry Sabato - <a href='https://www.amazon.com/Divided-States-America-Politics-Presidential/dp/0321365836/' target='_blank'>Divided States of America: The Slash And Burn Politics of the 2004 Presidential Election</a></br>Michael Kranish,  Brian Mooney, and Nina Easton - <a href='https://www.amazon.com/John-F-Kerry-Biography-Reporters/dp/0786268158/' target='_blank'>John F. Kerry: The Complete Biography By The Boston Globe Reporters Who Know Him Best</a></br>Jean Edward Smith - <a href='https://www.amazon.com/Bush-Jean-Edward-Smith/dp/1476741204/' target='_blank'>Bush</a></br></br><a href='https://avalon.law.yale.edu/sept11/911report.pdf/' target='_blank'>The 9/11 Commission Report</a></br>",
+      "has_visits": 1,
+      "creator": "Retsassin and AMETSFAN",
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg"
     }
   },
   {
@@ -66,13 +99,30 @@
     "fields": {
       "year": 2000,
       "summary": "<p>George W. Bush attempts to chart a new direction for the U.S., while Al Gore tries to win election as the sitting Vice President. Ralph Nader is a leftist third-party candidate. The economy has been booming, until quite recently, but President Clinton has been through an embarrassing scandal.</p><p>Candidates will debate what to do with a $200 billion budget surplus, among other things. In the real world, Florida was decided by 537 votes after 36 days and a Supreme Court decision.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/2000-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/2000-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/rove-brazile.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/rove-brazile.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">The Florida Recount / 2000 Election</h4><a href=\"http://www.amazon.com/exec/obidos/ASIN/B000RH0DVM/amhius20-20\" target=”_blank”>Jeffrey Toobin - Too Close to Call: The Thirty-Six-Day Battle to Decide the 2000 Election</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/B00EMLDHFI/amhius20-20\" target=”_blank”>Andrew E. Busch & James W. Ceaser - The Perfect Tie: The True Story of the 2000 Presidential Election</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/032110028X/amhius20-20\" target=”_blank”>Larry Sabato - Overtime! The Election 2000 Thriller</a><h4>Books by the Candidates</h4><a href=\"http://www.amazon.com/exec/obidos/ASIN/B000C4SV2I/amhius20-20\" target=”_blank”>George W. Bush - A Charge to Keep: My Journey to the White House</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/0452269350/amhius20-20\" target=”_blank”>Al Gore - Earth in the Balance</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/B003YFIYWY/amhius20-20\" target=”_blank”>The Ralph Nader Reader</a><h4>Links</h4><a href=\"http://www.digitalhistory.uh.edu/disp_textbook.cfm?smtID=2&psid=3377\" target=”_blank”>Digital History - The Disputed Election of 2000</a></br><a href=\"http://www.pbs.org/wnet/supremecourt/future/landmark_bush.html\" target=”_blank”><em>Bush v. Gore</em></a></br><a href=\"http://www.vanityfair.com/news/2004/10/florida-election-2000\" target=”_blank”>The Path to Florida</a></br><a href=\"http://www.historyplace.com/speeches/gore-concedes.htm\" target=”_blank”>Al Gore Concedes the 2000 Election</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 22,
+    "fields": {
+      "year": 1996,
+      "summary": "<p>The aftershocks of the 1994 Republican Revolution are still reverberating in the 1996 election. With a booming economy, government spending and deficit reduction will be top issues, as well as the conservative “Family Values” culture wars.</p> <ul><li>Bill Clinton attempts to mount a comeback to win a second term by pivoting to the center.</li><li>Bob Dole seeks to finally claim the White House after a lifetime of public service.</li> <li>Ross Perot hopes to learn from the mistakes of his last third party bid with the new Reform Party.</ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1996.jpeg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1996advisors.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Articles</h4>The New York Times - <a href=\"https://www.nytimes.com/1996/12/15/magazine/margins-of-error.html/\" target=\"_blank\">Margins of Error</a></br><a href=\"https://ropercenter.cornell.edu/sites/default/files/2018-07/82045.pdf\">Why Most Polls Overestimated Clinton's Margin</a></br><a href=\"https://www.motherjones.com/politics/1996/01/dark-side-what-you-need-know-about-bob-dole/\">The Dark Side: What You Need to Know About Bob Dole</a></br><a href=\"https://www.nationalreview.com/2017/07/chinese-illegally-donated-bill-clinton-reelection-campaign-media-downplayed/\">Not All Foreign-Influence Scandals Are Created Equal</a></br><a href=\"https://www.aei.org/articles/government-shutdowns-and-public-opinion-revisiting-1995-and-2013/\">Government Shutdowns and Public Opinion</a><h4>Books</h4>\nSteve Kornacki - <a href=\"https://www.amazon.com/Red-Blue-1990s-Political-Tribalism/dp/0062438980\" target=\"_blank\">The Red and the Blue: The 1990s and the Birth of Political Tribalism</a></br>\nBob Woodward - <a href=\"https://www.amazon.com/Choice-How-Bill-Clinton-Won/dp/074328514X\" target=\"_blank\">The Choice: How Bill Clinton Won</a></br>\n Michael Nelson - <a href=\"https://www.amazon.com/Clintons-Elections-1992-Birth-Governance/dp/0700629173\" target=\"_blank\">Clinton's Elections: 1992, 1996, and the Birth of a New Era of Governance</a></br>\n Roger Morris - <a href=\"https://www.amazon.com/Partners-Power-Clintons-Their-America/dp/0895263025\" target=\"_blank\">Partners in Power: The Clintons and Their America</a></br>\nBob Dole & Jack Kemp - <a href=\"https://www.amazon.com/Trusting-People-Robert-Dole/dp/0061011533\" target=\"_blank\">Trusting the People</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1996deadlock.jpeg",
+      "creator": "CTA & Spar-kie with coding help from Mango",
+      "display_year": "1996"
     }
   },
   {
@@ -81,13 +131,48 @@
     "fields": {
       "year": 1988,
       "summary": "<p>After eight years of Ronald Reagan, the nation seems headed for a new direction in government.</p><ul><li>George Bush is Reagan's Vice President, but trails his challenger by several points.</li><li>Michael Dukakis, Governor of Massachusetts, is a new figure on the national scene. Can he keep the good feelings going through election day?</li></ul><p>Bush must find some way to shake up the race. He could emphasize the strong economy, or attack Dukakis on a number of fronts.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1988-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1988-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/atwater-estrich-1988.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/atwater-estrich-1988.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Books and Links</h4>Peter Goldman - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B012HU7SZA/amhius20-20\" target=\"_blank\">The Quest for the Presidency, 1988</a></br>L.A. Times, November 10, 1988 - <a href=\"http://articles.latimes.com/1988-11-10/news/mn-299_1_dukakis-lost-reelection\" target=\"_blank\">How Presidential Race Was Won-and Lost : Michael S. Dukakis</a></br>L.A. Times, November 10, 1988 - <a href=\"http://articles.latimes.com/1988-11-10/news/mn-302_1_george-bush\" target=\"_blank\">How Presidential Race Was Won--and Lost : George Bush</a></br><a href=\"http://www.usnews.com/news/articles/2008/01/17/the-photo-op-that-tanked\" target=\"_blank\">Michael Dukakis: The Photo Op That Tanked</a>",
       "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 17,
+    "fields": {
+      "year": 1984,
+      "summary": "<p>At the outset of the 1984 campaign, the American people don’t seem ready for a change in leadership. President Ronald Reagan benefits from a sense of national prosperity after a rocky start to his term, while Democratic challenger Walter Mondale emerges weakened from a contested Democratic primary after years of carrying water for the unpopular Jimmy Carter.</p><p>The ballooning deficit, national defense, and the incumbent’s age are widely acknowledged and controversial issues, but enough Americans feel better than they did four years ago for Reagan to hold the advantage.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1984.png",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1984advisors.png",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>The Reagan Presidency and the 1984 Campaign</h4><p>Jane Mayer and Doyle McManus - <a href='https://archive.org/details/landslideunmakin0000maye_p8r6/page/n5/mode/2up' target='_blank'>Landslide: the Unmaking of the President, 1984-1988</a><br>Jules Witcover and Jack Germond - <a href='https://archive.org/details/wakeuswhenitsove00germ/page/n5/mode/2up' target='_blank'>Wake Us When It's Over: Presidential Politics of 1984</a><br>Peter Goldman and Tony Fuller - <a href='https://archive.org/details/questforpreside00gold/page/n5/mode/2up' target='_blank'>The Quest for the Presidency 1984</a><br><a href='https://en.wikisource.org/wiki/Psychological_Operations_in_Guerrilla_Warfare' target='_blank'>Psychological Operations in Guerilla Warfare</a></p><h4>By the Candidates</h4><p>Walter Mondale &amp; David Hage - <a href='https://www.upress.umn.edu/9780816691661/the-good-fight/' target='_blank'>The Good Fight: A Life in Liberal Politics</a><br>Ronald Reagan - <a href='https://www.reaganfoundation.org/store/products/an-american-life-the-autobiography-by-ronald-reagan' target='_blank'>An American Life: The Autobiography</a></p>",
+      "has_visits": 1,
       "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "creator": "GREELEY",
+      "display_year": "1984",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 28,
+    "fields": {
+      "year": 1980,
+      "summary": "<p>The 1980 campaign is defined by national malaise. An economic recession and hostage crisis in Iran has lurched the nation rightward and split the Democratic Party.</p><ul><li>Ronald Reagan enters the race as the tentative frontrunner, with his sunny optimism and orthodox conservatism growing increasingly palatable to an anxious country.</p><ul><li>Jimmy Carter faces a tough fight for re-election after a dismal four years.</p><ul><li>Liberal Republican John Anderson aims to pick off disaffected moderates in both parties.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1980/dfRVroI.jpeg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1980/eprph5t.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1980 Campaign</h4>Rick Perlstein - <a href=\"https://www.amazon.com/Reaganland-Americas-Right-Turn-1976-1980/dp/1476793050\" target=\"_blank\">Reaganland</a><br>Jack Germond & Jules Witcover - <a href=\"https://archive.org/details/bluesmokemirrors00germ/page/n7/mode/2up\" target=\"_blank\">Blue Smoke and Mirrors</a><br>Andrew Busch - <a href=\"https://archive.org/details/reagansvictorypr0000busc\" target=\"_blank\">Reagan's Victory</a><br>Elizabeth Drew - <a href=\"https://www.amazon.com/Portrait-Election-1980-Presidential-Campaign/dp/0671430343\" target=\"_blank\">Portrait of an Election</a><br>NBC Nightly News Campaign 1980 - <a href=\"https://youtu.be/kgwjOM3gYWA\" target=\"_blank\">July </a><a href=\"https://youtu.be/RWPNHT1ecvE\" target=\"_blank\"> August </a><a href=\"https://youtu.be/VTOIA_zLHsY\" target=\"_blank\"> September </a></a><a href=\"https://youtu.be/hU5OYQkUFvs\" target=\"_blank\"> October </a><br><h4>Ronald Reagan</h4>Lou Cannon - <a href=\"https://www.amazon.com/Ronald-Reagan-Politics-Lou-Cannon/dp/1586482637\" target=\"_blank\">Ronald Reagan: A Life in Politics</a><br>Max Boot - <a href=\"https://www.amazon.com/Reagan-Life-Legend-Max-Boot/dp/0871409445\" target=\"_blank\">Reagan: His Life and Legend</a><br><h4>Jimmy Carter</h4>Jonathan Alter - <a href=\"https://www.amazon.com/His-Very-Best-Jimmy-Carter/dp/1501125486\" target=\"_blank\" >His Very Best: Jimmy Carter, A Life</a><br>Kai Bird - <a href=\"https://www.amazon.com/Outlier-Unfinished-Presidency-Jimmy-Carter/dp/0451495233\" target=\"_blank\" >The Outlier</a><h4>John Anderson</h4>Frank Smallwood - <a href=\"https://archive.org/details/othercandidatest00smal\" target=\"_blank\">The Other Candidates</a><br>Mark Bisnow - <a href=\"https://archive.org/details/diaryofdarkhorse0000bisn/page/n5/mode/2up\" target=\"_blank\">Diary of a Dark Horse</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1980/eGqF6QQ.png",
+      "creator": "CTA",
+      "display_year": "1980",
+      "is_historical": true
     }
   },
   {
@@ -96,13 +181,30 @@
     "fields": {
       "year": 1976,
       "summary": "<p>President Gerald Ford attempts to win election to office after replacing Richard Nixon in 1974, and narrowly defeating Ronald Reagan for the Republican nomination. Jimmy Carter is a new face on the national scene, having served as Governor of Georgia. He will make the case that the nation needs new blood after the scandals of the Nixon era. Both candidates are seen as moderate by the standards of their party. The battleground states are in the West, the Midwest, and the Northeast.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1976-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1976-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/jordan-cheney-1976.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/jordan-cheney-1976.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1976 Election Books and Biographies</h4><a href=\"http://www.amazon.com/exec/obidos/ASIN/0670454613/amhius20-20\" target=\"_blank\">Jules Witcover - Marathon: The Pursuit of the Presidency, 1972-1976</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/1590843630/amhius20-20\" target=\"_blank\">The Election of 1976 and the Administration of Jimmy Carter</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/B007V955ZS/amhius20-20\" target=\"_blank\">Craig Shirley - Reagan's Revolution: The Untold Story of the Campaign That Started It All</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/B001KBY7YI/amhius20-20\" target=\"_blank\">Douglas Brinkley - Gerald R. Ford</a></br><a href=\"http://www.amazon.com/exec/obidos/ASIN/0805089578/amhius20-20\" target=\"_blank\">Julian E. Zelizer - Jimmy Carter</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/2012-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 19,
+    "fields": {
+      "year": 1972,
+      "display_year": "1972",
+      "summary": "<p>The 1972 election begins with President Nixon leading in the polls. While he currently has a strong advantage, Richard Nixon has faced criticism over his divisive political style. George McGovern, a liberal Democrat, is widely expected to lose in a landslide. McGovern not only has to heal the wounds of the nation, but also within his party. Some hot issues are wage and price controls, Vietnam, busing, and arms control.</p><p>In the real world, the break-in at the Watergate Hotel in June 1972 led to the resignation of Nixon in 1974.",
+      "image_url": "https://thecampaigntrail.net/static/images/1972.jpeg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1972advisors.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Books</h4><a href=\"https://www.amazon.com/Loathing-Campaign-Harper-Perennial-Classics/dp/0007204485\" target=”_blank”>Hunter S. Thompson - Fear and Loathing on the Campaign Trail '72</a></br><a href=\"https://www.amazon.com/Nixonland-Rise-President-Fracturing-America/dp/074324303X\" target=”_blank”>Rick Perlstein - Nixonland</a></br><a href=\"https://www.amazon.com/Boys-Bus-Timothy-Crouse/dp/0812968204\" target=”_blank”>Timothy Crouse - The Boys on the Bus</a></br><a href=\"https://www.amazon.com/Eighteen-Day-Running-Mate-McGovern-Eagleton/dp/0300176295\" target=”_blank”>Joshua Glasser - The Eighteen-Day Running Mate: McGovern, Eagleton, and a Campaign in Crisis</a></br><a href=\"https://www.amazon.com/Emerging-Republican-Majority-Kevin-Phillips/dp/0870000586\" target=”_blank”>Kevin Phillips - The Emerging Republican Majority</a></br><a href=\"https://www.amazon.com/Right-start-chronicle-McGovern-campaign/dp/0812903722\" target=”_blank”>Gary Hart - Right from the Start: A Chronicle of the McGovern Campaign</a></br><a href=\"https://www.amazon.com/Nixon/dp/B0D9LT6NX7\" target=”_blank”>Stephen Ambrose - Nixon</a><h4>Articles</h4><a href=\"https://www.npr.org/2012/08/04/157670201/the-thomas-eagleton-affair-haunts-candidates-today/\" target=”_blank”>The Thomas Eagleton Affair Haunts Candidates Today</a></br><a href=\"https://www.washingtonpost.com/history/2022/10/29/nixon-mcgovern-1972-young-voters/\" target=”_blank”><em>Americans under 21 first voted 50 years ago. It didn’t go as expected.</em></a></br><a href=\"https://www.politico.com/news/magazine/2024/09/01/richard-nixon-kamala-harris-economy-00176374/\" target=”_blank”>When Richard Nixon Wrecked the Economy</a></br><a href=\"https://nsarchive2.gwu.edu/NSAEBB/NSAEBB264/\" target=”_blank”>Audio of Nixon-Kissinger Tapes - The National Security Archive</a>",
+      "has_visits": 1,
+      "creator": "CTA & Atom_Heart_Mother with coding help from Mango and Obummer",
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1972deadlock.jpeg"
     }
   },
   {
@@ -111,13 +213,30 @@
     "fields": {
       "year": 1968,
       "summary": "<p>The 1968 election enters its final stretch in chaos. Riots are a frequent occurrence as the Vietnam War divides the nation, and Johnson's \"Great Society\" is under full attack.</p> <ul><li>Nixon attempts to present himself as a law-and-order candidate who will bear the standard of Republicanism.</li><li>Humphrey tries to hold the line for liberalism in a year of social chaos and racial agitation.</li> <li>Wallace hopes to bring an end to Civil Rights and desegregation.</ul>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1968-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1968-election-photo.jpg",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/haldeman-mondale.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/haldeman-mondale.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4><a href=\"http://uselectionatlas.org/RESULTS/national.php?year=1968\" target=\"_blank\">Final 1968 Results</a><br>Theodore White - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0061900648/amhius20-20\" target=\"_blank\">The Making of the President 1968 (Landmark Political)</a><br>Rick Perlstein - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B003E7ET0S/amhius20-20\" target=\"_blank\">Nixonland: The Rise of a President and the Fracturing of America</a><br><h4>By the Candidates</h4>Richard Nixon - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0448143747/amhius20-20\" target=\"_blank\">The Memoirs of Richard Nixon</a><br>Hubert Humphrey - <a href=\"http://www.youtube.com/watch?v=8nwIdIUVFm4\" target=\"_blank\">1948 Civil Rights speech</a><br>George Wallace - <a href=\"https://www.youtube.com/watch?v=DcNv4aQI_QQ\" target=\"_blank\">1967 speech on dissent and intellectualism</a><br><h4>The Vietnam War</h4> Stanley Karnow - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0140265473/amhius20-20\" target=\"_blank\" >Vietnam: A History</a><h4>Misceallany</h4><a href=\"http://www.jahrbuch2001.studien-von-zeitfragen.net/Weltmacht/Secret_of__68/secret_of__68.html\" target=\"_blank\">Secret of '68</a><br><a href=\"http://www.propublica.org/article/living-apart-how-the-government-betrayed-a-landmark-civil-rights-law\" target=\"_blank\">Living Apart: How the Government Betrayed a Landmark Civil Rights Law</a><br><a href=\"http://www.nytimes.com/2012/09/05/business/the-gops-journey-from-the-liberal-days-of-nixon.html\" target=\"_blank\">The G.O.P.'s Journey From the Liberal Days of Nixon</a><br><a href=\"http://www.umich.edu/~lawrace/votetour10.htm\" target=\"_blank\">George Wallace and the 1968 Election</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1968-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1968-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 31,
+    "fields": {
+      "year": 1964,
+      "summary": "<p>Less than one year after the assassination of John F. Kennedy, America prepares to head to the polls. President Lyndon B. Johnson enters 1964 with the wind on his back, and well into the process of creating his \"Great Society.\" From civil rights to disorder in the streets and Vietnam, LBJ has had to juggle enough for two terms in one year. Now, he must stem the momentum of conservative senator Barry Goldwater, who has overrun the Republican Party.\n</p><p>President Johnson is expected to beat Senator Goldwater in a landslide of historic proportions.\n</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1964/GGyYbBz.png",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1964/rvAUDCf.png",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Campaign 1964</h4>Rick Perlstein - <a href=\"https://a.co/d/0g1SQy35\" target=\"_blank\">Before the Storm</a><br>J. William Middendorf II - <a href=\"https://a.co/d/0ag6wsid\" target=\"_blank\">A Glorious Disaster</a><br>Nancy Beck Young - <a href=\"https://a.co/d/07wSqYSY\" target=\"_blank\">Two Suns of the Southwest</a></a><br>Robert Mann - <a href=\"https://a.co/d/04J3bsYd\" target=\"_blank\">Daisy Petals and Mushroom Clouds: The Ad That Changed American Politics</a><br>Theodore H. White - <a href=\"https://a.co/d/03qjneTO\" target=\"_blank\">The Making of the President 1964</a><br><h4>Lyndon B. Johnson</h4>Michael Beschloss - <a href=\"https://a.co/d/0as1xw7A\" target=\"_blank\">Taking Charge: The Johnson White House Tapes 1963-1964</a><br>Robert Caro - <a href=\"https://a.co/d/0fQ1izk1\" target=\"_blank\">Passage of Power</a><br><h4>Barry Goldwater</h4>Lee Edwards - <a href=\"https://a.co/d/0fitwnxS\" target=\"_blank\" >Goldwater: The Man Who Made A Revolution</a><br>Rob Wood & Dean Smith - <a href=\"https://a.co/d/0f4AX0cb\" target=\"_blank\" >Barry Goldwater: The Biography Of A Conservative</a><h4>Other Resources</h4>Arizona State University - <a href=\"https://prism.lib.asu.edu/collections/76351\" target=\"_blank\">Barry Goldwater Speeches</a><br>Goldwater64 - <a href=\"https://goldwater64.omeka.net/\" target=\"_blank\">Goldwater 1964 Papers</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1964/deadlock.jpg",
+      "creator": "Neo",
+      "display_year": "1964"
     }
   },
   {
@@ -125,14 +244,16 @@
     "pk": 69,
     "fields": {
       "year": 1964,
-      "summary": "America in 1964 stands unsettled, memories of the beloved late John F. Kennedy still prominent in the nation's memory. As the nation recovers from the shock of November 1963, the 1964 campaign is just beginning, with questions swirling around America’s course in Vietnam, Social Security, and Civil Rights, among others.<li>Lyndon B. Johnson aims to maintain his large lead in the polls, defending his policies while keeping both integrationist and segregationist voters of the Democratic Party on board.</li><li>Barry Goldwater hopes to make up ground quickly, reuniting his party behind his conservative vision after a contentious primary, as well as flipping the South for the first time since Reconstruction.</li>",
-      "image_url": "https://i.imgur.com/zHVrIgV.png",
+      "summary": "<small>America in 1964 stands unsettled, memories of the beloved late John F. Kennedy still prominent in the nation's memory. As the nation recovers from the shock of November 1963, the 1964 campaign is just beginning, with questions swirling around America’s course in Vietnam, Social Security, and Civil Rights, among others.<ul><li>Lyndon B. Johnson aims to maintain his large lead in the polls, defending his policies while keeping both integrationist and segregationist voters of the Democratic Party on board.</li><li>Barry Goldwater hopes to make up ground quickly, reuniting his party behind his conservative vision after a contentious primary, as well as flipping the South for the first time since Reconstruction.</li></ul></small><p>(<em>NOTE: scenario created in March 2021, may not reflect subsequent modding developments.</em>)</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1964.png",
       "winning_electoral_vote_number": 270,
-      "advisor_url": "https://i.imgur.com/RsnpYGz.png",
+      "advisor_url": "https://thecampaigntrail.net/static/images/1964Advisors.png",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4><a href=\"http://uselectionatlas.org/RESULTS/national.php?year=1968\" target=\"_blank\">Final 1968 Results</a><br>Theodore White - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0061900648/amhius20-20\" target=\"_blank\">The Making of the President 1968 (Landmark Political)</a><br>Rick Perlstein - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B003E7ET0S/amhius20-20\" target=\"_blank\">Nixonland: The Rise of a President and the Fracturing of America</a><br><h4>By the Candidates</h4>Richard Nixon - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0448143747/amhius20-20\" target=\"_blank\">The Memoirs of Richard Nixon</a><br>Hubert Humphrey - <a href=\"http://www.youtube.com/watch?v=8nwIdIUVFm4\" target=\"_blank\">1948 Civil Rights speech</a><br>George Wallace - <a href=\"https://www.youtube.com/watch?v=DcNv4aQI_QQ\" target=\"_blank\">1967 speech on dissent and intellectualism</a><br><h4>The Vietnam War</h4> Stanley Karnow - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0140265473/amhius20-20\" target=\"_blank\" >Vietnam: A History</a><h4>Misceallany</h4><a href=\"http://www.jahrbuch2001.studien-von-zeitfragen.net/Weltmacht/Secret_of__68/secret_of__68.html\" target=\"_blank\">Secret of '68</a><br><a href=\"http://www.propublica.org/article/living-apart-how-the-government-betrayed-a-landmark-civil-rights-law\" target=\"_blank\">Living Apart: How the Government Betrayed a Landmark Civil Rights Law</a><br><a href=\"http://www.nytimes.com/2012/09/05/business/the-gops-journey-from-the-liberal-days-of-nixon.html\" target=\"_blank\">The G.O.P.'s Journey From the Liberal Days of Nixon</a><br><a href=\"http://www.umich.edu/~lawrace/votetour10.htm\" target=\"_blank\">George Wallace and the 1968 Election</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1968-no-majority.jpg",
-      "creator":"T3CHOX"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1968-no-majority.jpg",
+      "display_year": "1964a",
+      "creator": "Tex",
+      "is_historical": false
     }
   },
   {
@@ -141,13 +262,30 @@
     "fields": {
       "year": 1960,
       "summary": "<p>After eight years of Dwight Eisenhower, two youthful candidates compete to be his successor. Kennedy is a Senator with a moderate record, a telegenic face, and high-minded rhetoric. Nixon is the sitting Vice President with a strong Cold War record, moderate economic views, and potential likeability problems. Nixon begins the campaign as the slight favorite, but every region of the country could be competitive. Key issues are the Cold War, civil rights, and health care.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1960-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1960-election-photo.jpg",
       "winning_electoral_vote_number": 269,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/kennedy-haldeman-1960.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/kennedy-haldeman-1960.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1960 Election Books and Links</h4>David Pietrusza - <a href=\"http://www.amazon.com/exec/obidos/ASIN/1402777469/amhius20-20\" target=\"_blank\">1960--LBJ vs. JFK vs. Nixon: The Epic Campaign That Forged Three Presidencies</a></br>Theodore White - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0061900605/amhius20-20\" target=\"_blank\">The Making of the President 1960</a></br>W. J. Rorabaugh - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0700618872/amhius20-20\" target=\"_blank\">The Real Making of the President: Kennedy, Nixon, and the 1960 Election</a></br><a href=\"http://www.davidpietrusza.com/1960-cast-of-characters.html\" target=\"_blank\">1960 Cast of Characters</a></br><a href=\"https://www.youtube.com/watch?v=gbrcRKqLSRw\" target=\"_blank\">First Kennedy-Nixon Debate (video)</a></br><a href=\"https://www.youtube.com/watch?v=_CtSW-HQlxQ\" target=\"_blank\">The Making of the President 1960 (video documentary, 1963)</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1960-no-majority-photo.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1960-no-majority-photo.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 18,
+    "fields": {
+      "year": 1956,
+      "summary": "<p>This 1956 election can best be defined by its lack of urgency. The war in Korea has come to a swift end, as inflation has cooled significantly from its highs 5 years ago. <ul><li>Despite his lofty lead, President Eisenhower is dealing with concerns regarding his age and fitness, as well as unfolding crises abroad.</li><li>Governor Stevenson is an energetic campaigner and a favorite of his party's base, although he is well aware victory is out of the question.</li></ul></p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1956.png",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1956advisors.png",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1956 Election Books and Links</h4>William I. Hitchcock - <a href=\"https://www.amazon.com/Age-Eisenhower-America-World-1950s/dp/1439175667\" target=\"_blank\">The Age of Eisenhower</a><br>John Barlow Martin - <a href=\"https://www.amazon.com/Adlai-Stevenson-World-Life/dp/0385121792\" target=\"_blank\">Adlai Stevenson and the World</a><br>David Halberstam - <a href=\"https://www.amazon.com/Fifties-David-Halberstam/dp/0449909336\" target=\"_blank\">The Fifties</a><br>Fredrik Logevall - <a href=\"https://www.amazon.com/JFK-Coming-American-Century-1917-1956/dp/0812997131\" target=\"_blank\">JFK</a><br><a href=\"https://www.presidency.ucsb.edu/documents/republican-party-platform-1956\" target=\"_blank\">The Republican Party Platform of 1956</a><br><a href=\"https://www.presidency.ucsb.edu/documents/address-accepting-the-presidential-nomination-the-democratic-national-convention-chicago\" target=\"_blank\">Adlai Stevenson's 1956 Acceptance Speech</a><br><a href=\"https://www.politico.com/magazine/story/2017/05/14/when-jfk-won-by-losing-215115/\" target=\"_blank\">When JFK Won by Losing </a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1956nomajority",
+      "creator": "Mango",
+      "display_year": "1956"
     }
   },
   {
@@ -156,13 +294,30 @@
     "fields": {
       "year": 1948,
       "summary": "<p>The 1948 election begins with President Truman trailing badly in the polls. Thomas Dewey, loser in 1944, is widely expected to redeem himself this time around. Truman not only has to deal with Dewey, a moderate Republican, but also with two splinter candidates. Henry Wallace is a far-left candidate with the Progressive Party, while Strom Thurmond runs as a Dixiecrat. Some hot issues are the Soviet Union, civil rights, the \"Do-Nothing\" Congress, and the Taft-Hartley Act.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1948-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1948-election-photo.jpg",
       "winning_electoral_vote_number": 266,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/clifford-bridges-1948.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/clifford-bridges-1948.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1948 Election Books and Links</h4>David McCullough - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B000FC0VVQ/amhius20-20\" target=\"_blank\">Truman</a></br>Andrew E. Busch - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0700618678/amhius20-20\" target=\"_blank\">Truman's Triumphs: The 1948 Election and the Making of Postwar America</a></br>David Pietruza - <a href=\"http://www.amazon.com/exec/obidos/ASIN/140276748X/amhius20-20\" target=\"_blank\">1948: Harry Truman's Improbable Victory and the Year that Transformed America</a></br>Richard Norton Smith - <a href=\"http://www.amazon.com/exec/obidos/ASIN/067141741X/amhius20-20\" target=\"_blank\">Thomas E. Dewey and His Times</a></br><a href=\"https://www.youtube.com/watch?v=rJABgG4YDwM\" target=\"_blank\">The 1948 Democratic Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=ogg9YsxGQm4\" target=\"_blank\">The 1948 Republican Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=LW2ae0Fznwg\" target=\"_blank\">The 1948 Election Explained (video)</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1960-no-majority-photo.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1960-no-majority-photo.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 23,
+    "fields": {
+      "year": 1940,
+      "summary": "<p>War rages in Europe, while President Franklin Roosevelt has used his last two terms in office to push for sweeping progressive reforms, including Social Security and public works projects. Wendell Willkie has left the Democratic Party to lead the Republicans against Roosevelt’s unprecedented third term effort.\n</p><ul><li>Roosevelt will need to walk the line on foreign policy with an isolationist public, defend his decision to seek a third term, and champion his program of the last 8 years.</li><li>Willkie must convince and unite a suspicious Republican Party and bring together the internationalist and isolationist wings of his new home against the third term.\n</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1940.png",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1940advisors.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Roosevelt, Willkie, and the 1940 Election</h4><a href=\"https://www.amazon.com/Third-Term-FDR-Presidential-Elections/dp/0700624023\" target=”_blank”>John W. Jeffries - A Third Term for FDR: The Election of 1940</a></br><a href=\"https://a.co/d/0haQr35H\" target=”_blank”>Sarah Dunn - 1940: FDR, Willkie, Lindbergh, Hitler—The Election Amid the Storm</a></br><a href=\"https://a.co/d/0gCFlAat\" target=”_blank”>Richard Moe - Roosevelt's Second Act: The Election of 1940 and the Politics of War</a></br><a href=\"https://https://a.co/d/045phVf5\" target=”_blank”>David Levering Lewis - The Improbable Wendell Willkie</a></br><a href=\"https://a.co/d/0iFgx2UB\" target=”_blank”>Jean Edwards Smith - FDR </a></br><a href=\"https://a.co/d/044SNVtA\" target=”_blank”> Charles Peters - Five Days in Philadelphia</a><h4>Links</h4><a href=\"https://www.jstor.org/stable/273357/\" target=”_blank”> Military Segregation and the 1940 Presidential Election</a></br><a href=\"https://www.jstor.org/stable/2126521\" target=”_blank”><em> The Willkie Campaign: An Unfortunate Chapter in Republican Leadership</em></a></br><a href=\"https://news.gallup.com/vault/193148/gallup-vault-war-stirred-support-roosevelt-third-term.aspx/\" target=”_blank”>Gallup Vault: War Stirred Support for Roosevelt's Third Term</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1960-no-majority-photo.jpg",
+      "creator": "Neo and RouteVenus with writing help from CTA",
+      "display_year": "1940"
     }
   },
   {
@@ -171,13 +326,14 @@
     "fields": {
       "year": 1916,
       "summary": "<p>War rages in Europe, while Woodrow Wilson has used his first term to push a number of progressive laws, such as the income tax and Federal Reserve. Charles Evans Hughes has resigned from the Supreme Court to unite his party and deny a second term.</p><ul><li>Wilson will emphasize the U.S. non-involvement with World War I, and his legislative achievements.</li><li>Hughes must balance the Old Guard and Progressive wings of his own party -- or cast one overboard entirely.</li></ul>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1916-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1916-election-photo.jpg",
       "winning_electoral_vote_number": 266,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/house-willcox-1916.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/house-willcox-1916.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Books and Links</h4>A. Scott Berg - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0425270068/amhius20-20\" target=\"_blank\">Wilson</a></br>Arthur Link - <a href=\"B00350CVHM\" target=\"_blank\">Woodrow Wilson and the Progressive Era, 1910-1917</a></br><a href=\"https://presidentialcampaignselectionsreference.wordpress.com/overviews/20th-century/1916-overview/\" target=\"_blank\">Presidential Campaigns and Elections - 1916</a></br><a href=\"http://millercenter.org/president/biography/wilson-campaigns-and-elections\" target=\"_blank\">Woodrow Wilson's Campaigns</a></br><a href=\"http://articles.latimes.com/2005/oct/23/opinion/oe-shaffer23\" target=\"_blank\">The Great GOP Spat -- of 1916</a></br><a href=\"http://maxkade.iupui.edu/adams/chap8.html\" target=\"_blank\">German-Americans as Voters and Office-Seekers</a></br><a href=\"http://www.jstor.org/stable/1900319?seq=1#page_scan_tab_contents\">Woodrow Wilson, Irish-Americans, and the Election of 1916</a></br><a href=\"https://feminist.org/blog/index.php/2014/07/08/july-8-1916-alice-paul-pushes-presidential-nominee-to-support-suffrage/\" target=\"_blank\">July 8, 1916: Alice Paul Pushes Presidential Nominee to Support Suffrage</a>",
       "has_visits": 1,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
     }
   },
   {
@@ -186,13 +342,47 @@
     "fields": {
       "year": 1896,
       "summary": "<p>William McKinley runs as the establishment Republican while William Jennings Bryan brings a radically different agenda to the race. The bad economy and the coinage of silver dominate discussion.</p><ul><li>McKinley will make the case for traditional Republican policies, including a strong defense of the gold standard.</li><li>Bryan will state that there can be no relief for debtors or the larger economy without inflation, which he hopes to bring about via \"free silver\".</li></ul>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1896-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1896-election-photo.jpg",
       "winning_electoral_vote_number": 224,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/hanna-jones.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/hanna-jones.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>  <a href=\"http://www.uselectionatlas.org/RESULTS/national.php?f=0&year=1896\" target=\"_blank\">Final 1896 Results</a> <br> <a href=\"http://projects.vassar.edu/1896/1896home.html\" target=\"_blank\">1896 Election -- Overview and Political Cartoons</a> <br>  <h4>By the Candidates</h4>  William Jennings Bryan - <a href=\"http://books.google.com/books/about/The_first_battle.html?id=9k4TAAAAYAAJ\" target=\"_blank\">The First Battle: A story of the campaign of 1896</a> <br>  William Jennings Bryan - <a href=\"http://www.youtube.com/watch?v=Ydrq2-j92cU\" target=\"_blank\">\"Cross of Gold\" speech</a> <br>  William McKinley - <a href=\"http://www.youtube.com/watch?v=m6ZUneyU7Vo\" target=\"_blank\">\"Front Porch\" speech</a> <br>  <h4>The Panic of 1893</h4> <a href=\"http://www.youtube.com/watch?v=Qu_b6N-G1Os\" target=\"_blank\">The Panic of 1893 with Lawrence Reed</a> (video) <br> <a href=\"http://eh.net/encyclopedia/article/Whitten.panic.1893\" target=\"_blank\">The Depression of 1893</a>  <h4>Misceallany</h4> <a href=\"http://www.oyez.org/cases/1851-1900/1895/1895_210/\" target=\"_blank\">Plessy v. Ferguson</a> <br> <a href=\"http://www.stfrancis.edu/content/ba/ghkickul/stuwebs/btopics/works/PullmanStrike.htm\" target=\"_blank\">Pullman Strike of 1894</a> <br> <a href=\"http://en.wikipedia.org/wiki/Wilson%E2%80%93Gorman_Tariff_Act\" target=\"_blank\">Wilson-Gorman Tariff</a> <br> <a href=\"http://prosperityuk.com/2001/01/a-wonderful-wizard-of-oz-a-monetary-reform-parable/\" target=\"_blank\">The Wonderful Wizard of Oz - A Monetary Reform Parable</a>",
       "has_visits": 0,
-      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 27,
+    "fields": {
+      "year": 1892,
+      "summary": "<p>The 1892 campaign is a most unusual one -- an unprecedented rematch between a current President and a former President. The growing farm revolt in the form of the Populist Party has set the stage for an uncertain campaign.</p><ul><li>Cleveland will run a campaign focused on sound money policy and lowering the tariff schedule.</li><li>Harrison hopes to win back public support after much backlash following the Panic of 1890</li><li>Weaver will benefit from disaffected voters in favor of bimetalism, especially out west.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1892/1892.png",
+      "winning_electoral_vote_number": 223,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1892/advisors.png",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>General Resources</h4><p>USElectionAtlas -- <a href='https://uselectionatlas.org/RESULTS/national.php?f=0&year=1892' target='_blank'>1892 Presidential General Election Results</a></p><p>HarpWeek -- <a href='https://elections.harpweek.com/1892/Overview-1892-1.asp' target='_blank'>1892 | Cleveland vs. Harrison vs. Weaver</a></p><h4 style='margin-top: 0.5em;'>Books</h4><p>Charles Musser -- <a href='https://www.amazon.com/Politicking-Emergent-Media-Presidential-Elections/dp/0520292731' target='_blank'>Politicking and Emergent Media: US Presidential Elections of the 1890s</a></p><p>George Knoles -- The Presidential Campaign and Election of 1892</p>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "ItsAstronomical and Horrificnecktieenjoyer",
+      "display_year": "1892",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 29,
+    "fields": {
+      "year": 1888,
+      "summary": "<p>Discussion of the 1888 election is dominated by the age-old political debate on tariff policy.</p><ul><li>Benjamin Harrison, heir to a powerful political family, seeks to reestablish Republican dominance after the aberration of 1884.</li><li>Grover Cleveland has an outstanding record of personal integrity, but has alienated many groups over the course of his term.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1888/1888.png",
+      "winning_electoral_vote_number": 201,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1888/advisors.png",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">The 1888 Election</h4><a href=\"https://www.presidency.ucsb.edu/statistics/elections/1888\" target=\"_blank\">Detailed Results (UCSB American Presidency Project)</a><br><a href=\"https://guides.loc.gov/presidential-election-1888\" target=\"_blank\">Presidential Election of 1888: A Resource Guide (Library of Congress)</a><br><a href=\"https://www.smithsonianmag.com/history/the-vote-that-failed-159427766/\" target=\"_blank\">The Vote That Failed (Smithsonian Magazine)</a><br><a href=\"https://www.senate.gov/artandhistory/history/minute/Quay_1888PresidentialElection.htm\" target=\"_blank\">Matthew Quay and the 1888 Presidential Election (senate.gov Historical Highlights)</a><br><br><h4 style=\"margin-top: 0.5em;\">Benjamin Harrison</h4><a href=\"https://www.loc.gov/collections/benjamin-harrison-papers/about-this-collection/\" target=\"_blank\">Benjamin Harrison Papers (Library of Congress)</a><br><a href=\"https://bhpsite.org\" target=\"_blank\">Home Page, Benjamin Harrison Presidential Site</a><br><a href=\"https://millercenter.org/president/bharrison/campaigns-and-elections\" target=\"_blank\">Benjamin Harrison: Campaigns and Elections (Miller Center)</a><br><a href=\"https://www.whitehousehistory.org/the-life-and-presidency-of-benjamin-harrison\" target=\"_blank\">The Life and Presidency of Benjamin Harrison (White House Historical Association)</a><br><br><h4 style=\"margin-top: 0.5em;\">Grover Cleveland</h4><a href=\"https://www.loc.gov/collections/grover-cleveland-papers/about-this-collection/\" target=\"_blank\">Grover Cleveland Papers (Library of Congress)</a><br><a href=\"https://presidentcleveland.org/president-clevelands-biography/president-clevelands-biography-2/\" target=\"_blank\">President Cleveland's Biography (Grover Cleveland Birthplace Memorial Association)</a><br><a href=\"https://millercenter.org/president/cleveland\" target=\"_blank\">Grover Cleveland: Campaigns and Elections (Miller Center)</a><br><a href=\"https://www.whitehousehistory.org/bios/grover-cleveland\" target=\"_blank\">The Life and Presidency of Grover Cleveland (White House Historical Association)</a>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1888/deadlock.jpeg",
+      "creator": "Martha and ConjunctionJunction3",
+      "display_year": "1888"
     }
   },
   {
@@ -201,13 +391,147 @@
     "fields": {
       "year": 1860,
       "summary": "<p>Abraham Lincoln runs as the Republican against his rival Stephen A. Douglas. Slavery is the dominant issue and has caused two splinter candidates to step forward -- Breckinridge and Bell -- both with Southern roots.</p><ul><li>Lincoln begins with the lead, and must simply hold his Northern coalition together to take the victory.</li><li>The other three candidates must find some way to prevent a Lincoln victory. In that case, the House of Representatives will choose.</li>\r</ul>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1860-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1860-election-photo.jpg",
       "winning_electoral_vote_number": 152,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/davis-belmont.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/davis-belmont.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>\rDavid Herbert Donald - <a href=\"http://www.amazon.com/exec/obidos/ASIN/068482535X/amhius20-20\">Lincoln</a><br>\rRobert W. Johannsen - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0252066359/amhius20-20\">Stephen A. Douglas</a><br>\rHarriet Jacobs - <a href=http://docsouth.unc.edu/fpn/jacobs/jacobs.html\">Incidents in the Life of a Slave Girl</a><br>\rSolomon Northup - <a href=\"http://docsouth.unc.edu/fpn/northup/northup.html\">Twelve Years a Slave</a><br>\r<a href=\"https://suite.io/michael-streich/3cr92nv\">Abraham Lincoln, Stephen Douglas, and the Election of 1860</a><br>\r<a href=\"http://www.greatamericanhistory.net/nomination.htm\">How Lincoln Won the 1860 Republican Nomination</a><br>\r<a href=\"http://flattopshistorywarpolitics.yuku.com/topic/619/John-Bell-for-president-1860#.U8BmbY1dVZ0\">John Bell for President, 1860</a><br>\r<a href=\"http://faculty.virginia.edu/jajenkins/ES.pdf\">Running to Lose? The Candidacy of John C. Breckinridge</a>",
       "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 12,
+    "fields": {
+      "year": 1948,
+      "summary": "<p>The 1948 election begins with President Truman trailing badly in the polls. Thomas Dewey, loser in 1944, is widely expected to redeem himself this time around. Truman not only has to deal with Dewey, a moderate Republican, but also with two splinter candidates. Henry Wallace is a far-left candidate with the Progressive Party, while Strom Thurmond runs as a Dixiecrat. Some hot issues are the Soviet Union, civil rights, the \"Do-Nothing\" Congress, and the Taft-Hartley Act.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1948-election-photo.jpg",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/clifford-bridges-1948.jpg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1948 Election Books and Links</h4>David McCullough - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B000FC0VVQ/amhius20-20\" target=\"_blank\">Truman</a></br>Andrew E. Busch - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0700618678/amhius20-20\" target=\"_blank\">Truman's Triumphs: The 1948 Election and the Making of Postwar America</a></br>David Pietruza - <a href=\"http://www.amazon.com/exec/obidos/ASIN/140276748X/amhius20-20\" target=\"_blank\">1948: Harry Truman's Improbable Victory and the Year that Transformed America</a></br>Richard Norton Smith - <a href=\"http://www.amazon.com/exec/obidos/ASIN/067141741X/amhius20-20\" target=\"_blank\">Thomas E. Dewey and His Times</a></br><a href=\"https://www.youtube.com/watch?v=rJABgG4YDwM\" target=\"_blank\">The 1948 Democratic Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=ogg9YsxGQm4\" target=\"_blank\">The 1948 Republican Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=LW2ae0Fznwg\" target=\"_blank\">The 1948 Election Explained (video)</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1960-no-majority-photo.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 14,
+    "fields": {
+      "year": 1916,
+      "summary": "<p>War rages in Europe, while Woodrow Wilson has used his first term to push a number of progressive laws, such as the income tax and Federal Reserve. Charles Evans Hughes has resigned from the Supreme Court to unite his party and deny a second term.</p><ul><li>Wilson will emphasize the U.S. non-involvement with World War I, and his legislative achievements.</li><li>Hughes must balance the Old Guard and Progressive wings of his own party -- or cast one overboard entirely.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1916-election-photo.jpg",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/house-willcox-1916.jpg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Books and Links</h4>A. Scott Berg - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0425270068/amhius20-20\" target=\"_blank\">Wilson</a></br>Arthur Link - <a href=\"B00350CVHM\" target=\"_blank\">Woodrow Wilson and the Progressive Era, 1910-1917</a></br><a href=\"https://presidentialcampaignselectionsreference.wordpress.com/overviews/20th-century/1916-overview/\" target=\"_blank\">Presidential Campaigns and Elections - 1916</a></br><a href=\"http://millercenter.org/president/biography/wilson-campaigns-and-elections\" target=\"_blank\">Woodrow Wilson's Campaigns</a></br><a href=\"http://articles.latimes.com/2005/oct/23/opinion/oe-shaffer23\" target=\"_blank\">The Great GOP Spat -- of 1916</a></br><a href=\"http://maxkade.iupui.edu/adams/chap8.html\" target=\"_blank\">German-Americans as Voters and Office-Seekers</a></br><a href=\"http://www.jstor.org/stable/1900319?seq=1#page_scan_tab_contents\">Woodrow Wilson, Irish-Americans, and the Election of 1916</a></br><a href=\"https://feminist.org/blog/index.php/2014/07/08/july-8-1916-alice-paul-pushes-presidential-nominee-to-support-suffrage/\" target=\"_blank\">July 8, 1916: Alice Paul Pushes Presidential Nominee to Support Suffrage</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 2,
+    "fields": {
+      "year": 1908,
+      "summary": "<p>President Roosevelt's self-imposition of term limits means that the 1908 campaign is wide open. William Howard Taft and William Jennings Bryan have both secured their parties' nominations with relative ease as they head into the fall elction.</p><ul><li>Taft runs as Roosevelt's handpicked successor, and will attempt to appease progressives and conservatives.</li><li>Bryan emphasizes a reformist platform in his third run for the office, as the currency issue becomes moot.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1908.png",
+      "winning_electoral_vote_number": 242,
+      "advisor_url": "https://thecampaigntrail.net/static/images/advisors.png",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>Books and Links</h4><a href='https://archive.nytimes.com/www.nytimes.com/library/politics/camp/whouse/convention-ra.html#1908' target='_blank'><i> The New York Times</i> - 1908 Convention Coverage</a><br><a href='https://elections.harpweek.com/1908/Overview-1908-1.asp' target='_blank'>HarpWeek | 1908 Overview</a><br> Donald F. Anderson -- William Howard Taft: A Conservative's Conception of the Presidency<br>Paul W. Glad -- <a href='https://archive.org/details/trumpetsoundethw0000glad' target='_blank'>The trumpet soundeth: William Jennings Bryan and his democracy, 1896-1912</a>",
+      "has_visits": 1,
       "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "creator": "ItsAstronomical",
+      "display_year": "1908",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 5,
+    "fields": {
+      "year": 1896,
+      "summary": "<p>William McKinley runs as the establishment Republican while William Jennings Bryan brings a radically different agenda to the race. The bad economy and the coinage of silver dominate discussion.</p><ul><li>McKinley will make the case for traditional Republican policies, including a strong defense of the gold standard.</li><li>Bryan will state that there can be no relief for debtors or the larger economy without inflation, which he hopes to bring about via \"free silver\".</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1896-election-photo.jpg",
+      "winning_electoral_vote_number": 224,
+      "advisor_url": "https://thecampaigntrail.net/static/images/hanna-jones.jpg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>  <a href=\"http://www.uselectionatlas.org/RESULTS/national.php?f=0&year=1896\" target=\"_blank\">Final 1896 Results</a> <br> <a href=\"http://projects.vassar.edu/1896/1896home.html\" target=\"_blank\">1896 Election -- Overview and Political Cartoons</a> <br>  <h4>By the Candidates</h4>  William Jennings Bryan - <a href=\"http://books.google.com/books/about/The_first_battle.html?id=9k4TAAAAYAAJ\" target=\"_blank\">The First Battle: A story of the campaign of 1896</a> <br>  William Jennings Bryan - <a href=\"http://www.youtube.com/watch?v=Ydrq2-j92cU\" target=\"_blank\">\"Cross of Gold\" speech</a> <br>  William McKinley - <a href=\"http://www.youtube.com/watch?v=m6ZUneyU7Vo\" target=\"_blank\">\"Front Porch\" speech</a> <br>  <h4>The Panic of 1893</h4> <a href=\"http://www.youtube.com/watch?v=Qu_b6N-G1Os\" target=\"_blank\">The Panic of 1893 with Lawrence Reed</a> (video) <br> <a href=\"http://eh.net/encyclopedia/article/Whitten.panic.1893\" target=\"_blank\">The Depression of 1893</a>  <h4>Misceallany</h4> <a href=\"http://www.oyez.org/cases/1851-1900/1895/1895_210/\" target=\"_blank\">Plessy v. Ferguson</a> <br> <a href=\"http://www.stfrancis.edu/content/ba/ghkickul/stuwebs/btopics/works/PullmanStrike.htm\" target=\"_blank\">Pullman Strike of 1894</a> <br> <a href=\"http://en.wikipedia.org/wiki/Wilson%E2%80%93Gorman_Tariff_Act\" target=\"_blank\">Wilson-Gorman Tariff</a> <br> <a href=\"http://prosperityuk.com/2001/01/a-wonderful-wizard-of-oz-a-monetary-reform-parable/\" target=\"_blank\">The Wonderful Wizard of Oz - A Monetary Reform Parable</a>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 33,
+    "fields": {
+      "year": 1884,
+      "summary": "<p>Eight years after the hotly-contested election of 1876, in which Reconstruction ended and Democrats nearly won the White House, the Democratic Party looks to bring an end to Republican rule as President Arthur steps out of office.</p><ul><li>Grover Cleveland will have to capitalize on his promises of reform, and bring together a coalition of disaffected Republicans dissatisfied with his opponent's corruption to avenge Tilden.</li><li>James G. Blaine must hit on the topics of reform and tariffs, while keeping the election focused on the issues and distracting from his own scandals to keep Republican dominance in the White House.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1884/cleveland_blaine.png",
+      "winning_electoral_vote_number": 201,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1884/cleveland_advisor_image.png",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>Sources</h4><p>Rum, Romanism and Rebellion: The Making of a President 1884 - Mark Wahlgren Summers (2000)</p><p>The Halpin Affair: How Cleveland Went from Scandal to Success - Courtney Huck (2017)</p><p>The Attempt to Revive War Sentiment in the Election Campaign of 1884 - Ruth Evelyn Gilley (1932)</p><p>Markets, Morality, and the Media: The Election of 1884 and the Iconography of Progressivism<br>- Richard R. John, in America at the Ballot Box: Elections and Political History, ed. Gareth Davies and Julian E. Zelizer, pp. 75-97 (2018)</p><p>The Campaign Book of the Democratic Party - Democratic National Committee (1885)</p><p>A Man of Iron: The Turbulent Life and Improbable Presidency of Grover Cleveland - Troy Senik (2022)</p><p>The Writings and Speeches of Grover Cleveland - Grover Cleveland (1892)</p><p>James G. Blaine: Architect of Empire - Edward P. Grapol (1999)</p><p>The Writings and Speeches of Grover Cleveland - Grover Cleveland (1892)</p><p>Grover Cleveland: A Study in Courage - Allan Nevins (1933) to the bibliography?</p>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Roniius and ItsAstronomical",
+      "is_historical": 1,
+      "display_year": "1884",
+      "recommended_reading_enabled": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 1,
+    "fields": {
+      "year": 1876,
+      "summary": "<p>The 1876 presidential election season opens with Republican Rutherford Hayes slightly behind Democrat Samuel Tilden as they face off in a high-turnout election. Key issues of this race include reconstruction, tariffs, and corruption, with the shadow of the Grant Administration looming large. Can Hayes secure yet another term of Republican dominance, or can Tilden flip the script? </p><p>In the real world, the results of this election were heavily disputed, with an Electoral Commission deciding the outcome and rumors of a ''Compromise of 1877'' lingering to this day.</p>",
+      "image_url": "https://itsastronomical.com/assets/1876/1876.png",
+      "winning_electoral_vote_number": 185,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1876advisors.jpg",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>General Resources</h4><p>Library of Congress and US Election Atlas are always great sources to start with</p><a href='https://uselectionatlas.org/RESULTS/national.php?year=1876&f=0' target='_blank'>US Election Atlas - 1876 Presidential General Election Results</a><br><a href='https://guides.loc.gov/presidential-election-1876/' target='_blank'>Library of Congress - 1876 Presidential Election</a><h4>Acceptance Letters</h4><a href='https://www.rbhayes.org/hayes/1876-acceptance-speech/'>Rutherford B. Hayes Presidential Library & Museums - Governor Hayes' 1876 Acceptance Letter</a><br><a href='https://www.loc.gov/resource/rbpe.12804500/?st=text'>Library of Congress - Tilden's 1876 Letter of Acceptance</a><h4>Books</h4><a href='https://archive.org/details/byonevotedispute0000holt/mode/2up?view=theater'> Holt, Michael F. - By One Vote: The Disputed Presidential Election of 1876</a>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "ItsAstronomical",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 32,
+    "fields": {
+      "year": 1872,
+      "summary": "<p>With Klan violence persisting even after the passage of the 15th Amendment and the Enforcement Acts, America is wracked with indecision over the future of reconstruction. Major issues include the Klan, civil service reform, and each candidate's character. </p><ul><li>Ulysses S. Grant must defend his record in the South while remaining presidential and relying on the Republican machine.</li><li>Horace Greeley must use the twin issues of reconstruction and reform to unite his fragile coalition of reformists and Democrats and avoid scandal.</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1872/ollAGI1.png",
+      "winning_electoral_vote_number": 177,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1872/QrZVWNm.png",
+      "recommended_reading": "<h4 style=\\\"margin-top: 0.5em;\\\">General Resources</h4> New York Times and New York Tribune Archives<br><a href=\\\"https://archive.org/details/historyofamerica02schl/\">History of American Presidential Elections, 1789 - 1968</a><br><h4>Ulysses S. Grant</h4> Ronald C. White: American Ulysses -- A Life of Ulysses S. Grant<br>Charles W. Calhoun -- The Presidency of Ulysses S. Grant<br>Ron Chernow -- Grant<br>Jean Edward Smith -- Grant<br> <h4>Horace Greeley and the Liberal Republicans</h4>\nAndrew L. Slap -- The Doom of Reconstruction: The Liberal Republicans in the Civil War Era<br>James M. Lundberg, Horace Greeley -- Print, Politics, and the Failure of American Nationhood<br><h4>Reconstruction</h4> Eric Foner -- Reconstruction: America's Unfinished Revolution <br> <a href=\\\"https://archive.org/details/retreatfromrecon0000gill/\">William Gillette -- Retreat From Reconstruction</a>\n",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
+      "creator": "uglidoll",
+      "is_historical": true,
+      "display_year": "1872",
+      "recommended_reading_enabled": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 8,
+    "fields": {
+      "year": 1860,
+      "summary": "<p>Abraham Lincoln runs as the Republican against his rival Stephen A. Douglas. Slavery is the dominant issue and has caused two splinter candidates to step forward -- Breckinridge and Bell -- both with Southern roots.</p><ul><li>Lincoln begins with the lead, and must simply hold his Northern coalition together to take the victory.</li><li>The other three candidates must find some way to prevent a Lincoln victory. In that case, the House of Representatives will choose.</li>\r</ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1860-election-photo.jpg",
+      "winning_electoral_vote_number": 152,
+      "advisor_url": "https://thecampaigntrail.net/static/images/davis-belmont.jpg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>\rDavid Herbert Donald - <a href=\"http://www.amazon.com/exec/obidos/ASIN/068482535X/amhius20-20\">Lincoln</a><br>\rRobert W. Johannsen - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0252066359/amhius20-20\">Stephen A. Douglas</a><br>\rHarriet Jacobs - <a href=http://docsouth.unc.edu/fpn/jacobs/jacobs.html\">Incidents in the Life of a Slave Girl</a><br>\rSolomon Northup - <a href=\"http://docsouth.unc.edu/fpn/northup/northup.html\">Twelve Years a Slave</a><br>\r<a href=\"https://suite.io/michael-streich/3cr92nv\">Abraham Lincoln, Stephen Douglas, and the Election of 1860</a><br>\r<a href=\"http://www.greatamericanhistory.net/nomination.htm\">How Lincoln Won the 1860 Republican Nomination</a><br>\r<a href=\"http://flattopshistorywarpolitics.yuku.com/topic/619/John-Bell-for-president-1860#.U8BmbY1dVZ0\">John Bell for President, 1860</a><br>\r<a href=\"http://faculty.virginia.edu/jajenkins/ES.pdf\">Running to Lose? The Candidacy of John C. Breckinridge</a>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
     }
   },
   {
@@ -216,13 +540,115 @@
     "fields": {
       "year": 1844,
       "summary": "<p>President Tyler has defined the key issue of this election with his proposed annexation of Texas. James K. Polk, the Democrat, gained his nomination by favoring the measure. Henry Clay, the Whig, has more latitude.</p><p>The Liberty Party lurks as an abolitionist third party, and will pressure the Whigs. Conversely, John Tyler hopes to use the Texas issue to energize an independent campaign, if Polk wavers. Other campaign issues are tariffs, internal improvements, and the banking system.</p>",
-      "image_url": "https://www.jetsimon.com/public/static/images/1844-election-photo.jpg",
+      "image_url": "https://thecampaigntrail.net/static/images/1844-election-photo.jpg",
       "winning_electoral_vote_number": 138,
-      "advisor_url": "https://www.jetsimon.com/public/static/images/kendall-weed-1844.jpg",
+      "advisor_url": "https://thecampaigntrail.net/static/images/kendall-weed-1844.jpg",
       "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>\nWalter Borneman - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0812976746/amhius20-20\">Polk: The Man Who Transformed the Presidency and America</a><br>\nRobert Merry - <a href=\"http://www.amazon.com/exec/obidos/ASIN/074329744X/amhius20-20\">A Country of Vast Designs: James K. Polk, the Mexican War and the Conquest of the American Continent</a><br>\nDavid Heidler and Joanne Heidler - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0812978951/amhius20-20\">Henry Clay: The Essential American</a>",
       "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
+      "creator": "Dan Bryan",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 30,
+    "fields": {
+      "year": 1828,
+      "summary": "<p>The 1828 election will be a rematch between two of the most starkly contrasted personalities in America. General Jackson, a war hero with little formal education, presents himself as the champion of the common man. Meanwhile, President Adams, heir to the country's greatest political dynasty, trades on his reputation as a statesman and intellectual - even if those characteristics aren't doing him much good this year.</p><p>Allegations of a corrupt bargain that allowed Adams to win the presidency four years ago are contributing to a fiercely anti-incumbent mood, and mudslinging on both sides abounds.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1828/BxVuSOh.png",
+      "winning_electoral_vote_number": 131,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1828/XkB31hu.png",
+      "recommended_reading": "<h4 style=\\\"margin-top: 0.5em;\\\">The Candidates and the Election</h4><a href=\\\"https://archive.org/details/birthofmodernpol00lynn\\\" target=\\\"_blank\\\">Lynn H. Parsons - The Birth of Modern Politics: Andrew Jackson, John Quincy Adams, and the election of 1828</a><br><a href=\\\"https://www.amazon.com/Andrew-Jackson-Robert-V-Remini/dp/0060801328?crid=FVGNZV1NXEM2&amp;dib=eyJ2IjoiMSJ9.LNAUmBdRQEAhFWpIVT2ji1mybV83k9hM0TyWL_Ci7s2RzJ4-QSMeWty4ru18GjG9MZEWOOzwGsdOGKXeSNx-doem-Ot3VTlAZ9491nb5gbGLZl_OgD2NaG8YdIXbq7uzB8bxzQgvfHtP0CMklWCcmUJK98prWnld3f5xMxzux6CyTSl_4-NGnshtktSVfiurSNzTsQOPkmH0Y8yNtFynWLSIoA-xD2ADABzcywGX9DA.ffyEyTiZpc5Vjsj3-EN_4d8qwCK5f35ZAwYI_7Sl0V0&amp;dib_tag=se&amp;keywords=robert+remini+andrew+jackson&amp;qid=1783050026&amp;s=books&amp;sprefix=robert+remini+andrew+jackso%2Cstripbooks%2C415&amp;sr=1-3\\\" target=\\\"_blank\\\">Robert Remini - Andrew Jackson</a><br><a href=\\\"https://www.amazon.com/John-Quincy-Adams-American-Visionary-ebook/dp/B00DB32RAE?dib=eyJ2IjoiMSJ9.lTsPom_cAdiLV2c7GvLIHCo-trAfaFysgiNnR2VAhwfUdqdzV5ZQ-7o3i7P0Xejb0p-B9xZHmbkbsaOZmrOR-o0RP623XS1bnGoV_X8uMsX8MVDvMaNoRonqFUExV4Ys4xfnx6fxJ_N8d4HVEJHfkZe6gWbiWLq00nEEDRiltioo4pNLSxZyZxQL54FQuhxoU8hLxaUIZPilmO0qwhwmZbhmkwvCqYX8Qw1HdPYggSzUlk_tvtal9MkLcj0nHWL9HQ1oeV2lbmQuFKpe19KcFbr8h6tkJnjcSoeUYKsv1Zo.h4J4kdjOKVbCz1Tss4S64IPCAYYEljfGBc9ppbU4328&amp;dib_tag=se&amp;keywords=john+quincy+adams&amp;qid=1783049915&amp;s=books&amp;sr=1-9\\\" target=\\\"_blank\\\">James Traub - John Quincy Adams: American Visionary</a><br><a href=\\\"https://www.masshist.org/jqadiaries/php/\\\" target=\\\"_blank\\\">The Diary of John Quincy Adams</a>",
+      "is_historical": true,
+      "has_visits": 0,
       "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
-      "creator":"Dan Bryan"
+      "creator": "GREELEY",
+      "display_year": "1828"
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 24,
+    "fields": {
+      "year": 1800,
+      "display_year": "1800",
+      "summary": "<p>The young American Republic roils amid international hostility, growing internal tensions, and questions about the federal government's role in enforcing order and controlling speech.</p>\n<ul><li>\nThomas Jefferson must make the case for a less restrictive federal government while avoiding controversy and fending off various schemes to thwart the democratic process.\n</li><li>\nJohn Adams must defend the unpopular Alien and Sedition Acts and his negotiations with France without being destroyed by the deep divisions within the Federalist camp.\n</li></ul>",
+      "image_url": "https://thecampaigntrail.net/static/images/1800/zoThlZ6.png",
+      "winning_electoral_vote_number": 70,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1800/qc8D16N.png",
+      "recommended_reading": "<h4 style='margin-top: 0.5em;'>General Resources</h4>Stanley Elkins, Eric McKitrick -- <a href='https://www.google.com/books/edition/The_Age_of_Federalism/IVASDAAAQBAJ' target='_blank'>The Age of Federalism</a><br>Gordon Wood -- <a href='https://academic.oup.com/book/47392' target='_blank'>Empire Of Liberty: A History of the Early Republic, 1789–1815</a><br>Page Smith -- <a href='https://www.archive.org/details/johnadams02smit' target='_blank'>John Adams</a><br>Dumas Malone -- <a href='https://archive.org/details/jeffersonhistime03malo' target='_blank'>Jefferson and his time, Volume III : Jefferson and The Ordeal of Liberty</a><br>Edward J. Larson -- <a href='https://www.google.com/books/edition/A_Magnificent_Catastrophe/MXcCdlmwwecC?hl=en' target='_blank'>Magnificent Catastrophe: The Tumultuous Election of 1800, America’s First Presidential Campaign</a><br>John P. Kaminski -- <a href='https://csac.history.wisc.edu/publications-2/biographies/' target='_blank'>George Clinton: Yeoman Politician of the New Republic</a><br>",
+      "has_visits": 1,
+      "creator": "QuoProQuid",
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1800/gS1Jjjv.png",
+      "is_historical": true
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 1968,
+    "fields": {
+      "year": 1968,
+      "summary": "<p>The 1968 election reaches its climax with more chaos than ever. Former Vice President Richard Nixon must rebuild the Republican brand four years after Goldwater's disaster. Senator Bobby Kennedy must live up to the lofty rhetoric of his slain brother with more action than words if he is to win back Democratic regulars. George Wallace is an Independent candidate.</p><p>Candidates will debate the best course of action on Vietnam, an overheated economy, and the War on Poverty.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1968aIntro.jpeg",
+      "winning_electoral_vote_number": 270,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1968aAdvisors.jpeg",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Robert Kennedy and the 1968 Election</h4><a href=\"https://www.amazon.com/Last-Campaign-Kennedy-Inspired-America/dp/0805077928\" target=”_blank”>Thurston Clarke - The Last Campaign: Robert F. Kennedy and 82 Days That Inspired America</a></br><a href=\"https://www.amazon.com/Robert-Kennedy-Life-Evan-Thomas/dp/0743203291\" target=”_blank”>Evan Thomas - Robert Kennedy: His Life</a></br><a href=\"https://www.amazon.com/Bobby-Kennedy-Making-Liberal-Icon/dp/08129835050\" target=”_blank”>Larry Tye - Bobby Kennedy: The Making of a Liberal Icon</a></br><a href=\"https://www.amazon.com/Robert-Kennedy-His-Own-Words/dp/055334661X\" target=”_blank”>Robert F. Kennedy - Robert Kennedy: In His Own Words</a></br><a href=\"https://www.amazon.com/Love-Night-American-Romance-Kennedy/dp/0684808293\" target=”_blank”>Ronald Steel - In Love With Night: The American Romance With Robert Kennedy</a></br><a href=\"https://www.amazon.com/All-This-Marvelous-Potential-Appalachia/dp/1641600594\" target=”_blank”>Matthew Algeo - All This Marvelous Potential: Robert Kennedy's 1968 Tour of Appalachia</a><h4>Links</h4><a href=\"https://www.politico.com/magazine/story/2018/06/05/rfk-bobby-kennedy-myth-legend-history-218593/\" target=”_blank”>The Bobby Kennedy Myth</a></br><a href=\"https://news.gallup.com/vault/235283/gallup-vault-look-back-robert-kennedy.aspx\" target=”_blank”><em>Gallup Vault: A Look Back at Robert Kennedy</em></a></br><a href=\"https://www.pewresearch.org/short-reads/2013/06/05/polling-flashback-remembering-rfk/\" target=”_blank”>Polling flashback: Remembering RFK</a></br><a href=\"https://www.pbs.org/wgbh/americanexperience/features/rfk-what-if/\" target=”_blank”>What if?</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1968aDeadlock.jpeg",
+      "creator": "CTA",
+      "display_year": "1968a",
+      "is_historical": false
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 0,
+    "fields": {
+      "year": 1788,
+      "summary": "<p>The Articles of Confederation have failed. State governments, anxious to maintain their own power, grant the Congress little respect. The federal government cannot raise funds, cannot resolve its debts, cannot control commerce nor resolve internal disputes. An effort to resolve these deficiencies have resulted not in amendments but an entirely new constitution - not ordained by God, but one drafted, hastily, to address the crisis unfolding.</p><p>As critics pick apart the Constitution’s deficiencies, its supporters pin their hopes on one man. They pray that this singular figure may temporarily paper over the Nation’s divisions, and allow not merely ratification but success in a thus-far disappointing experiment in self-governance.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1788/1788.png",
+      "winning_electoral_vote_number": 35,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1788/advisors.png",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Further Reading</h4><a href=\"https://archive.org/details/georgewashington0000flex_q2y4/page/172/mode/2up\" target=\"_blank\">\"George Washington and the new nation, 1783-1793\" by James Thomas Flexner</a><br><a href=\"https://www.publishersweekly.com/9780374175269\" target=\"_blank\">\"An Imperfect God: George Washington, His Slaves, and the Creation of America\"</a>",
+      "has_visits": 0,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1788/washington.png",
+      "creator": "QuoProQuid",
+      "display_year": "1788",
+      "is_historical": false
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 25,
+    "fields": {
+      "year": 1920,
+      "summary": "<p>The Great War grinds on in Europe as America heads to the polls in 1920. President Wilson, diminished by a devastating stroke, seeks vindication for his war policy and his vision of a League of Nations. Theodore Roosevelt has remade himself as the apostle of nationalism, preparedness, and 100% Americanism. Eugene Debs, imprisoned under the Espionage Act for his opposition to the war, runs his campaign from a federal penitentiary in Atlanta.</p><p>In the real world, German forces launched the 1918 Spring offensive as their last attempt to rout the Allies before the arrival of American forces. In this world, Germany settled in for a war of attrition, leading President Wilson to seek a third term as a wartime President.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1920a/bb3rnGI.png",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1920a/9JBbvPo.png",
+      "recommended_reading": "<ul>\n<li><a href=https://www.goodreads.com/book/show/328063.The_Perils_of_Prosperity_1914_1932_2nd_Edition?from_search=true&from_srp=true&qid=LlirpM0aIk&rank=1>The Perils of Prosperity, 1914-1932 - William E. Leuchtenburg</a></li>\n<li><a href=https://www.goodreads.com/book/show/215862.Over_Here?from_search=true&from_srp=true&qid=EPg76ksbvx&rank=2>Over Here: The First World War and American Society  - David M. Kennedy</a></li>\n<li><a href=https://www.goodreads.com/book/show/302729.Theodore_Roosevelt>Theodore Roosevelt: A Strenuous Life  - Kathleen Dalton</a></li>\n</ul>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1920a/x1BttKI.png",
+      "creator": "RouteVenus",
+      "display_year": "1920a",
+      "is_historical": false
+    }
+  },
+  {
+    "model": "campaign_trail.election",
+    "pk": 26,
+    "fields": {
+      "year": 1932,
+      "summary": "<p>The depths of the Great Depression have opened up new possibilities in American life. New York Governor and establishment scion Franklin Roosevelt is proposing unprecedented government intervention into the economy, while embattled President Herbert Hoover argues his steady hand is beginning to right the ship.</p>\n\n<p>With one in every four Americans out of work, economic issues are paramount in the 1932 campaign. In the real world, this race was a realignment election, ushering in half a century of Democratic dominance.</p>",
+      "image_url": "https://thecampaigntrail.net/static/images/1932/9LEafaz.jpeg",
+      "winning_electoral_vote_number": 266,
+      "advisor_url": "https://thecampaigntrail.net/static/images/1932/r6S1Xwl.png",
+      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1932 Election Books</h4>Donald A. Ritchie - <a href=\"https://kansaspress.ku.edu/9780700616879/\" target=\"_blank\">Electing FDR: The New Deal Campaign of 1932</a></br>Scott Martelle - <a href=\"https://www.washingtonindependentreviewofbooks.com/bookreview/1932-fdr-hoover-and-the-dawn-of-a-new-america\" target=\"_blank\">1932: FDR, Hoover, and the Dawn of a New America</a><h4>Roosevelt</h4>Jean Edward Smith - <a href=\"https://www.penguinrandomhouse.com/books/169093/fdr-by-jean-edward-smith/\" target=\"_blank\">FDR</a></br>H.W. Brands - <a href=\"https://www.amazon.com/Traitor-His-Class-Privileged-Presidency/dp/0307277941\" target=\"_blank\">Traitor to His Class</a></br>Roger Daniels - <a href=\"https://www.amazon.com/Franklin-D-Roosevelt-Road-1882-1939/dp/0252039513\" target=\"_blank\">Franklin D. Roosevelt: Road to the New Deal</a></br>Blanche Wiesen Cook - <a href=\"https://www.goodreads.com/series/128411-eleanor-roosevelt\" target=\"_blank\">Eleanor Roosevelt trilogy</a><h4>Hoover</h4>Kenneth Whyte - <a href=\"https://www.amazon.com/Hoover-Extraordinary-Life-Times/dp/0307597962\" target=\"_blank\">Hoover: An Extraordinary Life in Extraordinary Times</a></br>Glen Jeansonne - <a href=\"https://www.amazon.com/Life-Herbert-Hoover-Fighting-1928-1933/dp/1137346736\" target=\"_blank\">The Life of Herbert Hoover: Fighting Quaker 1928-1933</a><h4>Great Depression</h4></h4>Timothy Egan - <a href=\"https://www.harpercollins.com/products/the-worst-hard-time-timothy-egan?variant=39936443088930\" target=\"_blank\">The Worst Hard Time</a></br>David M. Kennedy - <a href=\"https://www.amazon.com/Freedom-Fear-American-Depression-1929-1945/dp/0195144031\" target=\"_blank\">Freedom From Fear</a>",
+      "has_visits": 1,
+      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1932/sr3saf2.png",
+      "creator": "CTA",
+      "display_year": "1932"
     }
   }
 ]
