@@ -48,7 +48,7 @@ async function initCode1Storage() {
             autosaveEnabled = true;
         }
     }
-    
+
     window.code1_autosaveEnabled = autosaveEnabled;
     if (autosaveEnabled) {
         startAutosave();
@@ -88,7 +88,7 @@ function saveAutosave() {
 
 // global data for Code 1
 const globalData = reactive({
-    mode: 'ELECTION', 
+    mode: 'ELECTION',
     selectedElection: 0,
     selectedCandidate: 0,
     selectedRunningMate: 0,
@@ -98,12 +98,12 @@ const globalData = reactive({
 window.$globalData = globalData;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("DOM Content Loaded - Initializing Code 1");
+    console.log("Loading Code 1 tool...");
     await initCode1Storage();
     const rawTct = new TCTCode1Data();
     const tct = reactive(rawTct);
     window.$TCT = tct;
-    
+
     // load from autosave if it exists
     let autosaveData = null;
     if (window.TCTDB) {
