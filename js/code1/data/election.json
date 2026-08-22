@@ -44,7 +44,8 @@
       "has_visits": 1,
       "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/2012-no-majority.jpg",
       "creator": "Dan Bryan",
-      "is_historical": false
+      "is_historical": false,
+      "display_year": "2016a"
     }
   },
   {
@@ -403,38 +404,6 @@
   },
   {
     "model": "campaign_trail.election",
-    "pk": 12,
-    "fields": {
-      "year": 1948,
-      "summary": "<p>The 1948 election begins with President Truman trailing badly in the polls. Thomas Dewey, loser in 1944, is widely expected to redeem himself this time around. Truman not only has to deal with Dewey, a moderate Republican, but also with two splinter candidates. Henry Wallace is a far-left candidate with the Progressive Party, while Strom Thurmond runs as a Dixiecrat. Some hot issues are the Soviet Union, civil rights, the \"Do-Nothing\" Congress, and the Taft-Hartley Act.</p>",
-      "image_url": "https://thecampaigntrail.net/static/images/1948-election-photo.jpg",
-      "winning_electoral_vote_number": 266,
-      "advisor_url": "https://thecampaigntrail.net/static/images/clifford-bridges-1948.jpg",
-      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">1948 Election Books and Links</h4>David McCullough - <a href=\"http://www.amazon.com/exec/obidos/ASIN/B000FC0VVQ/amhius20-20\" target=\"_blank\">Truman</a></br>Andrew E. Busch - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0700618678/amhius20-20\" target=\"_blank\">Truman's Triumphs: The 1948 Election and the Making of Postwar America</a></br>David Pietruza - <a href=\"http://www.amazon.com/exec/obidos/ASIN/140276748X/amhius20-20\" target=\"_blank\">1948: Harry Truman's Improbable Victory and the Year that Transformed America</a></br>Richard Norton Smith - <a href=\"http://www.amazon.com/exec/obidos/ASIN/067141741X/amhius20-20\" target=\"_blank\">Thomas E. Dewey and His Times</a></br><a href=\"https://www.youtube.com/watch?v=rJABgG4YDwM\" target=\"_blank\">The 1948 Democratic Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=ogg9YsxGQm4\" target=\"_blank\">The 1948 Republican Convention (newsreel footage)</a></br><a href=\"https://www.youtube.com/watch?v=LW2ae0Fznwg\" target=\"_blank\">The 1948 Election Explained (video)</a>",
-      "has_visits": 1,
-      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1960-no-majority-photo.jpg",
-      "creator": "Dan Bryan",
-      "is_historical": true
-    }
-  },
-  {
-    "model": "campaign_trail.election",
-    "pk": 14,
-    "fields": {
-      "year": 1916,
-      "summary": "<p>War rages in Europe, while Woodrow Wilson has used his first term to push a number of progressive laws, such as the income tax and Federal Reserve. Charles Evans Hughes has resigned from the Supreme Court to unite his party and deny a second term.</p><ul><li>Wilson will emphasize the U.S. non-involvement with World War I, and his legislative achievements.</li><li>Hughes must balance the Old Guard and Progressive wings of his own party -- or cast one overboard entirely.</li></ul>",
-      "image_url": "https://thecampaigntrail.net/static/images/1916-election-photo.jpg",
-      "winning_electoral_vote_number": 266,
-      "advisor_url": "https://thecampaigntrail.net/static/images/house-willcox-1916.jpg",
-      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">Books and Links</h4>A. Scott Berg - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0425270068/amhius20-20\" target=\"_blank\">Wilson</a></br>Arthur Link - <a href=\"B00350CVHM\" target=\"_blank\">Woodrow Wilson and the Progressive Era, 1910-1917</a></br><a href=\"https://presidentialcampaignselectionsreference.wordpress.com/overviews/20th-century/1916-overview/\" target=\"_blank\">Presidential Campaigns and Elections - 1916</a></br><a href=\"http://millercenter.org/president/biography/wilson-campaigns-and-elections\" target=\"_blank\">Woodrow Wilson's Campaigns</a></br><a href=\"http://articles.latimes.com/2005/oct/23/opinion/oe-shaffer23\" target=\"_blank\">The Great GOP Spat -- of 1916</a></br><a href=\"http://maxkade.iupui.edu/adams/chap8.html\" target=\"_blank\">German-Americans as Voters and Office-Seekers</a></br><a href=\"http://www.jstor.org/stable/1900319?seq=1#page_scan_tab_contents\">Woodrow Wilson, Irish-Americans, and the Election of 1916</a></br><a href=\"https://feminist.org/blog/index.php/2014/07/08/july-8-1916-alice-paul-pushes-presidential-nominee-to-support-suffrage/\" target=\"_blank\">July 8, 1916: Alice Paul Pushes Presidential Nominee to Support Suffrage</a>",
-      "has_visits": 1,
-      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
-      "creator": "Dan Bryan",
-      "is_historical": true
-    }
-  },
-  {
-    "model": "campaign_trail.election",
     "pk": 2,
     "fields": {
       "year": 1908,
@@ -447,22 +416,6 @@
       "no_electoral_majority_image": "https://www.jetsimon.com/public/static/images/1896-no-majority.jpg",
       "creator": "ItsAstronomical",
       "display_year": "1908",
-      "is_historical": true
-    }
-  },
-  {
-    "model": "campaign_trail.election",
-    "pk": 5,
-    "fields": {
-      "year": 1896,
-      "summary": "<p>William McKinley runs as the establishment Republican while William Jennings Bryan brings a radically different agenda to the race. The bad economy and the coinage of silver dominate discussion.</p><ul><li>McKinley will make the case for traditional Republican policies, including a strong defense of the gold standard.</li><li>Bryan will state that there can be no relief for debtors or the larger economy without inflation, which he hopes to bring about via \"free silver\".</li></ul>",
-      "image_url": "https://thecampaigntrail.net/static/images/1896-election-photo.jpg",
-      "winning_electoral_vote_number": 224,
-      "advisor_url": "https://thecampaigntrail.net/static/images/hanna-jones.jpg",
-      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>  <a href=\"http://www.uselectionatlas.org/RESULTS/national.php?f=0&year=1896\" target=\"_blank\">Final 1896 Results</a> <br> <a href=\"http://projects.vassar.edu/1896/1896home.html\" target=\"_blank\">1896 Election -- Overview and Political Cartoons</a> <br>  <h4>By the Candidates</h4>  William Jennings Bryan - <a href=\"http://books.google.com/books/about/The_first_battle.html?id=9k4TAAAAYAAJ\" target=\"_blank\">The First Battle: A story of the campaign of 1896</a> <br>  William Jennings Bryan - <a href=\"http://www.youtube.com/watch?v=Ydrq2-j92cU\" target=\"_blank\">\"Cross of Gold\" speech</a> <br>  William McKinley - <a href=\"http://www.youtube.com/watch?v=m6ZUneyU7Vo\" target=\"_blank\">\"Front Porch\" speech</a> <br>  <h4>The Panic of 1893</h4> <a href=\"http://www.youtube.com/watch?v=Qu_b6N-G1Os\" target=\"_blank\">The Panic of 1893 with Lawrence Reed</a> (video) <br> <a href=\"http://eh.net/encyclopedia/article/Whitten.panic.1893\" target=\"_blank\">The Depression of 1893</a>  <h4>Misceallany</h4> <a href=\"http://www.oyez.org/cases/1851-1900/1895/1895_210/\" target=\"_blank\">Plessy v. Ferguson</a> <br> <a href=\"http://www.stfrancis.edu/content/ba/ghkickul/stuwebs/btopics/works/PullmanStrike.htm\" target=\"_blank\">Pullman Strike of 1894</a> <br> <a href=\"http://en.wikipedia.org/wiki/Wilson%E2%80%93Gorman_Tariff_Act\" target=\"_blank\">Wilson-Gorman Tariff</a> <br> <a href=\"http://prosperityuk.com/2001/01/a-wonderful-wizard-of-oz-a-monetary-reform-parable/\" target=\"_blank\">The Wonderful Wizard of Oz - A Monetary Reform Parable</a>",
-      "has_visits": 0,
-      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
-      "creator": "Dan Bryan",
       "is_historical": true
     }
   },
@@ -516,22 +469,6 @@
       "is_historical": true,
       "display_year": "1872",
       "recommended_reading_enabled": true
-    }
-  },
-  {
-    "model": "campaign_trail.election",
-    "pk": 8,
-    "fields": {
-      "year": 1860,
-      "summary": "<p>Abraham Lincoln runs as the Republican against his rival Stephen A. Douglas. Slavery is the dominant issue and has caused two splinter candidates to step forward -- Breckinridge and Bell -- both with Southern roots.</p><ul><li>Lincoln begins with the lead, and must simply hold his Northern coalition together to take the victory.</li><li>The other three candidates must find some way to prevent a Lincoln victory. In that case, the House of Representatives will choose.</li>\r</ul>",
-      "image_url": "https://thecampaigntrail.net/static/images/1860-election-photo.jpg",
-      "winning_electoral_vote_number": 152,
-      "advisor_url": "https://thecampaigntrail.net/static/images/davis-belmont.jpg",
-      "recommended_reading": "<h4 style=\"margin-top: 0.5em;\">General Resources</h4>\rDavid Herbert Donald - <a href=\"http://www.amazon.com/exec/obidos/ASIN/068482535X/amhius20-20\">Lincoln</a><br>\rRobert W. Johannsen - <a href=\"http://www.amazon.com/exec/obidos/ASIN/0252066359/amhius20-20\">Stephen A. Douglas</a><br>\rHarriet Jacobs - <a href=http://docsouth.unc.edu/fpn/jacobs/jacobs.html\">Incidents in the Life of a Slave Girl</a><br>\rSolomon Northup - <a href=\"http://docsouth.unc.edu/fpn/northup/northup.html\">Twelve Years a Slave</a><br>\r<a href=\"https://suite.io/michael-streich/3cr92nv\">Abraham Lincoln, Stephen Douglas, and the Election of 1860</a><br>\r<a href=\"http://www.greatamericanhistory.net/nomination.htm\">How Lincoln Won the 1860 Republican Nomination</a><br>\r<a href=\"http://flattopshistorywarpolitics.yuku.com/topic/619/John-Bell-for-president-1860#.U8BmbY1dVZ0\">John Bell for President, 1860</a><br>\r<a href=\"http://faculty.virginia.edu/jajenkins/ES.pdf\">Running to Lose? The Candidacy of John C. Breckinridge</a>",
-      "has_visits": 0,
-      "no_electoral_majority_image": "https://thecampaigntrail.net/static/images/1896-no-majority.jpg",
-      "creator": "Dan Bryan",
-      "is_historical": true
     }
   },
   {

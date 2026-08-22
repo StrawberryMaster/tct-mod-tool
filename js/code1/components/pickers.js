@@ -578,7 +578,7 @@ registerCode1Component('theme-editor', {
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Custom quote (optional, appears below title)</label>
+            <label class="block text-sm font-medium text-gray-700">Custom quote <span class="font-normal text-gray-500">(optional, appears below title)</span></label>
             <input v-model="jetData.customQuote" type="text" class="mt-1 block w-full rounded border-gray-300">
         </div>
 
@@ -823,39 +823,91 @@ registerCode1Component('settings-editor', {
     template: `
     <div class="space-y-4">
         <h3 class="text-lg font-bold border-b pb-1">Global parameters</h3>
-        <p class="text-sm text-gray-500 italic">These parameters affect core game mechanics. In most cases, you should only change these if you know what you're doing or are trying to create a very custom mod.</p>
+        <p class="text-sm text-gray-500 italic">These settings change how the game calculates results. The defaults work well for most mods, so change them only when you have a specific effect in mind.</p>
         <div v-for="gp in $TCT.global_parameters" :key="gp.pk" class="grid grid-cols-2 gap-x-4 gap-y-3">
             <div>
                 <label class="block text-xs font-medium text-gray-600">Vote variable</label>
                 <input v-model.number="gp.fields.vote_variable" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">A small boost used in each issue comparison. Raising it makes issue disagreements matter a little less.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600">Max swing</label>
                 <input v-model.number="gp.fields.max_swing" type="number" step="0.01" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">An older TCT setting that limits how far polling can swing. Most mods can leave this alone.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600">Start point</label>
                 <input v-model.number="gp.fields.start_point" type="number" step="0.01" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">An older TCT starting value for polling. Most mods can leave this alone.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600">Question count</label>
                 <input v-model.number="gp.fields.question_count" type="number" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">How many questions the player answers before election night begins.</p>
             </div>
-             <div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Candidate issue weight</label>
+                <input v-model.number="gp.fields.candidate_issue_weight" type="number" step="0.1" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">How much the presidential candidate's views count when the ticket's overall views are combined.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Running mate issue weight</label>
+                <input v-model.number="gp.fields.running_mate_issue_weight" type="number" step="0.1" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">How much the running mate's views count. Compare this with the candidate weight to set the ticket's balance.</p>
+            </div>
+            <div>
                 <label class="block text-xs font-medium text-gray-600">Global variance</label>
                 <input v-model.number="gp.fields.global_variance" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">How much random movement can affect polling across the whole country. Higher values mean more surprises.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600">State variance</label>
                 <input v-model.number="gp.fields.state_variance" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">How much random movement can affect individual states. Higher values make state results less predictable.</p>
+            </div>
+            <div class="col-span-2 border-t pt-3">
+                <h4 class="text-sm font-semibold text-gray-700">Issue stance thresholds</h4>
+                <p class="mt-1 text-xs text-gray-500">These cutoffs turn issue scores from -1 to 1 into the seven stance labels shown in the game. Keep them in ascending order.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 1 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_1_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores at or below this cutoff are shown as stance 1.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 2 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_2_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores up to this cutoff are shown as stance 2.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 3 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_3_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores up to this cutoff are shown as stance 3.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 4 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_4_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores up to this cutoff are shown as stance 4, the middle or neutral stance.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 5 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_5_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores up to this cutoff are shown as stance 5.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">Stance 6 upper bound</label>
+                <input v-model.number="gp.fields.issue_stance_6_max" type="number" step="0.001" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Scores up to this cutoff are shown as stance 6. Higher scores are shown as stance 7.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600">Default map color</label>
                 <input v-model="gp.fields.default_map_color_hex" type="text" class="mt-1 block w-full rounded border-gray-300 font-mono text-xs">
+                <p class="mt-1 text-xs text-gray-500">The color used for states that have not been called yet or have no clear result.</p>
             </div>
-             <div>
+            <div>
                 <label class="block text-xs font-medium text-gray-600">No state map color</label>
                 <input v-model="gp.fields.no_state_map_color_hex" type="text" class="mt-1 block w-full rounded border-gray-300 font-mono text-xs">
+                <p class="mt-1 text-xs text-gray-500">The color used for map areas that do not have voting data.</p>
             </div>
         </div>
     </div>
