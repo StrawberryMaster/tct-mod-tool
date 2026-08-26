@@ -83,6 +83,9 @@ class TCTCode1Data {
             if (this.elections[0].fields.recommended_reading_enabled == null) {
                 this.elections[0].fields.recommended_reading_enabled = true;
             }
+            if (this.elections[0].fields.has_visits == null) {
+                this.elections[0].fields.has_visits = 0;
+            }
             if (this.elections[0].fields.site_description == null) {
                 this.elections[0].fields.site_description = "";
             }
@@ -569,6 +572,9 @@ applyTheme(theme);
 
             if (this.elections?.[0]?.fields) {
                 this.elections[0].fields.recommended_reading_enabled = result.RecReading !== false;
+                if (this.elections[0].fields.has_visits == null) {
+                    this.elections[0].fields.has_visits = 0;
+                }
                 if (result.RecReading && typeof result.RecReading === 'string') {
                     this.elections[0].fields.recommended_reading = result.RecReading;
                 }

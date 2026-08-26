@@ -174,6 +174,11 @@ registerCode1Component('election-editor', {
                 <input v-model="election.fields.image_url" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700">Advisor images URL</label>
+                <input v-model="election.fields.advisor_url" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <p class="mt-1 text-xs text-gray-500">URL for the advisor images shown during the campaign.</p>
+            </div>
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Summary (HTML)</label>
                 <textarea v-model="election.fields.summary" rows="5" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
             </div>
@@ -188,6 +193,10 @@ registerCode1Component('election-editor', {
                         This section will be shown on the Campaign Trail Showcase modboxes <span class="font-medium">instead of</span> the summary text. Clear this field to fall back to the summary.
                     </template>
                 </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input id="has_visits" type="checkbox" :checked="election.fields.has_visits === 1" @change="setHasVisits(election, $event)" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                <label for="has_visits" class="text-sm font-medium text-gray-700">Enable state visits</label>
             </div>
             <div class="flex items-center gap-2">
                 <input id="recommended_reading_enabled" type="checkbox" v-model="election.fields.recommended_reading_enabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
@@ -208,6 +217,9 @@ registerCode1Component('election-editor', {
     </div>
     `,
     methods: {
+        setHasVisits(election, event) {
+            election.fields.has_visits = event.target.checked ? 1 : 0;
+        },
         changeElectionPk(election, event) {
             const newPk = Number(event.target.value);
             const oldPk = election.pk;
