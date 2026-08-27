@@ -374,6 +374,9 @@ class TCTCode1Data {
     generateThemeCode() {
         const jd = this.jet_data;
         let quoteHtml = jd.customQuote ? `<font id="wittyquote" size="4"><em>${jd.customQuote}</em></font>` : "";
+        const headerMarkup = jd.gameTitle !== "THE CAMPAIGN TRAIL" || jd.customQuote
+            ? `\n              <h2>${jd.gameTitle}</h2>${quoteHtml}\n            `
+            : null;
 
         return `
 function applyTheme(theme) {
@@ -415,7 +418,7 @@ function applyTheme(theme) {
     document.head.appendChild(style);
 }
 
-${jd.gameTitle !== "THE CAMPAIGN TRAIL" || jd.customQuote ? `corrr = '\\n              <h2>${jd.gameTitle}</h2>${quoteHtml}\\n            ';` : ""}
+${headerMarkup !== null ? `corrr = ${JSON.stringify(headerMarkup)};` : ""}
 
 const theme = nct_stuff.themes[nct_stuff.selectedTheme];
 
