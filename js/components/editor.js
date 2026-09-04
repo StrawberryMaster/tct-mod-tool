@@ -13,7 +13,9 @@ registerComponent('toolbar', {
             editPresetName: '',
             editPresetDescription: '',
             isMinimized: false,
-            clipboardText: 'Copy to Clipboard'
+            clipboardText: 'Copy to Clipboard',
+            showImportModal: false,
+            importText: ''
         };
     },
 
@@ -43,7 +45,7 @@ registerComponent('toolbar', {
         <!-- Collapsible content -->
         <div v-show="!isMinimized" class="p-4">
             <div class="space-y-3">
-                <input type="file" id="file" style="display:none;" @change="fileUploaded($event)"></input>
+                <input type="file" id="file" style="display:none;" accept=".txt,.js,.json,.html,text/plain,application/javascript" @change="fileUploaded($event)"></input>
                 <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="importCode2()">Import Code 2</button>
                     <button class="theme-control w-full px-3 py-2 rounded-sm text-sm transition-colors" @click="exportCode2()">Export Code 2</button>
@@ -191,6 +193,25 @@ registerComponent('toolbar', {
                 </div>
             </div>
         </div>
+
+        <!-- Import Code 2 modal -->
+        <div v-if="showImportModal" class="fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-black/50" @click="showImportModal=false"></div>
+            <div class="absolute inset-0 flex items-center justify-center p-4">
+                <div class="theme-panel p-6 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="background: var(--utility-bg-white)">
+                    <h2 class="text-xl font-bold mb-4" style="color: var(--app-text)">Import Code 2</h2>
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm" style="color: var(--utility-text-gray)">Paste code below, or pick a file to import directly.</p>
+                        <button @click="openImportFilePicker" class="theme-control px-3 py-1 rounded text-sm">Choose file</button>
+                    </div>
+                    <textarea v-model="importText" class="w-full h-64 p-2 border rounded mb-4 font-mono text-sm" style="background: var(--utility-input-bg); color: var(--utility-input-text); border-color: var(--utility-input-border);" placeholder="Paste your Code 2 here..."></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button @click="showImportModal = false" class="theme-control px-4 py-2 rounded">Cancel</button>
+                        <button @click="doImport" class="theme-control theme-control--primary px-4 py-2 rounded">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     `,
 
@@ -262,6 +283,133 @@ registerComponent('toolbar', {
             this.localAutosaveEnabled = newState;
         },
 
+        stripJsonComments: function (input) {
+            // remove JS-style comments but preserve strings
+            // this lets mods such as the original Obamanation display here
+            // while keeping custom JS comments between #startcode/#endcode untouched
+            const preserveCustomCodeBlocks = (source, transform) => {
+                const preservedBlocks = [];
+                const markerBlockRegex = /(?:\/\/\s*)?#\s*startcode[\s\S]*?(?:\/\/\s*)?#\s*endcode/gi;
+
+                const tokenized = source.replace(markerBlockRegex, (block) => {
+                    const token = `__TCT_CUSTOM_CODE_BLOCK_${preservedBlocks.length}__`;
+                    preservedBlocks.push(block);
+                    return token;
+                });
+
+                const transformed = transform(tokenized);
+                return transformed.replace(/__TCT_CUSTOM_CODE_BLOCK_(\d+)__/g, (match, idxStr) => {
+                    const idx = Number(idxStr);
+                    return Number.isInteger(idx) && preservedBlocks[idx] != null
+                        ? preservedBlocks[idx]
+                        : match;
+                });
+            };
+
+            return preserveCustomCodeBlocks(input, (safeInput) => {
+                let out = '';
+                let i = 0;
+                let inString = false;
+                let stringChar = '';
+                let escape = false;
+                let inSingleLine = false;
+                let inMultiLine = false;
+
+                while (i < safeInput.length) {
+                    const ch = safeInput[i];
+                    const chNext = safeInput[i + 1];
+
+                    if (inSingleLine) {
+                        if (ch === '\n' || ch === '\r') {
+                            inSingleLine = false;
+                            out += ch;
+                        }
+                        // otherwise skip
+                        i++;
+                        continue;
+                    }
+
+                    if (inMultiLine) {
+                        if (ch === '*' && chNext === '/') {
+                            inMultiLine = false;
+                            i += 2;
+                            continue;
+                        }
+                        i++;
+                        continue;
+                    }
+
+                    if (inString) {
+                        out += ch;
+                        if (!escape && ch === stringChar) {
+                            inString = false;
+                            stringChar = '';
+                        }
+                        escape = (!escape && ch === '\\') ? true : false;
+                        i++;
+                        continue;
+                    }
+
+                    // not in string/comment
+                    if (ch === '"' || ch === "'") {
+                        inString = true;
+                        stringChar = ch;
+                        out += ch;
+                        i++;
+                        continue;
+                    }
+
+                    // single-line comment
+                    if (ch === '/' && chNext === '/') {
+                        inSingleLine = true;
+                        i += 2;
+                        continue;
+                    }
+
+                    // multi-line comment
+                    if (ch === '/' && chNext === '*') {
+                        inMultiLine = true;
+                        i += 2;
+                        continue;
+                    }
+
+                    out += ch;
+                    i++;
+                }
+
+                return out;
+            });
+        },
+
+        loadCode2FromRaw: function (raw, filename) {
+            // preserve original (with comments) for export
+            this.$TCT_raw = raw;
+
+            // strip comments before handing to loader
+            const stripped = this.stripJsonComments(raw);
+
+            // parse!
+            const parsed = loadDataFromFile(stripped);
+            window.$updateGlobalTCT(parsed);
+
+            const firstQuestionPk = Array.from(parsed.questions.values())[0].pk;
+
+            // force question component to refresh even if pk is the same
+            // useful in cases when importing mods works, but doesn't update the question you're currently in
+            this.$globalData.question = null;
+            this.$nextTick(() => {
+                this.$globalData.question = firstQuestionPk;
+            });
+
+            this.$globalData.state = Object.values(parsed.states)[0].pk;
+            this.$globalData.issue = Object.values(parsed.issues)[0].pk;
+            this.$globalData.candidate = getListOfCandidates()[0][0];
+            if (filename) {
+                this.$globalData.filename = filename;
+            }
+            this.$globalData.dataVersion++;
+        },
+
         fileUploaded: function (evt) {
             const file = evt.target.files[0];
 
@@ -269,131 +417,13 @@ registerComponent('toolbar', {
                 const reader = new FileReader();
                 reader.readAsText(file, "UTF-8");
 
-                // remove JS-style comments but preserve strings
-                // this lets mods such as the original Obamanation display here
-                // while keeping custom JS comments between #startcode/#endcode untouched
-                const stripJsonComments = (input) => {
-                    const preserveCustomCodeBlocks = (source, transform) => {
-                        const preservedBlocks = [];
-                        const markerBlockRegex = /(?:\/\/\s*)?#\s*startcode[\s\S]*?(?:\/\/\s*)?#\s*endcode/gi;
-
-                        const tokenized = source.replace(markerBlockRegex, (block) => {
-                            const token = `__TCT_CUSTOM_CODE_BLOCK_${preservedBlocks.length}__`;
-                            preservedBlocks.push(block);
-                            return token;
-                        });
-
-                        const transformed = transform(tokenized);
-                        return transformed.replace(/__TCT_CUSTOM_CODE_BLOCK_(\d+)__/g, (match, idxStr) => {
-                            const idx = Number(idxStr);
-                            return Number.isInteger(idx) && preservedBlocks[idx] != null
-                                ? preservedBlocks[idx]
-                                : match;
-                        });
-                    };
-
-                    return preserveCustomCodeBlocks(input, (safeInput) => {
-                        let out = '';
-                        let i = 0;
-                        let inString = false;
-                        let stringChar = '';
-                        let escape = false;
-                        let inSingleLine = false;
-                        let inMultiLine = false;
-
-                        while (i < safeInput.length) {
-                            const ch = safeInput[i];
-                            const chNext = safeInput[i + 1];
-
-                            if (inSingleLine) {
-                                if (ch === '\n' || ch === '\r') {
-                                    inSingleLine = false;
-                                    out += ch;
-                                }
-                                // otherwise skip
-                                i++;
-                                continue;
-                            }
-
-                            if (inMultiLine) {
-                                if (ch === '*' && chNext === '/') {
-                                    inMultiLine = false;
-                                    i += 2;
-                                    continue;
-                                }
-                                i++;
-                                continue;
-                            }
-
-                            if (inString) {
-                                out += ch;
-                                if (!escape && ch === stringChar) {
-                                    inString = false;
-                                    stringChar = '';
-                                }
-                                escape = (!escape && ch === '\\') ? true : false;
-                                i++;
-                                continue;
-                            }
-
-                            // not in string/comment
-                            if (ch === '"' || ch === "'") {
-                                inString = true;
-                                stringChar = ch;
-                                out += ch;
-                                i++;
-                                continue;
-                            }
-
-                            // single-line comment
-                            if (ch === '/' && chNext === '/') {
-                                inSingleLine = true;
-                                i += 2;
-                                continue;
-                            }
-
-                            // multi-line comment
-                            if (ch === '/' && chNext === '*') {
-                                inMultiLine = true;
-                                i += 2;
-                                continue;
-                            }
-
-                            out += ch;
-                            i++;
-                        }
-
-                        return out;
-                    });
-                };
-
-                reader.onload = (evt) => {
+                reader.onload = (loadEvt) => {
                     try {
-                        const raw = evt.target.result;
-                        // preserve original (with comments) for export
-                        this.$TCT_raw = raw;
-
-                        // strip comments before handing to loader
-                        const stripped = stripJsonComments(raw);
-
-                        // parse!
-                        const parsed = loadDataFromFile(stripped);
-                        window.$updateGlobalTCT(parsed);
-
-                        const firstQuestionPk = Array.from(parsed.questions.values())[0].pk;
-
-                        // force question component to refresh even if pk is the same
-                        // useful in cases when importing mods works, but doesn't update the question you're currently in
-                        this.$globalData.question = null;
-                        this.$nextTick(() => {
-                            this.$globalData.question = firstQuestionPk;
-                        });
-
-                        this.$globalData.state = Object.values(parsed.states)[0].pk;
-                        this.$globalData.issue = Object.values(parsed.issues)[0].pk;
-                        this.$globalData.candidate = getListOfCandidates()[0][0];
-                        this.$globalData.filename = file.name;
-                        this.$globalData.dataVersion++;
+                        const raw = loadEvt.target.result;
+                        this.importText = typeof raw === 'string' ? raw : '';
+                        this.loadCode2FromRaw(raw, file.name);
+                        this.showImportModal = false;
+                        alert("Import successful!");
                     } catch (e) {
                         alert("Error parsing uploaded file: " + e)
                     }
@@ -408,8 +438,34 @@ registerComponent('toolbar', {
         },
 
         importCode2: function () {
+            this.openImport();
+        },
+
+        openImport: function () {
+            this.showImportModal = true;
+            this.importText = '';
+        },
+
+        openImportFilePicker: function () {
             const input = document.getElementById("file");
-            input.click();
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        },
+
+        doImport: function () {
+            if (!this.importText || !this.importText.trim()) {
+                alert("Nothing to import. Paste your Code 2 first.");
+                return;
+            }
+            try {
+                this.loadCode2FromRaw(this.importText);
+                this.showImportModal = false;
+                alert("Import successful!");
+            } catch (e) {
+                alert("Import failed: " + e);
+            }
         },
 
 
