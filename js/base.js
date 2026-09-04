@@ -1908,6 +1908,43 @@ class TCTData {
         return fallback;
     }
 
+    _resolveMapElementAbbr(el) {
+        let node = el;
+        while (node && typeof node.getAttribute === 'function') {
+            const abbrAttr = node.getAttribute('data-abbr');
+            if (abbrAttr && abbrAttr.trim() !== '') {
+                return abbrAttr.trim();
+            }
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    _sanitizeMapAbbr(raw, fallback) {
+        let s = String(raw ?? '').trim().replaceAll('-', '_');
+        s = s.replace(/[^A-Za-z0-9_ ]/g, '').trim().replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+        if (!s) {
+            s = fallback;
+        }
+        return s;
+    }
+
+    _dedupeMapAbbr(abbr, usedAbbrs, warnings, idAttr) {
+        if (!usedAbbrs.has(abbr)) {
+            usedAbbrs.add(abbr);
+            return abbr;
+        }
+        let n = 2;
+        let candidate = `${abbr}_${n}`;
+        while (usedAbbrs.has(candidate)) {
+            n++;
+            candidate = `${abbr}_${n}`;
+        }
+        warnings.push(`Duplicate state abbreviation "${abbr}" from id "${idAttr}" renamed to "${candidate}". Give the element a unique data-abbr attribute to control this.`);
+        usedAbbrs.add(candidate);
+        return candidate;
+    }
+
     _collectTransformChain(el) {
         const transforms = [];
         let node = el;
@@ -2082,6 +2119,7 @@ class TCTData {
                 }
 
                 const shapeNodes = svgDoc.querySelectorAll('path, polygon, polyline, rect, circle, ellipse, line');
+                const usedAbbrs = new Set();
 
                 for (let i = 0; i < shapeNodes.length; i++) {
                     const node = shapeNodes[i];
@@ -2100,7 +2138,9 @@ class TCTData {
 
                     const transformAttr = this._collectTransformChain(node);
 
-                    const abbr = idAttr.split(' ')[0].replaceAll('-', '_');
+                    const abbrRaw = this._resolveMapElementAbbr(node) || idAttr;
+                    let abbr = this._sanitizeMapAbbr(abbrRaw, `State_${i}`);
+                    abbr = this._dedupeMapAbbr(abbr, usedAbbrs, warnings, idAttr);
                     const nameAttr = this._resolveMapElementName(node, idAttr);
                     out.push({
                         id: idAttr,
@@ -2111,15 +2151,6 @@ class TCTData {
                         tag,
                         index: i
                     });
-                }
-
-                const seenAbbr = new Set();
-                for (let i = 0; i < out.length; i++) {
-                    const abbr = out[i].abbr;
-                    if (seenAbbr.has(abbr)) {
-                        warnings.push(`Duplicate state abbreviation "${abbr}" detected from id "${out[i].id}".`);
-                    }
-                    seenAbbr.add(abbr);
                 }
 
                 return { out, warnings };
@@ -2133,9 +2164,12 @@ class TCTData {
         const pathRegex = /<path\b[^>]*>/gi;
         const idReStrict = /(?:^|[\s"'<])id\s*=\s*"([^"]+)"/i;
         const dataIdRe = /(?:^|[\s"'<])data-id\s*=\s*"([^"]+)"/i;
+        const dataAbbrRe = /(?:^|[\s"'<])data-abbr\s*=\s*"([^"]+)"/i;
+        const dataNameRe = /(?:^|[\s"'<])data-name\s*=\s*"([^"]+)"/i;
         const dReStrict = /(?:^|[\s"'<])d\s*=\s*"([^"]+)"/i;
         const transformRe = /(?:^|[\s"'<])transform\s*=\s*"([^"]+)"/i;
         const paths = svg.match(pathRegex) || [];
+        const usedAbbrs = new Set();
 
         for (let i = 0; i < paths.length; i++) {
             const tag = paths[i];
@@ -2151,8 +2185,11 @@ class TCTData {
             const d = dMatch[1];
             const transformMatch = transformRe.exec(tag);
             const transform = transformMatch?.[1]?.trim() || '';
-            const abbr = id.split(' ')[0].replaceAll('-', '_');
-            out.push({ id, abbr, name: id, d, transform, tag: 'path', index: i });
+            const abbrMatch = dataAbbrRe.exec(tag);
+            const nameMatch = dataNameRe.exec(tag);
+            let abbr = this._sanitizeMapAbbr((abbrMatch?.[1] || id).trim(), `State_${i}`);
+            abbr = this._dedupeMapAbbr(abbr, usedAbbrs, warnings, id);
+            out.push({ id, abbr, name: (nameMatch?.[1] || id), d, transform, tag: 'path', index: i });
         }
 
         return { out, warnings };
@@ -2528,7 +2565,15 @@ class TCTData {
 
         // helper to stringify data collections
         const stringifyCollection = (name, collection, isMap = false) => {
-            const data = isMap ? Array.from(collection.values()) : Object.values(collection);
+            let data = isMap ? Array.from(collection.values()) : Object.values(collection);
+            if (name === "states_json") {
+                // map geometry ("d"/"transform") is tool-internal only
+                // and is not part of the game engine, so strip it from the export
+                data = data.map((state) => {
+                    const { d, transform, ...rest } = state;
+                    return rest;
+                });
+            }
             const json = JSON.stringify(data, null, 4).replaceAll("â€™", "'");
             return `campaignTrail_temp.${name} = ${json};\n\n`;
         };
