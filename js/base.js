@@ -1973,7 +1973,8 @@ class TCTData {
 
     _readSvgNumber(el, attrName, fallback = 0) {
         const raw = el.getAttribute(attrName);
-        const num = Number(raw);
+        if (raw == null || raw === '') return fallback;
+        const num = parseFloat(raw);
         return Number.isFinite(num) ? num : fallback;
     }
 
@@ -2516,13 +2517,40 @@ class TCTData {
         this._invalidateCache('state_issue_scores_by_issue');
     }
 
+    _getMapShapeLookup() {
+        try {
+            const svg = this.jet_data?.mapping_data?.mapSvg;
+            if (!svg || typeof svg !== 'string') return null;
+            const parsed = this._extractMapShapes(svg);
+            const map = {};
+            for (const s of parsed.out) {
+                if (!(s.abbr in map)) map[s.abbr] = s;
+                if (s.id && !(s.id in map)) map[s.id] = s;
+            }
+            return map;
+        } catch (e) {
+            return null;
+        }
+    }
+
     getStateJavascriptForMapping() {
         const states = Object.values(this.states);
         const parts = new Array(states.length);
+        const lookup = states.some((s) => s.d == null) ? this._getMapShapeLookup() : null;
 
         for (let i = 0; i < states.length; i++) {
             const state = states[i];
-            parts[i] = `"${state.fields.abbr}":"${state.d}"`;
+            let d = state.d;
+            if (d == null && state.fields?.d != null) d = state.fields.d;
+            if (d == null && lookup) {
+                const hit = lookup[state.fields.abbr];
+                if (hit) d = hit.d;
+            }
+            if (d == null) {
+                console.warn(`Map export: no shape "d" for state "${state.fields.abbr}". Emitting empty path instead; please re-import the SVG via Mapping tab.`);
+                d = "";
+            }
+            parts[i] = `"${state.fields.abbr}":"${String(d).replaceAll('"', '\\"')}"`;
         }
 
         return parts.join(", ");
@@ -2534,7 +2562,12 @@ class TCTData {
 
         for (let i = 0; i < states.length; i++) {
             const state = states[i];
-            const transform = state.transform;
+            let transform = state.transform ?? state.fields?.transform ?? "";
+            if (!transform) {
+                const lookup = this._getMapShapeLookup?.();
+                const hit = lookup?.[state.fields.abbr];
+                if (hit?.transform) transform = hit.transform;
+            }
 
             if (!transform) continue;
 
@@ -2722,7 +2755,7 @@ class TCTData {
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
         const jetDataStr = JSON.stringify(this.jet_data, (key, value) => {
             if (key === "code_to_add") return undefined;
-            if (key === "mapSvg") return "";
+            if (key === "lastImportWarnings") return undefined;
             if (value === false) return undefined;
             if (value == null) return undefined;
             if (Array.isArray(value) && value.length === 0) return undefined;
@@ -4037,6 +4070,29 @@ function loadDataFromFile(raw_json) {
     jet_data.nicknames = jet_data.nicknames || {};
     jet_data.banner_data = jet_data.banner_data || {};
     jet_data.mapping_data = jet_data.mapping_data || {};
+
+    // this restores map geometry data stripped from states_json on export
+    // states may carry d/transform at top level or inside fields; older saves
+    // have neither?, so rebuild from the preserved mapSvg when available
+    try {
+        const svg = jet_data.mapping_data.mapSvg;
+        const needsShapes = Object.values(states).some((s) => s.d == null && s.fields?.d == null);
+        if (svg && typeof svg === 'string' && svg.length > 0 && needsShapes) {
+            const tmp = new TCTData({ states: {}, jet_data });
+            const parsed = tmp._extractMapShapes(svg);
+            const byAbbr = {};
+            for (const shape of parsed.out) {
+                if (!(shape.abbr in byAbbr)) byAbbr[shape.abbr] = shape;
+            }
+            for (const key of Object.keys(states)) {
+                const st = states[key];
+                if (st.d == null && st.fields?.d == null && byAbbr[st.fields?.abbr]) {
+                    st.d = byAbbr[st.fields.abbr].d;
+                    st.transform = byAbbr[st.fields.abbr].transform || "";
+                }
+            }
+        }
+    } catch (e) { console.warn("Map shape restore failed:", e); }
 
     duplicateCounters.forEach((count, label) => count > 0 && console.log(`Remapped ${count} duplicates in ${label}`));
 
