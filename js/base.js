@@ -2775,6 +2775,7 @@ class TCTData {
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
         const jetDataStr = JSON.stringify(this.jet_data, (key, value) => {
             if (key === "code_to_add") return undefined;
+            if (key === "mapSvg") return undefined;
             if (key === "lastImportWarnings") return undefined;
             if (value === false) return undefined;
             if (value == null) return undefined;
@@ -4053,9 +4054,29 @@ function loadDataFromFile(raw_json) {
                 if (viewBoxMatch) {
                     viewBox = viewBoxMatch.slice(1, 5).join(" ");
                 }
-                jet_data.mapping_data = { mapSvg: `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>` };
+                const [dx, dy, x, y] = viewBox.split(" ").map(Number);
+                jet_data.mapping_data = {
+                    mapSvg: `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>`,
+                    dx: Number.isFinite(dx) ? dx : 0,
+                    dy: Number.isFinite(dy) ? dy : 0,
+                    x: Number.isFinite(x) ? x : 925,
+                    y: Number.isFinite(y) ? y : 925
+                };
                 jet_data.mapping_enabled = true;
             }
+        }
+    }
+
+    // some older imports may retain the SVG cache without the matching viewport fields
+    if (hasUsableMapSvg) {
+        const viewBoxMatch = existingMapSvg.match(/\bviewBox\s*=\s*["']\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*["']/i);
+        if (viewBoxMatch) {
+            jet_data.mapping_data = jet_data.mapping_data || {};
+            const [dx, dy, x, y] = viewBoxMatch.slice(1, 5).map(Number);
+            if (!Number.isFinite(Number(jet_data.mapping_data.dx))) jet_data.mapping_data.dx = dx;
+            if (!Number.isFinite(Number(jet_data.mapping_data.dy))) jet_data.mapping_data.dy = dy;
+            if (!Number.isFinite(Number(jet_data.mapping_data.x))) jet_data.mapping_data.x = x;
+            if (!Number.isFinite(Number(jet_data.mapping_data.y))) jet_data.mapping_data.y = y;
         }
     }
 
