@@ -1092,6 +1092,8 @@ class TCTData {
         this.jet_data = jet_data
         this._indices = {};
 
+        this.normalizeStateMetadata();
+
         if (this.jet_data.bunnyhop_enabled == null) this.jet_data.bunnyhop_enabled = false;
         if (this.jet_data.bunnyhop_pools == null) this.jet_data.bunnyhop_pools = [];
         if (this.jet_data.cyoa_enabled == null) this.jet_data.cyoa_enabled = false;
@@ -1177,7 +1179,9 @@ class TCTData {
 
     clean(obj) {
         if (!obj || typeof obj !== 'object') return;
+        const textFields = new Set(['name', 'abbr', 'd', 'transform']);
         for (const [key, val] of Object.entries(obj)) {
+            if (textFields.has(key)) continue;
             if (typeof val === 'string') {
                 const trimmed = val.trim();
                 if (trimmed !== '') {
@@ -1187,6 +1191,17 @@ class TCTData {
                     }
                 }
             }
+        }
+    }
+
+    normalizeStateMetadata() {
+        for (const state of Object.values(this.states || {})) {
+            if (!state || typeof state !== 'object') continue;
+            if (!state.fields || typeof state.fields !== 'object') state.fields = {};
+            if (state.fields.name != null) state.fields.name = String(state.fields.name);
+            if (state.fields.abbr != null) state.fields.abbr = String(state.fields.abbr);
+            if (state.d != null) state.d = String(state.d);
+            if (state.transform != null) state.transform = String(state.transform);
         }
     }
 
@@ -2472,15 +2487,20 @@ class TCTData {
         const cans = this.getAllCandidatePKs();
         const issues = Object.keys(this.issues);
 
-        const existingStateKeys = Object.keys(this.states);
-        existingStateKeys.forEach((x) => this.deleteState(x));
-        // clear related caches handled by deleteState
-
         const svg = this.jet_data.mapping_data.mapSvg || "";
         const electionPk = this.jet_data.mapping_data.electionPk ?? -1;
 
         const parsed = this._extractMapShapes(svg);
         this.jet_data.mapping_data.lastImportWarnings = parsed.warnings;
+
+        if (parsed.out.length === 0) {
+            console.warn("Map import skipped: no valid shapes were found; existing states were preserved.");
+            return;
+        }
+
+        const existingStateKeys = Object.keys(this.states);
+        existingStateKeys.forEach((x) => this.deleteState(x));
+        // clear related caches handled by deleteState
 
         for (let i = 0; i < parsed.out.length; i++) {
             const shape = parsed.out[i];
@@ -2489,8 +2509,8 @@ class TCTData {
                 "model": "campaign_trail.state",
                 "pk": newPk,
                 "fields": {
-                    "name": shape.name || shape.abbr,
-                    "abbr": shape.abbr,
+                    "name": String(shape.name || shape.abbr),
+                    "abbr": String(shape.abbr),
                     "electoral_votes": 1,
                     "popular_votes": 10,
                     "poll_closing_time": 120,
@@ -4003,21 +4023,35 @@ function loadDataFromFile(raw_json) {
         }
     }
 
-    // inject fallback map - if logic is outdated
-    if (!jet_data.mapping_enabled && (!jet_data.mapping_data || !jet_data.mapping_data.mapSvg)) {
-        const mapInjectorMatch = raw_json.match(/_initCreateStates:function\(\)\{[^}]*?var\s+\w+\s*=\s*(\{[\s\S]+?\});/);
-        if (mapInjectorMatch) {
-            const pathRegex = /(?:["']([\w\s\.-]+)["']|([\w\s\.-]+))\s*:\s*"([^"]+)"/g;
-            let pathMatch, svgPaths = [];
-            while ((pathMatch = pathRegex.exec(mapInjectorMatch[1])) !== null) {
-                svgPaths.push(`<path id="${pathMatch[1] || pathMatch[2]}" d="${pathMatch[3]}" />`);
+    // recover maps emitted by older Code 2 exports. to make things easier, the export contains a
+    // JS object of path data rather than the SVG consumed by this tool
+    const existingMapSvg = jet_data.mapping_data?.mapSvg;
+    const hasUsableMapSvg = typeof existingMapSvg === 'string' &&
+        /<(?:path|polygon|polyline|rect|circle|ellipse|line)\b[^>]*(?:\sd|\spoints|\sx1|\scx|\sx)=\s*["'][^"']+[^"']*["']/i.test(existingMapSvg);
+    if (!hasUsableMapSvg) {
+        const decodedMapSource = raw_json
+            .replaceAll("&quot;", '"')
+            .replaceAll("&amp;", "&")
+            .replaceAll("&lt;", "<")
+            .replaceAll("&gt;", ">");
+        const mapObjectMatch = decodedMapSource.match(/_initCreateStates:function\(\)\{[\s\S]*?var\s+\w+\s*=\s*(\{[\s\S]*?\});\s*var\s+tr\s*=/);
+        if (mapObjectMatch) {
+            const pathRegex = /(?:["']((?:\\.|[^"'])+)["']|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
+            const svgPaths = [];
+            let pathMatch;
+            while ((pathMatch = pathRegex.exec(mapObjectMatch[1])) !== null) {
+                const name = pathMatch[1] || pathMatch[2];
+                const path = pathMatch[3].replaceAll('\\"', '"');
+                if (!path.trim()) continue;
+                const escapedName = name.replaceAll('"', '&quot;');
+                svgPaths.push(`<path id="${escapedName}" data-name="${escapedName}" d="${path}" />`);
             }
+
             if (svgPaths.length > 0) {
                 let viewBox = "0 0 960 600";
-                const vbOffsets = raw_json.match(/this\.paper\.setViewBox\(([\d\.-]+),([\d\.-]+)/);
-                if (vbOffsets) {
-                    const dimsMatch = raw_json.match(/var\s+o=(\d+),u=(\d+)/);
-                    viewBox = `${vbOffsets[1]} ${vbOffsets[2]} ${dimsMatch ? '1100 ' + dimsMatch[2] : '1000 600'}`;
+                const viewBoxMatch = raw_json.match(/this\.paper\.setViewBox\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)/);
+                if (viewBoxMatch) {
+                    viewBox = viewBoxMatch.slice(1, 5).join(" ");
                 }
                 jet_data.mapping_data = { mapSvg: `<svg viewBox="${viewBox}">${svgPaths.join("")}</svg>` };
                 jet_data.mapping_enabled = true;
