@@ -1830,17 +1830,17 @@ registerComponent('integrated-state-effect-visualizer', {
 
         resetViewport() {
             this.zoom = 1;
-            this.panX = 0;
-            this.panY = 0;
+            const mapping = this.$TCT?.jet_data?.mapping_data || {};
+            const dx = Number(mapping.dx);
+            const dy = Number(mapping.dy);
+            this.panX = Number.isFinite(dx) ? dx : 0;
+            this.panY = Number.isFinite(dy) ? dy : 0;
         },
 
         getStateTransform(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                let entry = this.mapData.find(item => item[0] === abbr);
-                if (entry) return entry[2] || '';
-                const normalized = abbr.replaceAll('-', '_');
-                entry = this.mapData.find(item => item[0] === normalized);
+                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
                 if (entry) return entry[2] || '';
             }
             return state.transform || '';
@@ -1953,10 +1953,7 @@ registerComponent('integrated-state-effect-visualizer', {
         getStatePath(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                let entry = this.mapData.find(item => item[0] === abbr);
-                if (entry) return entry[1];
-                const normalized = abbr.replaceAll('-', '_');
-                entry = this.mapData.find(item => item[0] === normalized);
+                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
                 if (entry) return entry[1];
             }
             if (state.d) return state.d;

@@ -2231,6 +2231,270 @@ class TCTData {
         return previewData;
     }
 
+    _parseSvgTransformToMatrix(transformStr) {
+        const identity = [1, 0, 0, 1, 0, 0];
+        if (!transformStr || typeof transformStr !== 'string' || transformStr.trim() === '') {
+            return identity;
+        }
+
+        const multiply = (m1, m2) => [
+            m1[0] * m2[0] + m1[2] * m2[1],
+            m1[1] * m2[0] + m1[3] * m2[1],
+            m1[0] * m2[2] + m1[2] * m2[3],
+            m1[1] * m2[2] + m1[3] * m2[3],
+            m1[0] * m2[4] + m1[2] * m2[5] + m1[4],
+            m1[1] * m2[4] + m1[3] * m2[5] + m1[5],
+        ];
+
+        const numRe = /[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g;
+        const readNums = (s) => (s.match(numRe) || []).map(Number).filter((n) => Number.isFinite(n));
+
+        let result = identity;
+        const fnRe = /(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)/gi;
+        let match;
+        let found = false;
+        while ((match = fnRe.exec(transformStr)) !== null) {
+            found = true;
+            const name = match[1].toLowerCase();
+            const nums = readNums(match[2]);
+            let m = null;
+            if (name === 'matrix' && nums.length >= 6) {
+                m = [nums[0], nums[1], nums[2], nums[3], nums[4], nums[5]];
+            } else if (name === 'translate') {
+                const tx = nums[0] || 0;
+                const ty = nums.length >= 2 ? nums[1] : 0;
+                m = [1, 0, 0, 1, tx, ty];
+            } else if (name === 'scale') {
+                const sx = nums.length >= 1 ? nums[0] : 1;
+                const sy = nums.length >= 2 ? nums[1] : sx;
+                m = [sx, 0, 0, sy, 0, 0];
+            } else if (name === 'rotate') {
+                const angle = (nums[0] || 0) * Math.PI / 180;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const rot = [cos, sin, -sin, cos, 0, 0];
+                if (nums.length >= 3) {
+                    const cx = nums[1];
+                    const cy = nums[2];
+                    const toOrigin = [1, 0, 0, 1, -cx, -cy];
+                    const back = [1, 0, 0, 1, cx, cy];
+                    m = multiply(back, multiply(rot, toOrigin));
+                } else {
+                    m = rot;
+                }
+            } else if (name === 'skewx') {
+                m = [1, 0, Math.tan((nums[0] || 0) * Math.PI / 180), 1, 0, 0];
+            } else if (name === 'skewy') {
+                m = [1, Math.tan((nums[0] || 0) * Math.PI / 180), 0, 1, 0, 0];
+            }
+            if (m) {
+                result = multiply(result, m);
+            }
+        }
+
+        return found ? result : identity;
+    }
+
+    _pathEndpointsBbox(d) {
+        if (!d || typeof d !== 'string') return null;
+        const tokenRe = /[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g;
+        const tokens = d.match(tokenRe);
+        if (!tokens) return null;
+
+        const arity = {
+            M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0,
+        };
+
+        let cx = 0;
+        let cy = 0;
+        let sx = 0;
+        let sy = 0;
+        let started = false;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        const record = (x, y) => {
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+            started = true;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+        };
+
+        let i = 0;
+        let cmd = null;
+        while (i < tokens.length) {
+            const t = tokens[i];
+            if (/^[AaCcHhLlMmQqSsTtVvZz]$/.test(t)) {
+                cmd = t;
+                i++;
+                if (cmd === 'Z' || cmd === 'z') {
+                    cx = sx;
+                    cy = sy;
+                }
+                continue;
+            }
+            if (!cmd) {
+                i++;
+                continue;
+            }
+            const upper = cmd.toUpperCase();
+            const need = arity[upper];
+            if (need == null || need === 0) {
+                i++;
+                continue;
+            }
+            if (i + need > tokens.length) break;
+            const vals = [];
+            let ok = true;
+            for (let k = 0; k < need; k++) {
+                const v = Number(tokens[i + k]);
+                if (!Number.isFinite(v)) {
+                    ok = false;
+                    break;
+                }
+                vals.push(v);
+            }
+            if (!ok) break;
+            i += need;
+
+            const rel = cmd !== upper;
+            if (upper === 'M') {
+                cx = rel ? cx + vals[0] : vals[0];
+                cy = rel ? cy + vals[1] : vals[1];
+                sx = cx;
+                sy = cy;
+                record(cx, cy);
+                // subsequent implicit pairs are linetos
+                cmd = rel ? 'l' : 'L';
+            } else if (upper === 'L' || upper === 'T') {
+                cx = rel ? cx + vals[0] : vals[0];
+                cy = rel ? cy + vals[1] : vals[1];
+                record(cx, cy);
+            } else if (upper === 'H') {
+                cx = rel ? cx + vals[0] : vals[0];
+                record(cx, cy);
+            } else if (upper === 'V') {
+                cy = rel ? cy + vals[0] : vals[0];
+                record(cx, cy);
+            } else if (upper === 'C') {
+                cx = rel ? cx + vals[4] : vals[4];
+                cy = rel ? cy + vals[5] : vals[5];
+                record(cx, cy);
+            } else if (upper === 'S' || upper === 'Q') {
+                cx = rel ? cx + vals[2] : vals[2];
+                cy = rel ? cy + vals[3] : vals[3];
+                record(cx, cy);
+            } else if (upper === 'A') {
+                cx = rel ? cx + vals[5] : vals[5];
+                cy = rel ? cy + vals[6] : vals[6];
+                record(cx, cy);
+            }
+        }
+
+        if (!started) return null;
+        return { minX, minY, maxX, maxY };
+    }
+
+    getMapBbox(svg) {
+        const parsed = this._extractMapShapes(svg);
+        if (!parsed.out || parsed.out.length === 0) return null;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        const shapes = [];
+
+        for (let i = 0; i < parsed.out.length; i++) {
+            const shape = parsed.out[i];
+            const local = this._pathEndpointsBbox(shape.d);
+            if (!local) continue;
+            const m = this._parseSvgTransformToMatrix(shape.transform || '');
+            const corners = [
+                [local.minX, local.minY],
+                [local.minX, local.maxY],
+                [local.maxX, local.minY],
+                [local.maxX, local.maxY],
+            ];
+            let sMinX = Infinity;
+            let sMinY = Infinity;
+            let sMaxX = -Infinity;
+            let sMaxY = -Infinity;
+            for (let c = 0; c < corners.length; c++) {
+                const x = m[0] * corners[c][0] + m[2] * corners[c][1] + m[4];
+                const y = m[1] * corners[c][0] + m[3] * corners[c][1] + m[5];
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                if (x < sMinX) sMinX = x;
+                if (y < sMinY) sMinY = y;
+                if (x > sMaxX) sMaxX = x;
+                if (y > sMaxY) sMaxY = y;
+            }
+            if (!Number.isFinite(sMinX)) continue;
+            shapes.push({
+                abbr: shape.abbr,
+                id: shape.id,
+                minX: sMinX,
+                minY: sMinY,
+                maxX: sMaxX,
+                maxY: sMaxY,
+            });
+            if (sMinX < minX) minX = sMinX;
+            if (sMinY < minY) minY = sMinY;
+            if (sMaxX > maxX) maxX = sMaxX;
+            if (sMaxY > maxY) maxY = sMaxY;
+        }
+
+        if (shapes.length === 0 || !Number.isFinite(minX)) return null;
+        return {
+            minX, minY, maxX, maxY,
+            width: maxX - minX,
+            height: maxY - minY,
+            count: shapes.length,
+            shapes,
+        };
+    }
+
+    getMapOutOfView(svg, dx, dy, x, y) {
+        const bbox = this.getMapBbox(svg);
+        if (!bbox) return null;
+        const vx = Number(dx);
+        const vy = Number(dy);
+        const vw = Number(x);
+        const vh = Number(y);
+        if (!Number.isFinite(vx) || !Number.isFinite(vy) || !Number.isFinite(vw) || !Number.isFinite(vh) || vw <= 0 || vh <= 0) {
+            return null;
+        }
+        const outside = [];
+        for (let i = 0; i < bbox.shapes.length; i++) {
+            const s = bbox.shapes[i];
+            const intersects = !(s.maxX < vx || s.minX > vx + vw || s.maxY < vy || s.minY > vy + vh);
+            if (!intersects) outside.push(s.abbr);
+        }
+        return { total: bbox.shapes.length, outside, bbox };
+    }
+
+    findMapEntry(mapData, abbr) {
+        if (!Array.isArray(mapData) || abbr == null) return null;
+        let entry = mapData.find((item) => item[0] === abbr);
+        if (entry) return entry;
+        const normalized = String(abbr).replaceAll('-', '_');
+        entry = mapData.find((item) => item[0] === normalized);
+        if (entry) return entry;
+        // imported SVG ids are sanitized (unicode dashes etc. stripped),
+        // while state abbrs from older saves may keep the original spelling
+        try {
+            const sanitized = this._sanitizeMapAbbr(abbr, '');
+            if (sanitized && sanitized !== abbr && sanitized !== normalized) {
+                entry = mapData.find((item) => item[0] === sanitized);
+                if (entry) return entry;
+            }
+        } catch (e) { /* fall through to null */ }
+        return null;
+    }
+
     deleteCandidate(pk) {
         const cleanupCollection = (col, field) => {
             for (const [key, item] of Object.entries(col)) {
@@ -4038,6 +4302,21 @@ function loadDataFromFile(raw_json) {
         const mapObjectMatch = decodedMapSource.match(/_initCreateStates:function\(\)\{[\s\S]*?var\s+\w+\s*=\s*(\{[\s\S]*?\});\s*var\s+tr\s*=/);
         if (mapObjectMatch) {
             const pathRegex = /(?:["']((?:\\.|[^"'])+)["']|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
+            // this keeps per-state SVG transforms in a sibling
+            // `var tr = {...}` object; without them, shapes authored in a
+            // different coordinate space render outside the viewBox
+            const transformByName = new Map();
+            const trStart = mapObjectMatch.index + mapObjectMatch[0].length;
+            const trBodyMatch = decodedMapSource.slice(trStart).match(/^\s*(\{[\s\S]*?\})\s*;/);
+            if (trBodyMatch) {
+                const trRegex = /(?:["']((?:\\.|[^"'])+)["']|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
+                let trMatch;
+                while ((trMatch = trRegex.exec(trBodyMatch[1])) !== null) {
+                    const trName = trMatch[1] || trMatch[2] || "";
+                    const trValue = trMatch[3].replaceAll('\\"', '"').trim();
+                    if (trName && trValue) transformByName.set(trName, trValue);
+                }
+            }
             const svgPaths = [];
             let pathMatch;
             while ((pathMatch = pathRegex.exec(mapObjectMatch[1])) !== null) {
@@ -4045,7 +4324,11 @@ function loadDataFromFile(raw_json) {
                 const path = pathMatch[3].replaceAll('\\"', '"');
                 if (!path.trim()) continue;
                 const escapedName = name.replaceAll('"', '&quot;');
-                svgPaths.push(`<path id="${escapedName}" data-name="${escapedName}" d="${path}" />`);
+                const trValue = transformByName.get(name) || "";
+                const trAttr = trValue
+                    ? ` transform="${trValue.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}"`
+                    : "";
+                svgPaths.push(`<path id="${escapedName}" data-name="${escapedName}" d="${path}"${trAttr} />`);
             }
 
             if (svgPaths.length > 0) {

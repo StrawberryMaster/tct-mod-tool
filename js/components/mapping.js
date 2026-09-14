@@ -53,10 +53,25 @@ registerComponent('mapping', {
                     </div>
 
                     <div class="border-t pt-4">
-                        <button class="bg-green-500 text-white px-4 py-2 rounded-sm hover:bg-green-600 font-medium" 
-                                @click="loadMapFromSVG()">
-                            Load map from SVG
-                        </button>
+                        <div v-if="viewportReport && viewportReport.outside.length > 0" class="mb-3 rounded-sm border border-red-300 bg-red-50 p-3">
+                            <p class="text-sm font-semibold text-red-800">
+                                {{ viewportReport.outside.length }} of {{ viewportReport.total }} states are outside the current view and will be cut off in the game viewer{{ viewportReport.outside.length <= 10 ? ':' : '.' }}
+                                <span v-if="viewportReport.outside.length <= 10">{{ viewportReport.outside.join(', ') }}</span>
+                            </p>
+                            <p class="text-xs text-red-700 mt-1">
+                                Click "Fit map to view" below (then "Load map from SVG") so every state is inside the exported dimensions.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="bg-green-500 text-white px-4 py-2 rounded-sm hover:bg-green-600 font-medium"
+                                     @click="loadMapFromSVG()">
+                                 Load map from SVG
+                             </button>
+                            <button class="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 font-medium"
+                                     @click="fitMapToView()">
+                                 Fit map to view
+                             </button>
+                        </div>
                         <p class="text-sm text-gray-600 italic mt-2">
                             <strong>WARNING:</strong> If you click this, all your states and anything referencing your states 
                             will be deleted from your code 2 and replaced from what the tool gets from your SVG. 
@@ -193,6 +208,37 @@ registerComponent('mapping', {
             this.$globalData.dataVersion++;
         },
 
+        fitMapToView: function () {
+            if (!this.mapSvg) {
+                alert("Paste your SVG code first, then click Fit map to view.");
+                return;
+            }
+
+            const bbox = this.$TCT.getMapBbox(this.mapSvg);
+            if (!bbox) {
+                alert("Could not compute the map bounds. Make sure every shape has an id (or data-id) and valid geometry.");
+                return;
+            }
+
+            const padX = Math.max(bbox.width * 0.05, 1);
+            const padY = Math.max(bbox.height * 0.05, 1);
+            this.zoomLevel = 1;
+            this.dx = Math.floor((bbox.minX - padX) * 100) / 100;
+            this.dy = Math.floor((bbox.minY - padY) * 100) / 100;
+            this.x = Math.ceil((bbox.width + padX * 2) * 100) / 100;
+            this.y = Math.ceil((bbox.height + padY * 2) * 100) / 100;
+
+            if (this.$TCT.jet_data.mapping_data == null) {
+                this.$TCT.jet_data.mapping_data = {};
+            }
+            this.$TCT.jet_data.mapping_data.dx = this.dx;
+            this.$TCT.jet_data.mapping_data.dy = this.dy;
+            this.$TCT.jet_data.mapping_data.x = this.x;
+            this.$TCT.jet_data.mapping_data.y = this.y;
+
+            this.$globalData.dataVersion++;
+        },
+
         onInput: function (evt) {
             this.$TCT.jet_data.mapping_data[evt.target.name] = evt.target.value;
         },
@@ -294,6 +340,15 @@ registerComponent('mapping', {
 
         importWarnings: function () {
             return this.$TCT.jet_data.mapping_data?.lastImportWarnings ?? [];
+        },
+
+        viewportReport: function () {
+            try {
+                if (!this.mapSvg) return null;
+                return this.$TCT.getMapOutOfView(this.mapSvg, this.effectiveDx, this.effectiveDy, this.effectiveX, this.effectiveY);
+            } catch (e) {
+                return null;
+            }
         },
 
         enabled: function () {

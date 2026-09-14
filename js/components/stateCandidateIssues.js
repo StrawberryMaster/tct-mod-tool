@@ -1436,8 +1436,11 @@ registerComponent('issue-state-map-editor', {
 
         resetViewport() {
             this.zoom = 1;
-            this.panX = 0;
-            this.panY = 0;
+            const mapping = this.$TCT?.jet_data?.mapping_data || {};
+            const dx = Number(mapping.dx);
+            const dy = Number(mapping.dy);
+            this.panX = Number.isFinite(dx) ? dx : 0;
+            this.panY = Number.isFinite(dy) ? dy : 0;
         },
 
         setZoom(next, centerPoint = null) {
@@ -1609,10 +1612,7 @@ registerComponent('issue-state-map-editor', {
         getStatePath(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                let entry = this.mapData.find(item => item[0] === abbr);
-                if (entry) return entry[1];
-                const normalized = abbr.replaceAll('-', '_');
-                entry = this.mapData.find(item => item[0] === normalized);
+                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
                 if (entry) return entry[1];
             }
             if (state.d) return state.d;
@@ -1622,10 +1622,7 @@ registerComponent('issue-state-map-editor', {
         getStateTransform(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                let entry = this.mapData.find(item => item[0] === abbr);
-                if (entry) return entry[2] || '';
-                const normalized = abbr.replaceAll('-', '_');
-                entry = this.mapData.find(item => item[0] === normalized);
+                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
                 if (entry) return entry[2] || '';
             }
             return state.transform || '';
