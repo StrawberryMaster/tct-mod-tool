@@ -3035,6 +3035,18 @@ class TCTData {
             parts.push("\n\n//#startcode\n", codeToAdd, "\n//#endcode\n");
         }
 
+        // conditionOperator is only really meaningful with 2+ conditions
+        for (const storeName of ["cyoa_data", "cyoa_question_swaps", "cyoa_answer_swaps", "cyoa_candidate_switches"]) {
+            const store = this.jet_data?.[storeName];
+            if (store && typeof store === "object") {
+                for (const rule of Object.values(store)) {
+                    if (rule && typeof rule === "object" && (!Array.isArray(rule.conditions) || rule.conditions.length <= 1)) {
+                        delete rule.conditionOperator;
+                    }
+                }
+            }
+        }
+
         // export jet_data while stripping bulky, temporary, or default-valued fields
         parts.push("\n\ncampaignTrail_temp.jet_data = [");
         const jetDataStr = JSON.stringify(this.jet_data, (key, value) => {
@@ -3710,9 +3722,10 @@ function getQuestionNumberFromPk(pk) {
                 .map(c => `${normalizeConditionOperand(c.variable)} ${c.comparator} ${Number(c.value)}`);
 
             if (!valid.length) return '';
-            const joinStr = conditionOperator === 'OR' ? ' || ' : ' && ';
-            const expr = valid.join(joinStr);
-            return valid.length > 1 ? `(${expr})` : expr;
+            // so we never wrap a lone condition
+            if (valid.length > 1 && conditionOperator === 'OR') return { expr: valid.join(' || '), needsParens: true };
+            if (valid.length > 1) return { expr: valid.join(' && '), needsParens: false };
+            return { expr: valid[0], needsParens: false };
         };
 
         // sort rules for consistent generation (by answer pk, then id)
@@ -3730,8 +3743,10 @@ function getQuestionNumberFromPk(pk) {
                 if (!Number.isFinite(questionPk) || !Number.isFinite(answerPk)) return null;
 
                 const answerExpr = `ans == ${answerPk}`;
-                const condExpr = buildConditionExpr(event?.conditions, event?.conditionOperator || 'AND');
-                const combinedExpr = condExpr ? `(${answerExpr}) && ${condExpr}` : answerExpr;
+                const condBuilt = buildConditionExpr(event?.conditions, event?.conditionOperator || 'AND');
+                const condExpr = condBuilt ? condBuilt.expr : '';
+                // parens only needed when the condition side is OR-joined under &&
+                const combinedExpr = condExpr ? (condBuilt.needsParens ? `${answerExpr} && (${condExpr})` : `${answerExpr} && ${condExpr}`) : answerExpr;
 
                 return {
                     condition: combinedExpr,

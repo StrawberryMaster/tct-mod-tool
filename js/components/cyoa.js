@@ -375,8 +375,7 @@ registerComponent('cyoa', {
                 'answer': answers[0].pk,
                 'question': questions[0].pk,
                 'id': id,
-                'conditions': [],
-                'conditionOperator': 'AND'
+                'conditions': []
             };
             this.temp_events = [];
             this.$globalData.dataVersion++;
@@ -571,7 +570,6 @@ registerComponent('cyoa', {
                 id,
                 triggers: [],
                 conditions: [],
-                conditionOperator: 'AND',
                 swaps: [{ pk1: null, pk2: null }]
             };
             this.$globalData.dataVersion++;
@@ -595,7 +593,6 @@ registerComponent('cyoa', {
                 id,
                 triggers: [],
                 conditions: [],
-                conditionOperator: 'AND',
                 swaps: [{ pk1: null, pk2: null, takeEffects: true }]
             };
             this.$globalData.dataVersion++;
@@ -620,7 +617,6 @@ registerComponent('cyoa', {
                 id,
                 triggers: [],
                 conditions: [],
-                conditionOperator: 'AND',
                 candidate: null,
                 first_name: '',
                 last_name: '',
@@ -1031,6 +1027,44 @@ window.TCTAnswerSwapHelper = {
         return '';
     },
 
+    // combine answer triggers with variable conditions
+    combineTriggerAndConditions(triggers, conditionParts, conditionOperator) {
+        const trig = Array.isArray(triggers) ? triggers.filter(x => Number.isFinite(x)) : [];
+        const conds = Array.isArray(conditionParts) ? conditionParts.filter(Boolean) : [];
+
+        let triggerStr = '';
+        if (trig.length > 0) {
+            triggerStr = trig.map(pk => `ans == ${pk}`).join(' || ');
+        }
+
+        let conditionStr = '';
+        if (conds.length > 0) {
+            const operator = conds.length > 1 ? (conditionOperator || 'AND') : 'AND';
+            const joinStr = operator === 'OR' ? ' || ' : ' && ';
+            conditionStr = conds.join(joinStr);
+        }
+
+        if (triggerStr && conditionStr) {
+            // triggers are OR-joined, so they need grouping under &&
+            const t = trig.length > 1 ? `(${triggerStr})` : triggerStr;
+            // conditions only need grouping when OR-joined under &&
+            const c = (conds.length > 1 && (conditionOperator || 'AND') === 'OR') ? `(${conditionStr})` : conditionStr;
+            return `${t} && ${c}`;
+        }
+        return triggerStr || conditionStr;
+    },
+
+    normalizeConditionOperator(rule) {
+        if (!rule || typeof rule !== 'object') return rule;
+        if (!Array.isArray(rule.conditions)) rule.conditions = [];
+        if (rule.conditions.length > 1) {
+            if (!rule.conditionOperator) rule.conditionOperator = 'AND';
+        } else {
+            delete rule.conditionOperator;
+        }
+        return rule;
+    },
+
     getCampaignDataStyle() {
         const cfg = (window.TCTThemeConfig && window.getCurrentTheme && window.TCTThemeConfig[window.getCurrentTheme()]) || window.TCTThemeConfig?.light || {};
         const v = cfg.cssVars || {};
@@ -1195,7 +1229,7 @@ function setCandidateIdentity(candidatePk, options) {
                 return `questionSwapper(${s.pk1}, ${s.pk2});`;
             }).join('\n    ');
 
-            let conditionStr = '';
+            let combinedCond = '';
             if (hasConditions) {
                 const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
@@ -1203,24 +1237,12 @@ function setCandidateIdentity(candidatePk, options) {
                         const left = this.getConditionOperand(c.variable);
                         return `${left} ${c.comparator} ${Number(c.value)}`;
                     });
-                    const operator = rule.conditionOperator || 'AND';
-                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
-                    conditionStr = conditionParts.join(joinStr);
-                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
+                    combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
 
-            let triggerStr = '';
-            if (triggers.length > 0) {
-                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
-                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
-            }
-
-            let combinedCond = '';
-            if (triggerStr && conditionStr) {
-                combinedCond = `${triggerStr} && ${conditionStr}`;
-            } else {
-                combinedCond = triggerStr || conditionStr;
+            if (!combinedCond) {
+                combinedCond = this.combineTriggerAndConditions(triggers, [], rule.conditionOperator);
             }
 
             return `if (${combinedCond}) {\n    ${swapLines}\n}`;
@@ -1248,7 +1270,7 @@ function setCandidateIdentity(candidatePk, options) {
                 return `answerSwapper(${s.pk1}, ${s.pk2}, ${take});`;
             }).join('\n    ');
 
-            let conditionStr = '';
+            let combinedCond = '';
             if (hasConditions) {
                 const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
@@ -1256,24 +1278,12 @@ function setCandidateIdentity(candidatePk, options) {
                         const left = this.getConditionOperand(c.variable);
                         return `${left} ${c.comparator} ${Number(c.value)}`;
                     });
-                    const operator = rule.conditionOperator || 'AND';
-                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
-                    conditionStr = conditionParts.join(joinStr);
-                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
+                    combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
 
-            let triggerStr = '';
-            if (triggers.length > 0) {
-                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
-                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
-            }
-
-            let combinedCond = '';
-            if (triggerStr && conditionStr) {
-                combinedCond = `${triggerStr} && ${conditionStr}`;
-            } else {
-                combinedCond = triggerStr || conditionStr;
+            if (!combinedCond) {
+                combinedCond = this.combineTriggerAndConditions(triggers, [], rule.conditionOperator);
             }
 
             return `if (${combinedCond}) {\n    ${swapLines}\n}`;
@@ -1315,7 +1325,7 @@ function setCandidateIdentity(candidatePk, options) {
 
             if (!opts.length) return '';
 
-            let conditionStr = '';
+            let combinedCond = '';
             if (hasConditions) {
                 const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
                 if (validConditions.length > 0) {
@@ -1323,24 +1333,12 @@ function setCandidateIdentity(candidatePk, options) {
                         const left = this.getConditionOperand(c.variable);
                         return `${left} ${c.comparator} ${Number(c.value)}`;
                     });
-                    const operator = rule.conditionOperator || 'AND';
-                    const joinStr = operator === 'OR' ? ' || ' : ' && ';
-                    conditionStr = conditionParts.join(joinStr);
-                    if (validConditions.length > 1) conditionStr = '(' + conditionStr + ')';
+                    combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
 
-            let triggerStr = '';
-            if (triggers.length > 0) {
-                triggerStr = triggers.map(pk => `ans == ${pk}`).join(' || ');
-                if (triggers.length > 1) triggerStr = '(' + triggerStr + ')';
-            }
-
-            let combinedCond = '';
-            if (triggerStr && conditionStr) {
-                combinedCond = `${triggerStr} && ${conditionStr}`;
-            } else {
-                combinedCond = triggerStr || conditionStr;
+            if (!combinedCond) {
+                combinedCond = this.combineTriggerAndConditions(triggers, [], rule.conditionOperator);
             }
 
             return `if (${combinedCond}) {\n    setCandidateIdentity(${candidatePk}, { ${opts.join(', ')} });\n}`;
@@ -1926,7 +1924,7 @@ registerComponent('cyoa-event', {
                         when
                         <span v-for="(c, idx) in conditionsList" :key="'summary-c-'+idx" class="inline-flex items-center">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ c.value }}</span>
-                            <span v-if="idx < conditionsList.length - 1" class="mx-1 text-xs">{{ eventRow.conditionOperator }}</span>
+                            <span v-if="idx < conditionsList.length - 1" class="mx-1 text-xs">{{ eventRow.conditionOperator || 'AND' }}</span>
                         </span>
                     </span>
                 </div>
@@ -1959,9 +1957,9 @@ registerComponent('cyoa-event', {
         <div class="mt-4">
             <label class="block text-sm font-medium mb-1">Extra conditions (optional)</label>
 
-            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+            <div v-if="conditionsList.length > 1" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
-                <select :value="eventRow.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                <select :value="eventRow.conditionOperator || 'AND'" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="AND">AND (all must be true)</option>
                     <option value="OR">OR (any can be true)</option>
                 </select>
@@ -2020,16 +2018,13 @@ registerComponent('cyoa-event', {
                     id: this.id,
                     answer: null,
                     question: null,
-                    conditions: [],
-                    conditionOperator: 'AND'
+                    conditions: []
                 };
             }
             if (!Array.isArray(this.$TCT.jet_data.cyoa_data[this.id].conditions)) {
                 this.$TCT.jet_data.cyoa_data[this.id].conditions = [];
             }
-            if (!this.$TCT.jet_data.cyoa_data[this.id].conditionOperator) {
-                this.$TCT.jet_data.cyoa_data[this.id].conditionOperator = 'AND';
-            }
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_data[this.id]);
             return this.$TCT.jet_data.cyoa_data[this.id];
         },
 
@@ -2045,6 +2040,7 @@ registerComponent('cyoa-event', {
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
+            if (row.conditions.length > 1 && !row.conditionOperator) row.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
             this.$globalData.dataVersion++;
@@ -2054,13 +2050,18 @@ registerComponent('cyoa-event', {
         removeCondition(index) {
             const row = this.getEvent();
             row.conditions.splice(index, 1);
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(row);
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
 
         updateConditionOperator(value) {
             const row = this.getEvent();
-            row.conditionOperator = value;
+            if ((row.conditions?.length || 0) > 1) {
+                row.conditionOperator = value;
+            } else {
+                delete row.conditionOperator;
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -2381,16 +2382,13 @@ registerComponent('cyoa-question-swap', {
                     id: this.id,
                     triggers: [],
                     conditions: [],
-                    conditionOperator: 'AND',
                     swaps: []
                 };
             }
             if (!this.$TCT.jet_data.cyoa_question_swaps[this.id].conditions) {
                 this.$TCT.jet_data.cyoa_question_swaps[this.id].conditions = [];
             }
-            if (!this.$TCT.jet_data.cyoa_question_swaps[this.id].conditionOperator) {
-                this.$TCT.jet_data.cyoa_question_swaps[this.id].conditionOperator = 'AND';
-            }
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_question_swaps[this.id]);
             return this.$TCT.jet_data.cyoa_question_swaps[this.id];
         },
 
@@ -2425,6 +2423,7 @@ registerComponent('cyoa-question-swap', {
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
+            if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
             this.$globalData.dataVersion++;
@@ -2435,6 +2434,7 @@ registerComponent('cyoa-question-swap', {
             const rule = this.getRule();
             if (rule.conditions) {
                 rule.conditions.splice(index, 1);
+                window.TCTAnswerSwapHelper.normalizeConditionOperator(rule);
                 this.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
@@ -2442,7 +2442,11 @@ registerComponent('cyoa-question-swap', {
 
         updateConditionOperator(value) {
             const rule = this.getRule();
-            rule.conditionOperator = value;
+            if ((rule.conditions?.length || 0) > 1) {
+                rule.conditionOperator = value;
+            } else {
+                delete rule.conditionOperator;
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -2543,7 +2547,7 @@ registerComponent('cyoa-question-swap', {
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
                     <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
-                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                    <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
             <span v-if="validSwaps.length > 0">
@@ -2580,9 +2584,9 @@ registerComponent('cyoa-question-swap', {
             <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
 
             <!-- Condition operator selector (only show if conditions exist) -->
-            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+            <div v-if="conditionsList.length > 1" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
-                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                <select :value="rule.conditionOperator || 'AND'" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="AND">AND (all must be true)</option>
                     <option value="OR">OR (any can be true)</option>
                 </select>
@@ -2673,16 +2677,13 @@ registerComponent('cyoa-answer-swap', {
                     id: this.id,
                     triggers: [],
                     conditions: [],
-                    conditionOperator: 'AND',
                     swaps: []
                 };
             }
             if (!this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions) {
                 this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions = [];
             }
-            if (!this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditionOperator) {
-                this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditionOperator = 'AND';
-            }
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_answer_swaps[this.id]);
             return this.$TCT.jet_data.cyoa_answer_swaps[this.id];
         },
 
@@ -2717,6 +2718,7 @@ registerComponent('cyoa-answer-swap', {
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
+            if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
             this.$globalData.dataVersion++;
@@ -2727,6 +2729,7 @@ registerComponent('cyoa-answer-swap', {
             const rule = this.getRule();
             if (rule.conditions) {
                 rule.conditions.splice(index, 1);
+                window.TCTAnswerSwapHelper.normalizeConditionOperator(rule);
                 this.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
@@ -2734,7 +2737,11 @@ registerComponent('cyoa-answer-swap', {
 
         updateConditionOperator(value) {
             const rule = this.getRule();
-            rule.conditionOperator = value;
+            if ((rule.conditions?.length || 0) > 1) {
+                rule.conditionOperator = value;
+            } else {
+                delete rule.conditionOperator;
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -2836,7 +2843,7 @@ registerComponent('cyoa-answer-swap', {
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
                     <span class="font-mono bg-purple-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
-                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                    <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
             <span v-if="validSwaps.length > 0">
@@ -2873,9 +2880,9 @@ registerComponent('cyoa-answer-swap', {
             <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
 
             <!-- Condition operator selector (only show if conditions exist) -->
-            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+            <div v-if="conditionsList.length > 1" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
-                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                <select :value="rule.conditionOperator || 'AND'" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="AND">AND (all must be true)</option>
                     <option value="OR">OR (any can be true)</option>
                 </select>
@@ -2971,7 +2978,6 @@ registerComponent('cyoa-candidate-switch', {
                     id: this.id,
                     triggers: [],
                     conditions: [],
-                    conditionOperator: 'AND',
                     candidate: null,
                     first_name: '',
                     last_name: '',
@@ -2981,7 +2987,7 @@ registerComponent('cyoa-candidate-switch', {
             }
             const rule = this.$TCT.jet_data.cyoa_candidate_switches[this.id];
             if (!Array.isArray(rule.conditions)) rule.conditions = [];
-            if (!rule.conditionOperator) rule.conditionOperator = 'AND';
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(rule);
             if (!Array.isArray(rule.issue_scores)) rule.issue_scores = [];
             return rule;
         },
@@ -3017,6 +3023,7 @@ registerComponent('cyoa-candidate-switch', {
                 comparator: this.conditionToAdd.comparator,
                 value: Number(this.conditionToAdd.value)
             });
+            if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
             this.$globalData.dataVersion++;
@@ -3027,6 +3034,7 @@ registerComponent('cyoa-candidate-switch', {
             const rule = this.getRule();
             if (rule.conditions) {
                 rule.conditions.splice(index, 1);
+                window.TCTAnswerSwapHelper.normalizeConditionOperator(rule);
                 this.$globalData.dataVersion++;
                 window.requestAutosaveIfEnabled?.();
             }
@@ -3034,7 +3042,11 @@ registerComponent('cyoa-candidate-switch', {
 
         updateConditionOperator(value) {
             const rule = this.getRule();
-            rule.conditionOperator = value;
+            if ((rule.conditions?.length || 0) > 1) {
+                rule.conditionOperator = value;
+            } else {
+                delete rule.conditionOperator;
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -3182,7 +3194,7 @@ registerComponent('cyoa-candidate-switch', {
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
                     <span class="font-mono bg-amber-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
-                    <span v-if="idx < conditionsList.length - 1"> {{rule.conditionOperator}} </span>
+                    <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
             <span>
@@ -3222,9 +3234,9 @@ registerComponent('cyoa-candidate-switch', {
         <div class="mb-3">
             <label class="block text-xs font-medium text-gray-600 mb-1">Conditions (optional):</label>
 
-            <div v-if="hasConditions" class="mb-2 flex items-center gap-2">
+            <div v-if="conditionsList.length > 1" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
-                <select :value="rule.conditionOperator" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
+                <select :value="rule.conditionOperator || 'AND'" @change="updateConditionOperator($event.target.value)" class="border rounded-sm p-1 text-sm">
                     <option value="AND">AND (all must be true)</option>
                     <option value="OR">OR (any can be true)</option>
                 </select>
