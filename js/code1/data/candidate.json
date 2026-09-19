@@ -5877,7 +5877,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1200,
+    "pk": 200,
     "fields": {
       "first_name": "Donald",
       "last_name": "Trump",
@@ -5899,7 +5899,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1201,
+    "pk": 201,
     "fields": {
       "first_name": "Hillary",
       "last_name": "Clinton",
@@ -5921,7 +5921,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1202,
+    "pk": 202,
     "fields": {
       "first_name": "Gary",
       "last_name": "Johnson/Others",
@@ -5943,7 +5943,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1203,
+    "pk": 203,
     "fields": {
       "first_name": "Jill",
       "last_name": "Stein",
@@ -5965,7 +5965,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1204,
+    "pk": 204,
     "fields": {
       "first_name": "Mike",
       "last_name": "Pence",
@@ -5987,7 +5987,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1205,
+    "pk": 205,
     "fields": {
       "first_name": "Chris",
       "last_name": "Christie",
@@ -6009,7 +6009,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1208,
+    "pk": 208,
     "fields": {
       "first_name": "Sarah",
       "last_name": "Palin",
@@ -6031,7 +6031,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1206,
+    "pk": 206,
     "fields": {
       "first_name": "Ben",
       "last_name": "Carson",
@@ -6053,7 +6053,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1207,
+    "pk": 207,
     "fields": {
       "first_name": "Jeff",
       "last_name": "Sessions",
@@ -6075,7 +6075,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1209,
+    "pk": 209,
     "fields": {
       "first_name": "Tim",
       "last_name": "Kaine",
@@ -6097,7 +6097,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1210,
+    "pk": 210,
     "fields": {
       "first_name": "Bernie",
       "last_name": "Sanders",
@@ -6119,7 +6119,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1211,
+    "pk": 211,
     "fields": {
       "first_name": "Cory",
       "last_name": "Booker",
@@ -6141,7 +6141,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1212,
+    "pk": 212,
     "fields": {
       "first_name": "Elizabeth",
       "last_name": "Warren",
@@ -6163,7 +6163,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1213,
+    "pk": 213,
     "fields": {
       "first_name": "Sherrod",
       "last_name": "Brown",
@@ -6185,7 +6185,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1214,
+    "pk": 214,
     "fields": {
       "first_name": "William",
       "last_name": "Weld",
@@ -6207,7 +6207,7 @@
   },
   {
     "model": "campaign_trail.candidate",
-    "pk": 1215,
+    "pk": 215,
     "fields": {
       "first_name": "Ajamu",
       "last_name": "Baraka",
