@@ -3706,10 +3706,20 @@ function getQuestionNumberFromPk(pk) {
             }
         }
 
+        const isRunningMateTarget = (variableName) => {
+            const key = String(variableName || '').trim().toLowerCase();
+            return key === '__running_mate__' || key === 'running_mate'
+                || key === 'e.running_mate_last_name' || key === 'campaigntrail_temp.running_mate_last_name'
+                || key === 'campaign_trail_temp.running_mate_last_name';
+        };
+
         const normalizeConditionOperand = (variableName) => {
             const key = String(variableName || '').trim().toLowerCase();
             if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
                 return 'e.noCounter';
+            }
+            if (isRunningMateTarget(variableName)) {
+                return 'e.running_mate_last_name';
             }
             return variableName;
         };
@@ -3718,8 +3728,22 @@ function getQuestionNumberFromPk(pk) {
             if (!Array.isArray(conditions) || conditions.length === 0) return '';
 
             const valid = conditions
-                .filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)))
-                .map(c => `${normalizeConditionOperand(c.variable)} ${c.comparator} ${Number(c.value)}`);
+                .filter(c => {
+                    if (!c || !c.variable || !c.comparator) return false;
+                    if (isRunningMateTarget(c.variable)) {
+                        const v = String(c.value ?? '').trim();
+                        if (!v) return false;
+                        return c.comparator === '==' || c.comparator === '!=' || c.comparator === '===' || c.comparator === '!==';
+                    }
+                    return Number.isFinite(Number(c.value));
+                })
+                .map(c => {
+                    if (isRunningMateTarget(c.variable)) {
+                        const comp = (c.comparator === '!=' || c.comparator === '!==') ? '!=' : '==';
+                        return `${normalizeConditionOperand(c.variable)} ${comp} ${JSON.stringify(String(c.value ?? '').trim())}`;
+                    }
+                    return `${normalizeConditionOperand(c.variable)} ${c.comparator} ${Number(c.value)}`;
+                });
 
             if (!valid.length) return '';
             // so we never wrap a lone condition

@@ -1003,10 +1003,50 @@ registerComponent('cyoa-bunnyhop-pool', {
 
 // global helper object that can be accessed from other components
 window.TCTAnswerSwapHelper = {
+    isRunningMateTarget(variableName) {
+        const key = String(variableName || '').trim().toLowerCase();
+        return key === '__running_mate__' || key === 'running_mate'
+            || key === 'e.running_mate_last_name' || key === 'campaigntrail_temp.running_mate_last_name'
+            || key === 'campaign_trail_temp.running_mate_last_name';
+    },
+
+    isStringCondition(variableName) {
+        return this.isRunningMateTarget(variableName);
+    },
+
+    isValidCondition(c) {
+        if (!c || !c.variable || !c.comparator) return false;
+        if (this.isStringCondition(c.variable)) {
+            const v = String(c.value ?? '').trim();
+            if (!v) return false;
+            return c.comparator === '==' || c.comparator === '!=' || c.comparator === '===' || c.comparator === '!==';
+        }
+        return Number.isFinite(Number(c.value));
+    },
+
+    formatConditionPart(c) {
+        const left = this.getConditionOperand(c.variable);
+        if (this.isStringCondition(c.variable)) {
+            const comp = (c.comparator === '!=' || c.comparator === '!==' ) ? '!=' : '==';
+            return `${left} ${comp} ${JSON.stringify(String(c.value ?? '').trim())}`;
+        }
+        return `${left} ${c.comparator} ${Number(c.value)}`;
+    },
+
+    formatConditionValueDisplay(c) {
+        if (c && this.isStringCondition(c.variable)) {
+            return `"${String(c.value ?? '').trim()}"`;
+        }
+        return c ? c.value : '';
+    },
+
     getConditionOperand(variableName) {
         const key = String(variableName || '').trim().toLowerCase();
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
             return 'e.noCounter';
+        }
+        if (this.isRunningMateTarget(variableName)) {
+            return 'e.running_mate_last_name';
         }
         return variableName;
     },
@@ -1016,6 +1056,11 @@ window.TCTAnswerSwapHelper = {
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
             return 'Question number';
         }
+        if (key === '__running_mate__' || key === 'running_mate'
+            || key === 'e.running_mate_last_name' || key === 'campaigntrail_temp.running_mate_last_name'
+            || key === 'campaign_trail_temp.running_mate_last_name') {
+            return 'Running mate';
+        }
         return variableName;
     },
 
@@ -1023,6 +1068,11 @@ window.TCTAnswerSwapHelper = {
         const key = String(variableName || '').trim().toLowerCase();
         if (key === '__no_counter__' || key === 'nocounter' || key === 'e.nocounter') {
             return 'Count of questions already answered. Here, a value of N means the condition activates after question N is answered (i.e., before question N+1). For example, a question number of 20 means the condition activates at question 21.';
+        }
+        if (key === '__running_mate__' || key === 'running_mate'
+            || key === 'e.running_mate_last_name' || key === 'campaigntrail_temp.running_mate_last_name'
+            || key === 'campaign_trail_temp.running_mate_last_name') {
+            return 'Compares the current running mate\'s last name (e.running_mate_last_name). Use == / != with the last name text, e.g. == "Pence". Useful when the player picks a running mate or a switch changes it.';
         }
         return '';
     },
@@ -1231,12 +1281,9 @@ function setCandidateIdentity(candidatePk, options) {
 
             let combinedCond = '';
             if (hasConditions) {
-                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                const validConditions = rule.conditions.filter(c => this.isValidCondition(c));
                 if (validConditions.length > 0) {
-                    const conditionParts = validConditions.map(c => {
-                        const left = this.getConditionOperand(c.variable);
-                        return `${left} ${c.comparator} ${Number(c.value)}`;
-                    });
+                    const conditionParts = validConditions.map(c => this.formatConditionPart(c));
                     combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
@@ -1272,12 +1319,9 @@ function setCandidateIdentity(candidatePk, options) {
 
             let combinedCond = '';
             if (hasConditions) {
-                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                const validConditions = rule.conditions.filter(c => this.isValidCondition(c));
                 if (validConditions.length > 0) {
-                    const conditionParts = validConditions.map(c => {
-                        const left = this.getConditionOperand(c.variable);
-                        return `${left} ${c.comparator} ${Number(c.value)}`;
-                    });
+                    const conditionParts = validConditions.map(c => this.formatConditionPart(c));
                     combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
@@ -1327,12 +1371,9 @@ function setCandidateIdentity(candidatePk, options) {
 
             let combinedCond = '';
             if (hasConditions) {
-                const validConditions = rule.conditions.filter(c => c && c.variable && c.comparator && Number.isFinite(Number(c.value)));
+                const validConditions = rule.conditions.filter(c => this.isValidCondition(c));
                 if (validConditions.length > 0) {
-                    const conditionParts = validConditions.map(c => {
-                        const left = this.getConditionOperand(c.variable);
-                        return `${left} ${c.comparator} ${Number(c.value)}`;
-                    });
+                    const conditionParts = validConditions.map(c => this.formatConditionPart(c));
                     combinedCond = this.combineTriggerAndConditions(triggers, conditionParts, rule.conditionOperator);
                 }
             }
@@ -1923,7 +1964,7 @@ registerComponent('cyoa-event', {
                     <span v-if="hasConditions">
                         when
                         <span v-for="(c, idx) in conditionsList" :key="'summary-c-'+idx" class="inline-flex items-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ c.value }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-900 ml-1" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }} {{ c.comparator }} {{ displayConditionValue(c) }}</span>
                             <span v-if="idx < conditionsList.length - 1" class="mx-1 text-xs">{{ eventRow.conditionOperator || 'AND' }}</span>
                         </span>
                     </span>
@@ -1969,17 +2010,21 @@ registerComponent('cyoa-event', {
                 <div v-for="(c, idx) in conditionsList" :key="'cond-'+idx" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
                     <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
-                    <div class="text-xs">{{ c.value }}</div>
+                    <div class="text-xs">{{ displayConditionValue(c) }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
                 </div>
             </div>
 
             <div class="grid grid-cols-4 gap-1 items-center">
-                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-model="conditionToAdd.variable" @change="onConditionTargetChanged" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value="" disabled>Target...</option>
                     <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
-                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>
                     <option value="<=">&lt;= (less than or equal)</option>
                     <option value=">">&gt; (greater than)</option>
@@ -1987,7 +2032,8 @@ registerComponent('cyoa-event', {
                     <option value="==">== (equal)</option>
                     <option value="!=">!= (not equal)</option>
                 </select>
-                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder='e.g. Pence' class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
             </div>
         </div>
@@ -2035,11 +2081,26 @@ registerComponent('cyoa-event', {
                 return;
             }
 
-            row.conditions.push({
-                variable: this.conditionToAdd.variable,
-                comparator: this.conditionToAdd.comparator,
-                value: Number(this.conditionToAdd.value)
-            });
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                const strVal = String(this.conditionToAdd.value ?? '').trim();
+                if (!strVal) {
+                    alert('Please enter a running mate last name.');
+                    return;
+                }
+                let comp = this.conditionToAdd.comparator;
+                if (comp !== '==' && comp !== '!=') comp = '==';
+                row.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: comp,
+                    value: strVal
+                });
+            } else {
+                row.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: this.conditionToAdd.comparator,
+                    value: Number(this.conditionToAdd.value)
+                });
+            }
             if (row.conditions.length > 1 && !row.conditionOperator) row.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
@@ -2072,6 +2133,24 @@ registerComponent('cyoa-event', {
 
         displayConditionTooltip(name) {
             return window.TCTAnswerSwapHelper.getConditionTooltip(name);
+        },
+
+        displayConditionValue(c) {
+            return window.TCTAnswerSwapHelper.formatConditionValueDisplay(c);
+        },
+
+        isStringTarget(name) {
+            return window.TCTAnswerSwapHelper.isStringCondition(name);
+        },
+
+        onConditionTargetChanged() {
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                this.conditionToAdd.comparator = '==';
+                this.conditionToAdd.value = '';
+            } else if (typeof this.conditionToAdd.value === 'string') {
+                this.conditionToAdd.comparator = '>=';
+                this.conditionToAdd.value = 0;
+            }
         },
 
         updateGlobal: function (field, val) {
@@ -2127,7 +2206,7 @@ registerComponent('cyoa-event', {
 
         conditionTargets() {
             const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
-            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, { value: '__RUNNING_MATE__', label: 'Running mate (last name)' }, ...vars];
         },
 
         hasConditions() {
@@ -2418,11 +2497,26 @@ registerComponent('cyoa-question-swap', {
                 return;
             }
 
-            rule.conditions.push({
-                variable: this.conditionToAdd.variable,
-                comparator: this.conditionToAdd.comparator,
-                value: Number(this.conditionToAdd.value)
-            });
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                const strVal = String(this.conditionToAdd.value ?? '').trim();
+                if (!strVal) {
+                    alert('Please enter a running mate last name.');
+                    return;
+                }
+                let comp = this.conditionToAdd.comparator;
+                if (comp !== '==' && comp !== '!=') comp = '==';
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: comp,
+                    value: strVal
+                });
+            } else {
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: this.conditionToAdd.comparator,
+                    value: Number(this.conditionToAdd.value)
+                });
+            }
             if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
@@ -2483,6 +2577,24 @@ registerComponent('cyoa-question-swap', {
 
         displayConditionTooltip(name) {
             return window.TCTAnswerSwapHelper.getConditionTooltip(name);
+        },
+
+        displayConditionValue(c) {
+            return window.TCTAnswerSwapHelper.formatConditionValueDisplay(c);
+        },
+
+        isStringTarget(name) {
+            return window.TCTAnswerSwapHelper.isStringCondition(name);
+        },
+
+        onConditionTargetChanged() {
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                this.conditionToAdd.comparator = '==';
+                this.conditionToAdd.value = '';
+            } else if (typeof this.conditionToAdd.value === 'string') {
+                this.conditionToAdd.comparator = '>=';
+                this.conditionToAdd.value = 0;
+            }
         }
     },
 
@@ -2498,7 +2610,7 @@ registerComponent('cyoa-question-swap', {
 
         conditionTargets() {
             const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
-            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, { value: '__RUNNING_MATE__', label: 'Running mate (last name)' }, ...vars];
         },
 
         answers() {
@@ -2546,7 +2658,7 @@ registerComponent('cyoa-question-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-indigo-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{displayConditionValue(c)}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
@@ -2597,18 +2709,22 @@ registerComponent('cyoa-question-swap', {
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
                     <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
-                    <div class="text-xs">{{ c.value }}</div>
+                    <div class="text-xs">{{ displayConditionValue(c) }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
                 </div>
             </div>
 
             <!-- Add new condition -->
             <div class="grid grid-cols-4 gap-1 items-center">
-                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-model="conditionToAdd.variable" @change="onConditionTargetChanged" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value="" disabled>Target...</option>
                     <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
-                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>
                     <option value="<=">&lt;= (less than or equal)</option>
                     <option value=">">&gt; (greater than)</option>
@@ -2616,7 +2732,8 @@ registerComponent('cyoa-question-swap', {
                     <option value="==">== (equal)</option>
                     <option value="!=">!= (not equal)</option>
                 </select>
-                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder="e.g. Pence" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
             </div>
         </div>
@@ -2713,11 +2830,26 @@ registerComponent('cyoa-answer-swap', {
                 return;
             }
 
-            rule.conditions.push({
-                variable: this.conditionToAdd.variable,
-                comparator: this.conditionToAdd.comparator,
-                value: Number(this.conditionToAdd.value)
-            });
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                const strVal = String(this.conditionToAdd.value ?? '').trim();
+                if (!strVal) {
+                    alert('Please enter a running mate last name.');
+                    return;
+                }
+                let comp = this.conditionToAdd.comparator;
+                if (comp !== '==' && comp !== '!=') comp = '==';
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: comp,
+                    value: strVal
+                });
+            } else {
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: this.conditionToAdd.comparator,
+                    value: Number(this.conditionToAdd.value)
+                });
+            }
             if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
@@ -2783,6 +2915,24 @@ registerComponent('cyoa-answer-swap', {
 
         displayConditionTooltip(name) {
             return window.TCTAnswerSwapHelper.getConditionTooltip(name);
+        },
+
+        displayConditionValue(c) {
+            return window.TCTAnswerSwapHelper.formatConditionValueDisplay(c);
+        },
+
+        isStringTarget(name) {
+            return window.TCTAnswerSwapHelper.isStringCondition(name);
+        },
+
+        onConditionTargetChanged() {
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                this.conditionToAdd.comparator = '==';
+                this.conditionToAdd.value = '';
+            } else if (typeof this.conditionToAdd.value === 'string') {
+                this.conditionToAdd.comparator = '>=';
+                this.conditionToAdd.value = 0;
+            }
         }
     },
 
@@ -2798,7 +2948,7 @@ registerComponent('cyoa-answer-swap', {
 
         conditionTargets() {
             const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
-            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, { value: '__RUNNING_MATE__', label: 'Running mate (last name)' }, ...vars];
         },
 
         answers() {
@@ -2842,7 +2992,7 @@ registerComponent('cyoa-answer-swap', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-purple-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{displayConditionValue(c)}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
@@ -2893,18 +3043,22 @@ registerComponent('cyoa-answer-swap', {
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
                     <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
-                    <div class="text-xs">{{ c.value }}</div>
+                    <div class="text-xs">{{ displayConditionValue(c) }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
                 </div>
             </div>
 
             <!-- Add new condition -->
             <div class="grid grid-cols-4 gap-1 items-center">
-                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-model="conditionToAdd.variable" @change="onConditionTargetChanged" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value="" disabled>Target...</option>
                     <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
-                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>
                     <option value="<=">&lt;= (less than or equal)</option>
                     <option value=">">&gt; (greater than)</option>
@@ -2912,7 +3066,8 @@ registerComponent('cyoa-answer-swap', {
                     <option value="==">== (equal)</option>
                     <option value="!=">!= (not equal)</option>
                 </select>
-                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder="e.g. Pence" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
             </div>
         </div>
@@ -3018,11 +3173,26 @@ registerComponent('cyoa-candidate-switch', {
                 return;
             }
 
-            rule.conditions.push({
-                variable: this.conditionToAdd.variable,
-                comparator: this.conditionToAdd.comparator,
-                value: Number(this.conditionToAdd.value)
-            });
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                const strVal = String(this.conditionToAdd.value ?? '').trim();
+                if (!strVal) {
+                    alert('Please enter a running mate last name.');
+                    return;
+                }
+                let comp = this.conditionToAdd.comparator;
+                if (comp !== '==' && comp !== '!=') comp = '==';
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: comp,
+                    value: strVal
+                });
+            } else {
+                rule.conditions.push({
+                    variable: this.conditionToAdd.variable,
+                    comparator: this.conditionToAdd.comparator,
+                    value: Number(this.conditionToAdd.value)
+                });
+            }
             if (rule.conditions.length > 1 && !rule.conditionOperator) rule.conditionOperator = 'AND';
 
             this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
@@ -3109,6 +3279,24 @@ registerComponent('cyoa-candidate-switch', {
 
         displayConditionTooltip(name) {
             return window.TCTAnswerSwapHelper.getConditionTooltip(name);
+        },
+
+        displayConditionValue(c) {
+            return window.TCTAnswerSwapHelper.formatConditionValueDisplay(c);
+        },
+
+        isStringTarget(name) {
+            return window.TCTAnswerSwapHelper.isStringCondition(name);
+        },
+
+        onConditionTargetChanged() {
+            if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
+                this.conditionToAdd.comparator = '==';
+                this.conditionToAdd.value = '';
+            } else if (typeof this.conditionToAdd.value === 'string') {
+                this.conditionToAdd.comparator = '>=';
+                this.conditionToAdd.value = 0;
+            }
         }
     },
 
@@ -3124,7 +3312,7 @@ registerComponent('cyoa-candidate-switch', {
 
         conditionTargets() {
             const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
-            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, ...vars];
+            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, { value: '__RUNNING_MATE__', label: 'Running mate (last name)' }, ...vars];
         },
 
         answers() {
@@ -3193,7 +3381,7 @@ registerComponent('cyoa-candidate-switch', {
             </span>
             <span v-if="hasConditions">
                 if <span v-for="(c, idx) in conditionsList" :key="idx">
-                    <span class="font-mono bg-amber-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{c.value}}</span>
+                    <span class="font-mono bg-amber-200 px-1 rounded mx-0.5" :title="displayConditionTooltip(c.variable)">{{displayConditionVariable(c.variable)}} {{c.comparator}} {{displayConditionValue(c)}}</span>
                     <span v-if="idx < conditionsList.length - 1"> {{ rule.conditionOperator || 'AND' }} </span>
                 </span>,
             </span>
@@ -3246,17 +3434,21 @@ registerComponent('cyoa-candidate-switch', {
                 <div v-for="(c, idx) in conditionsList" :key="'c-'+idx+'-'+tick" class="grid grid-cols-4 gap-1 items-center bg-gray-100 p-2 rounded-sm">
                     <div class="text-xs font-medium" :title="displayConditionTooltip(c.variable)">{{ displayConditionVariable(c.variable) }}</div>
                     <div class="text-xs">{{ c.comparator }}</div>
-                    <div class="text-xs">{{ c.value }}</div>
+                    <div class="text-xs">{{ displayConditionValue(c) }}</div>
                     <button class="text-red-600 hover:text-red-800 text-xs justify-self-end" @click="removeCondition(idx)">✕</button>
                 </div>
             </div>
 
             <div class="grid grid-cols-4 gap-1 items-center">
-                <select v-model="conditionToAdd.variable" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-model="conditionToAdd.variable" @change="onConditionTargetChanged" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value="" disabled>Target...</option>
                     <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
-                <select v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                    <option value="==">== (equal)</option>
+                    <option value="!=">!= (not equal)</option>
+                </select>
+                <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
                     <option value=">=">&gt;= (greater than or equal)</option>
                     <option value="<=">&lt;= (less than or equal)</option>
                     <option value=">">&gt; (greater than)</option>
@@ -3264,7 +3456,8 @@ registerComponent('cyoa-candidate-switch', {
                     <option value="==">== (equal)</option>
                     <option value="!=">!= (not equal)</option>
                 </select>
-                <input v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder="e.g. Pence" class="border rounded-sm p-1 text-sm col-span-1">
+                <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
                 <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
             </div>
         </div>
