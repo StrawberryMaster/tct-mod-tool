@@ -1,3 +1,88 @@
+// political sentiment lexicons & stopwords
+const TCT_STOPWORDS = new Set([
+    "a", "about", "above", "after", "again", "against", "all", "almost", "also", "although",
+    "always", "am", "an", "and", "another", "any", "are", "aren't", "as", "at", "be",
+    "because", "been", "before", "being", "below", "between", "both", "but", "by", "can",
+    "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't",
+    "down", "during", "each", "even", "every", "few", "for", "from", "further", "had",
+    "hadn't", "has", "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's",
+    "her", "here", "hers", "herself", "him", "himself", "his", "how", "however", "i",
+    "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's",
+    "its", "itself", "just", "let", "let's", "may", "maybe", "me", "might", "more",
+    "most", "must", "my", "myself", "no", "nor", "not", "of", "off", "on", "once",
+    "only", "or", "other", "ought", "our", "ours", "ourselves", "out", "over", "own",
+    "same", "shall", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so",
+    "some", "such", "than", "that", "that's", "the", "their", "theirs", "them",
+    "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll",
+    "they're", "they've", "this", "those", "through", "to", "too", "under", "until",
+    "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were",
+    "weren't", "what", "what's", "when", "where", "which", "while", "who", "whom",
+    "why", "will", "with", "won't", "would", "wouldn't", "yes", "yet", "you", "you'd",
+    "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"
+]);
+
+const TCT_GAFFE_PATTERNS = [
+    /\bno comment\b/i,
+    /\bnone of (your|the|anybody'?s) business\b/i,
+    /\brefuse to (answer|comment|speak)\b/i,
+    /\b(i )?(apologize|apologise|regret|misspoke|made a mistake)\b/i,
+    /\bwho cares\b/i,
+    /\bdon'?t care\b/i,
+    /\bshut up\b/i,
+    /\bnot my problem\b/i,
+    /\bterrible mistake\b/i,
+    /\bdisastrous blunder\b/i
+];
+
+const TCT_ATTACK_WORDS = new Set([
+    "radical", "extremist", "corrupt", "corruption", "hypocrite", "hypocrisy",
+    "liar", "lying", "cheat", "crooked", "scandal", "reckless", "puppet",
+    "disaster", "failed", "failure", "weak", "weakness", "unfit", "treason",
+    "traitor", "clown", "moron", "danger", "dangerous", "incompetent", "out-of-touch"
+]);
+
+const TCT_POSITIVE_WORDS = new Set([
+    "progress", "prosper", "prosperity", "strong", "strength", "lead", "leader",
+    "leadership", "unite", "unity", "deliver", "protect", "protection", "future",
+    "reform", "improve", "improvement", "historic", "freedom", "liberty", "opportunity",
+    "invest", "investment", "grow", "growth", "steady", "proud", "pride", "trust",
+    "working", "families", "restore", "bright", "resolve", "popular", "success"
+]);
+
+const TCT_NEGATIVE_WORDS = new Set([
+    "fail", "failure", "failed", "crisis", "disaster", "terrible", "awful", "horrible",
+    "collapse", "ruin", "bankrupt", "shame", "shameful", "suffer", "suffering",
+    "pain", "destroy", "destruction", "corrupt", "weak", "blunder", "mistake", "regret"
+]);
+
+const TCT_PRO_EXPANSION_WORDS = new Set([
+    "support", "expand", "increase", "raise", "pass", "enact", "fund", "funding",
+    "protect", "strengthen", "guarantee", "universal", "legalize", "subsidize",
+    "promote", "invest", "extend", "favor"
+]);
+
+const TCT_ANTI_RESTRICTION_WORDS = new Set([
+    "oppose", "ban", "cut", "slash", "reduce", "lower", "repeal", "end", "abolish",
+    "block", "deny", "stop", "illegal", "restrict", "restriction", "eliminate",
+    "terminate", "dismantle", "limit"
+]);
+
+const TCT_MODERATE_WORDS = new Set([
+    "compromise", "moderate", "balance", "balanced", "middle", "bipartisan",
+    "pragmatic", "caution", "cautious", "study", "review", "gradual", "current",
+    "status", "sensible"
+]);
+
+const TCT_STANCE_BENCHMARKS = {
+    1: -0.85,
+    2: -0.50,
+    3: -0.22,
+    4:  0.00,
+    5:  0.22,
+    6:  0.50,
+    7:  0.85
+};
+
 registerComponent('bulk', {
 
     data() {
@@ -207,8 +292,8 @@ registerComponent('bulk', {
                 </div>
 
                 <div class="mt-4 border border-gray-200 rounded p-3 bg-gray-50">
-                    <p class="text-xs font-semibold text-gray-700 mb-2">Smart random effects</p>
-                    <p class="text-xs text-gray-600 mb-3">These vaguely smart but definitely random effects will attempt to pick coherent issues based on question and answer text, and assign stances based on the sentiment of the answer text. Use the global chance and cap to control how many effects are applied, and the issue-specific settings to control how strong those effects are.</p>
+                    <p class="text-xs font-semibold text-gray-700 mb-1">Smart random effects</p>
+                    <p class="text-xs text-gray-600 mb-3">These vaguely smart but definitely random effects will attempt to heuristically match questions to issues, compare answer wording against the campaign issue stances, flags political rhetoric/gaffes, and detects targeted opponent criticism. Use the global chance and cap to control how many effects are applied, and the issue-specific settings to control how strong those effects are.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                         <div>
@@ -467,7 +552,7 @@ registerComponent('bulk', {
             }
             for (const item of this.stateItems) {
                 if (item.include) {
-                    const newPk = this.$TCT.getNewPk(); // see js/base.js
+                    const newPk = this.$TCT.getNewPk();
                     let x = {
                         "model": "campaign_trail.answer_score_state",
                         "pk": newPk,
@@ -478,7 +563,7 @@ registerComponent('bulk', {
                             "affected_candidate": Number(this.affectedCandidate) || this.$TCT.getDefaultCandidatePK(),
                             "state_multiplier": item.amount
                         }
-                    }
+                    };
                     this.$TCT.answer_score_state[newPk] = x;
                 }
             }
@@ -553,129 +638,282 @@ registerComponent('bulk', {
             };
         },
 
+        stemToken(word) {
+            let w = String(word || "").toLowerCase().trim();
+            if (w.length <= 3) return w;
+            w = w.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
+            if (w.length <= 3) return w;
+            return w
+                .replace(/(?:ing|edly|ingly|tion|tions|ment|ments|ness|nesses|ism|isms|ist|ists|al|als|ies)$/, "")
+                .replace(/(?:ed|es|ly|s)$/, "");
+        },
+
         tokenizeForSimilarity(text) {
             return String(text || "")
                 .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, " ")
-                .split(/\s+/)
-                .filter(token => token.length >= 3);
+                .replace(/[^a-z0-9\s-]/g, " ")
+                .split(/[\s-]+/)
+                .map(t => this.stemToken(t))
+                .filter(t => t.length >= 3 && !TCT_STOPWORDS.has(t));
+        },
+
+        getCandidateProfiles() {
+            const pks = this.$TCT.getAllCandidatePKs().map(Number);
+            const defaultPk = Number(this.$TCT.getDefaultCandidatePK());
+            const profiles = [];
+
+            for (const pk of pks) {
+                const names = new Set();
+                const nickname = this.$TCT.getNicknameForCandidate?.(pk) || this.$TCT.jet_data?.nicknames?.[pk];
+                if (nickname) {
+                    names.add(String(nickname).toLowerCase().trim());
+                }
+
+                const candidateObj = this.$TCT.candidate?.[pk] || this.$TCT.candidates?.[pk];
+                if (candidateObj && candidateObj.fields) {
+                    const fn = String(candidateObj.fields.first_name || "").toLowerCase().trim();
+                    const ln = String(candidateObj.fields.last_name || "").toLowerCase().trim();
+                    if (fn && fn.length >= 3) names.add(fn);
+                    if (ln && ln.length >= 3) names.add(ln);
+                    if (fn && ln) names.add(`${fn} ${ln}`);
+                }
+
+                profiles.push({
+                    pk,
+                    isDefault: pk === defaultPk,
+                    names: Array.from(names)
+                });
+            }
+            return profiles;
+        },
+
+        analyzePoliticalContent(answerText, questionText, candidateProfiles) {
+            const cleanAnswer = String(answerText || "").toLowerCase();
+            const cleanQuestion = String(questionText || "").toLowerCase();
+
+            // detect gaffes/evasions
+            let isGaffe = false;
+            for (const pattern of TCT_GAFFE_PATTERNS) {
+                if (pattern.test(cleanAnswer)) {
+                    isGaffe = true;
+                    break;
+                }
+            }
+
+            // detect candidate targeting (is an opponent explicitly mentioned?)
+            let targetCandidatePk = null;
+            let isAttack = false;
+            for (const prof of candidateProfiles) {
+                for (const name of prof.names) {
+                    const regex = new RegExp(`\\b${name}\\b`, 'i');
+                    if (regex.test(cleanAnswer)) {
+                        if (!prof.isDefault) {
+                            targetCandidatePk = prof.pk;
+                        }
+                        break;
+                    }
+                }
+                if (targetCandidatePk) break;
+            }
+
+            // check attack keywords
+            const tokens = cleanAnswer.replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+            let attackHits = 0;
+            let posHits = 0;
+            let negHits = 0;
+
+            for (let i = 0; i < tokens.length; i++) {
+                const token = tokens[i];
+                const prev = i > 0 ? tokens[i - 1] : "";
+                const isNegated = ["not", "never", "no", "without", "won't", "hardly"].includes(prev);
+
+                if (TCT_ATTACK_WORDS.has(token)) {
+                    attackHits += isNegated ? -0.5 : 1;
+                }
+                if (TCT_POSITIVE_WORDS.has(token)) {
+                    posHits += isNegated ? -1 : 1;
+                }
+                if (TCT_NEGATIVE_WORDS.has(token)) {
+                    negHits += isNegated ? -1 : 1;
+                }
+            }
+
+            if (targetCandidatePk && attackHits >= 1) {
+                isAttack = true;
+            }
+
+            let polarity = (posHits - negHits - attackHits * 0.5) / Math.max(1, posHits + negHits + attackHits);
+            if (isGaffe) polarity = -0.8;
+            if (tokens.length <= 4 && !posHits) polarity -= 0.3; // dismissive short answer
+
+            return {
+                polarity: this.clamp(polarity, -1, 1),
+                isGaffe,
+                isAttack,
+                targetCandidatePk
+            };
         },
 
         getTextPolarityScore(text) {
-            const original = String(text || "");
-            const normalized = original
-                .toLowerCase()
-                .replace(/[^a-z0-9!?\s-]/g, " ");
-
-            const letters = normalized.replace(/[^a-z]/g, "");
-            const letterCount = letters.length;
-            if (letterCount === 0) return 0;
-
-            const hardConsonants = (letters.match(/[kqtpxcgdf]/g) || []).length;
-            const softConsonants = (letters.match(/[lmnrwvhz]/g) || []).length;
-            const roundedPhonetics = (letters.match(/[bmuowl]/g) || []).length;
-            const sharpPhonetics = (letters.match(/[kptixe]/g) || []).length;
-
-            const exclamations = (normalized.match(/!/g) || []).length;
-            const questions = (normalized.match(/\?/g) || []).length;
-
-            const tokens = normalized
-                .split(/\s+/)
-                .filter(Boolean);
-            const avgTokenLength = tokens.length > 0
-                ? tokens.reduce((sum, token) => sum + token.length, 0) / tokens.length
-                : 0;
-
-            const uppercaseLetters = (original.match(/[A-Z]/g) || []).length;
-            const alphaOriginal = (original.match(/[A-Za-z]/g) || []).length;
-            const uppercaseRatio = alphaOriginal > 0 ? uppercaseLetters / alphaOriginal : 0;
-
-            const hardnessRatio = hardConsonants / letterCount;
-            const softnessRatio = softConsonants / letterCount;
-            const roundedRatio = roundedPhonetics / letterCount;
-            const sharpRatio = sharpPhonetics / letterCount;
-
-            const punctuationBias = this.clamp(exclamations * 0.06 + questions * 0.02, 0, 0.24);
-            const cadenceBias = this.clamp((avgTokenLength - 5.2) * 0.025, -0.12, 0.12);
-            const capsBias = this.clamp(uppercaseRatio * 0.35, 0, 0.2);
-
-            const score =
-                (roundedRatio - sharpRatio) * 1.15 +
-                (softnessRatio - hardnessRatio) * 0.95 +
-                cadenceBias -
-                punctuationBias -
-                capsBias;
-
-            return this.clamp(score, -1, 1);
+            const analysis = this.analyzePoliticalContent(text, "", []);
+            return analysis.polarity;
         },
 
         getSentimentDirection(text, rng) {
             const polarity = this.getTextPolarityScore(text);
-            const noisyPolarity = polarity + (rng() - 0.5) * 0.08;
+            const noisyPolarity = polarity + (rng() - 0.5) * 0.12;
 
-            if (noisyPolarity > 0.03) return 1;
-            if (noisyPolarity < -0.03) return -1;
+            if (noisyPolarity > 0.04) return 1;
+            if (noisyPolarity < -0.04) return -1;
             return rng() < 0.5 ? 1 : -1;
         },
 
         pickImportanceBucket(minValue, maxValue, rng) {
-            const allowedValues = [1, 1.5, 2].filter(v => v >= minValue && v <= maxValue);
+            const allowedValues = [1, 1.5, 2, 2.5].filter(v => v >= minValue && v <= maxValue);
             const pool = allowedValues.length > 0 ? allowedValues : [1, 1.5, 2];
             return pool[Math.floor(rng() * pool.length)];
         },
 
         pickCoherentIssuePk(questionText, answerText, rng) {
-            const textTokens = new Set(this.tokenizeForSimilarity(`${questionText || ""} ${answerText || ""}`));
             const issueEntries = Object.values(this.$TCT.issues);
-
             if (issueEntries.length === 0) return null;
-            if (!this.randomSmartIssueSelection || textTokens.size === 0) {
+
+            if (!this.randomSmartIssueSelection) {
                 const randomIssue = issueEntries[Math.floor(rng() * issueEntries.length)];
                 return randomIssue ? Number(randomIssue.pk) : null;
             }
 
+            const qLower = String(questionText || "").toLowerCase();
+            const aLower = String(answerText || "").toLowerCase();
+            const qTokens = new Set(this.tokenizeForSimilarity(qLower));
+            const aTokens = new Set(this.tokenizeForSimilarity(aLower));
+
             const scored = issueEntries.map(issue => {
                 const fields = issue.fields || {};
-                const issueText = [
-                    fields.name,
-                    fields.stance_1,
-                    fields.stance_2,
-                    fields.stance_3,
-                    fields.stance_4,
-                    fields.stance_5,
-                    fields.stance_6,
-                    fields.stance_7
-                ].filter(Boolean).join(" ");
+                const issueName = String(fields.name || "").toLowerCase().trim();
+                let relevance = 0;
 
-                const issueTokens = this.tokenizeForSimilarity(issueText);
-                let overlap = 0;
-                for (const token of issueTokens) {
-                    if (textTokens.has(token)) overlap++;
+                // strong bonus if issue name explicitly appears in question or answer
+                if (issueName) {
+                    if (qLower.includes(issueName)) relevance += 16;
+                    if (aLower.includes(issueName)) relevance += 10;
+
+                    const nameTokens = this.tokenizeForSimilarity(issueName);
+                    for (const nt of nameTokens) {
+                        if (qTokens.has(nt)) relevance += 5;
+                        if (aTokens.has(nt)) relevance += 3;
+                    }
                 }
 
-                let nameBoost = 0;
-                const issueName = String(fields.name || "").toLowerCase();
-                if (issueName && String(answerText || "").toLowerCase().includes(issueName)) {
-                    nameBoost = 3;
+                // check stance text overlaps
+                for (let s = 1; s <= 7; s++) {
+                    const stanceText = fields[`stance_${s}`];
+                    if (stanceText) {
+                        const sTokens = this.tokenizeForSimilarity(stanceText);
+                        for (const st of sTokens) {
+                            if (qTokens.has(st)) relevance += 1;
+                            if (aTokens.has(st)) relevance += 1.8;
+                        }
+                    }
                 }
 
                 return {
                     pk: Number(issue.pk),
-                    relevance: overlap + nameBoost
+                    relevance
                 };
             });
 
             scored.sort((left, right) => right.relevance - left.relevance);
-            const top = scored.slice(0, Math.min(5, scored.length));
+            const top = scored.slice(0, Math.min(4, scored.length));
 
-            const weightSum = top.reduce((sum, entry) => sum + Math.max(0.25, entry.relevance + 0.25), 0);
-            let roll = rng() * weightSum;
-            for (const entry of top) {
-                roll -= Math.max(0.25, entry.relevance + 0.25);
-                if (roll <= 0) return entry.pk;
+            if (top[0] && top[0].relevance > 0) {
+                const weightSum = top.reduce((sum, entry) => sum + Math.max(0.2, entry.relevance), 0);
+                let roll = rng() * weightSum;
+                for (const entry of top) {
+                    roll -= Math.max(0.2, entry.relevance);
+                    if (roll <= 0) return entry.pk;
+                }
+                return top[0].pk;
             }
 
-            return top.length > 0 ? top[0].pk : Number(issueEntries[0].pk);
+            return Number(issueEntries[Math.floor(rng() * issueEntries.length)].pk);
+        },
+
+        determineIssueStanceScore(issuePk, answerText, rng, issueCap) {
+            const issue = this.$TCT.issues[issuePk];
+            if (!issue) return Number(((rng() * 2 - 1) * issueCap).toFixed(3));
+
+            const cleanAnswer = String(answerText || "").toLowerCase();
+            const aTokens = new Set(this.tokenizeForSimilarity(cleanAnswer));
+            const rawTokens = cleanAnswer.replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+
+            let proCount = 0;
+            let antiCount = 0;
+            let modCount = 0;
+
+            for (const token of rawTokens) {
+                if (TCT_PRO_EXPANSION_WORDS.has(token)) proCount++;
+                if (TCT_ANTI_RESTRICTION_WORDS.has(token)) antiCount++;
+                if (TCT_MODERATE_WORDS.has(token)) modCount++;
+            }
+
+            // compare directly against each defined stance (1..7)
+            const stanceScores = [];
+            for (let i = 1; i <= 7; i++) {
+                const stanceText = issue.fields?.[`stance_${i}`] || "";
+                let score = 0;
+
+                if (stanceText) {
+                    const sTokens = this.tokenizeForSimilarity(stanceText);
+                    for (const st of sTokens) {
+                        if (aTokens.has(st)) score += 3;
+                    }
+                }
+
+                // add directional alignment bonuses
+                if (i <= 2) score += antiCount * 2;
+                else if (i >= 6) score += proCount * 2;
+                else if (i === 4) score += modCount * 3;
+
+                stanceScores.push({ index: i, score });
+            }
+
+            stanceScores.sort((a, b) => b.score - a.score);
+            let bestStanceIndex = stanceScores[0].index;
+
+            // fallback if no specific stance keywords matched
+            if (stanceScores[0].score === 0) {
+                if (modCount > proCount && modCount > antiCount) bestStanceIndex = 4;
+                else if (proCount > antiCount) bestStanceIndex = 6;
+                else if (antiCount > proCount) bestStanceIndex = 2;
+                else bestStanceIndex = rng() < 0.5 ? 3 : 5;
+            }
+
+            const baseScore = TCT_STANCE_BENCHMARKS[bestStanceIndex] ?? 0.0;
+            const scaled = baseScore * (issueCap / 0.85);
+            const jitter = (rng() - 0.5) * 0.05;
+            return Number(this.clamp(scaled + jitter, -issueCap, issueCap).toFixed(3));
+        },
+
+        determineIssueImportance(issuePk, questionText, answerText, minImp, maxImp, rng) {
+            const issue = this.$TCT.issues[issuePk];
+            const issueName = String(issue?.fields?.name || "").toLowerCase().trim();
+            const qLower = String(questionText || "").toLowerCase();
+
+            let targetImportance = (minImp + maxImp) / 2;
+
+            // if the issue is central to the question prompt, make it highly important
+            if (issueName && qLower.includes(issueName)) {
+                targetImportance = maxImp;
+            } else if (qLower && this.tokenizeForSimilarity(issueName).some(t => qLower.includes(t))) {
+                targetImportance = Math.min(maxImp, minImp + (maxImp - minImp) * 0.75);
+            } else {
+                targetImportance = minImp + rng() * (maxImp - minImp) * 0.5;
+            }
+
+            // snap to clean intervals (1, 1.5, 2, 2.5)
+            const rounded = Math.round(targetImportance * 2) / 2;
+            return this.clamp(rounded, minImp, maxImp);
         },
 
         upsertGlobalEffect(answerPk, playerCandidatePk, affectedCandidatePk, amount) {
@@ -709,10 +947,8 @@ registerComponent('bulk', {
             const existing = existingIssueScores.find(s => s.fields.issue === issuePk);
 
             if (existing) {
-                const currentScore = Number(existing.fields.issue_score) || 0;
-                const currentImportance = Number(existing.fields.issue_importance) || 1;
-                existing.fields.issue_score = this.clamp(currentScore + scoreDelta, -1, 1);
-                existing.fields.issue_importance = this.clamp(currentImportance * importanceScale, 0.1, 4);
+                existing.fields.issue_score = this.clamp(scoreDelta, -1, 1);
+                existing.fields.issue_importance = this.clamp(importanceScale, 0.1, 4);
                 return false;
             }
 
@@ -749,7 +985,7 @@ registerComponent('bulk', {
             const rng = this.makeSeededRng(runSeed);
 
             const defaultCandidatePk = Number(this.$TCT.getDefaultCandidatePK());
-            const candidatePks = this.$TCT.getAllCandidatePKs().map(Number);
+            const candidateProfiles = this.getCandidateProfiles();
 
             let globalApplied = 0;
             let issueApplied = 0;
@@ -762,33 +998,48 @@ registerComponent('bulk', {
                 const questionObj = this.$TCT.questions.get(questionPk);
                 const answerText = answerObj?.fields?.description || "";
                 const questionText = questionObj?.fields?.description || "";
-                const combinedText = `${questionText} ${answerText}`.trim();
-                const sentiment = this.getSentimentDirection(combinedText, rng);
 
+                const analysis = this.analyzePoliticalContent(answerText, questionText, candidateProfiles);
+
+                // apply global multiplier
                 if (globalCap > 0 && rng() <= globalChance) {
                     let affectedCandidatePk = defaultCandidatePk;
-                    if (candidatePks.length > 1 && rng() > 0.65) {
-                        const alternatives = candidatePks.filter(pk => pk !== defaultCandidatePk);
-                        if (alternatives.length > 0) {
-                            affectedCandidatePk = alternatives[Math.floor(rng() * alternatives.length)];
+                    let sign = 1;
+                    let magnitude = rng() * globalCap;
+
+                    if (analysis.isGaffe) {
+                        affectedCandidatePk = defaultCandidatePk;
+                        sign = -1;
+                        magnitude = Math.max(globalCap * 0.4, magnitude);
+                    } else if (analysis.isAttack && analysis.targetCandidatePk) {
+                        // attack explicitly targeting opponent
+                        affectedCandidatePk = analysis.targetCandidatePk;
+                        sign = -1; // hurts opponent's momentum
+                        magnitude = Math.max(globalCap * 0.35, magnitude);
+                    } else {
+                        affectedCandidatePk = defaultCandidatePk;
+                        if (analysis.polarity > 0.15) {
+                            sign = 1;
+                        } else if (analysis.polarity < -0.15) {
+                            sign = -1;
+                        } else {
+                            sign = rng() < 0.5 ? 1 : -1;
+                            magnitude *= 0.45;
                         }
                     }
 
-                    const magnitude = this.clamp(rng() * globalCap, 0, globalCap);
-                    const sign = affectedCandidatePk === defaultCandidatePk ? sentiment : (rng() < 0.6 ? -sentiment : sentiment);
                     const amount = Number((magnitude * sign).toFixed(6));
-
                     const isNew = this.upsertGlobalEffect(answerPk, defaultCandidatePk, affectedCandidatePk, amount);
                     if (isNew) createdGlobal++;
                     globalApplied++;
                 }
 
+                // apply issue effect
                 if (issueCap > 0 && rng() <= issueChance) {
                     const issuePk = this.pickCoherentIssuePk(questionText, answerText, rng);
                     if (issuePk != null) {
-                        const magnitude = this.clamp(rng() * issueCap, 0, issueCap);
-                        const scoreDelta = Number((magnitude * sentiment).toFixed(3));
-                        const importanceScale = this.pickImportanceBucket(importanceMin, importanceMax, rng);
+                        const scoreDelta = this.determineIssueStanceScore(Number(issuePk), answerText, rng, issueCap);
+                        const importanceScale = this.determineIssueImportance(Number(issuePk), questionText, answerText, importanceMin, importanceMax, rng);
 
                         const isNew = this.upsertIssueEffect(answerPk, Number(issuePk), scoreDelta, importanceScale);
                         if (isNew) createdIssue++;
@@ -803,10 +1054,10 @@ registerComponent('bulk', {
             this.$globalData.dataVersion++;
 
             alert(
-                `Smart random effects applied to ${this.selectedAnswerPks.length} answers. ` +
-                `Global: ${globalApplied} (${createdGlobal} new). ` +
-                `Issue: ${issueApplied} (${createdIssue} new). ` +
-                `Seed: ${runSeed}`
+                `Smart random effects applied to ${this.selectedAnswerPks.length} answers.\n` +
+                `- Global multipliers: ${globalApplied} (${createdGlobal} new)\n` +
+                `- Issue stances: ${issueApplied} (${createdIssue} new)\n` +
+                `- Seed: ${runSeed}`
             );
         },
 
@@ -1653,7 +1904,6 @@ registerComponent('bulk-issue', {
         }
     }
 });
-
 
 registerComponent('bulk-state-multiplier', {
 
