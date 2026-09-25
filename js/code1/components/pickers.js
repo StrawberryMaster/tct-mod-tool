@@ -696,15 +696,12 @@ registerCode1Component('mod-box-editor', {
         <p class="text-sm text-gray-500 italic">Customize how your mod card appears in the community mod selection screen.</p>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Suggest from tool theme</label>
-            <div class="flex flex-wrap gap-1">
-                <button v-for="(p, key) in presets" :key="key"
-                    @click="applyPreset(p)"
-                    class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition"
-                    :style="presetStyle(p)"
-                >
-                    {{ p.label }}
-                </button>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Generate from current mod</label>
+            <div class="flex flex-wrap gap-1 mb-3">
+                <button @click="applyGeneratedTheme('mod')" class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition">Use mod colors</button>
+                <button @click="applyGeneratedTheme('similar')" class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition">Similar colors</button>
+                <button @click="applyGeneratedTheme('matching')" class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition">Matching colors</button>
+                <button @click="applyGeneratedTheme('random')" class="px-2 py-1 text-xs rounded border hover:bg-gray-100 transition">Random colors</button>
             </div>
         </div>
 
@@ -724,6 +721,22 @@ registerCode1Component('mod-box-editor', {
                 </div>
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700">Header image URL</label>
+                <input v-model="mbTheme.header_image_url" type="url" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Header text shadow</label>
+                <input v-model="mbTheme.header_text_shadow" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS text-shadow">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Header font</label>
+                <input v-model="mbTheme.header_font" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS font-family">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Header margin</label>
+                <input v-model="mbTheme.header_margin" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS margin">
+            </div>
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Main (card background)</label>
                 <div class="flex gap-2">
                     <input v-model="mbTheme.main_color" type="color" class="h-8 w-8 border rounded">
@@ -736,6 +749,10 @@ registerCode1Component('mod-box-editor', {
                     <input v-model="mbTheme.secondary_color" type="color" class="h-8 w-8 border rounded">
                     <input v-model="mbTheme.secondary_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
                 </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Secondary hover color</label>
+                <input v-model="mbTheme.secondary_hover_color" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm font-mono" placeholder="Optional color">
             </div>
             <div class="col-span-2">
                 <label class="block text-sm font-medium text-gray-700">Description background color</label>
@@ -758,30 +775,51 @@ registerCode1Component('mod-box-editor', {
                     <input v-model="mbTheme.ui_text_color" type="text" class="flex-1 rounded border-gray-300 text-sm font-mono">
                 </div>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Scrollbar color</label>
+                <input v-model="mbTheme.scrollbar_color" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm font-mono" placeholder="Optional color">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Scrollbar width</label>
+                <input v-model="mbTheme.scrollbar_width" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS width">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Image border</label>
+                <input v-model="mbTheme.image_border" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS border">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Election image display</label>
+                <input v-model="mbTheme.election_image_display" type="text" class="mt-1 block w-full rounded border-gray-300 text-sm" placeholder="Optional CSS display value">
+            </div>
         </div>
 
         <div class="mt-4 rounded border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
             <strong>Preview:</strong>
             <div class="mt-2 flex justify-center">
-                <div :style="{ height: '400px', width: '217px', backgroundColor: mbTheme.main_color, borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'black', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }">
-                    <div :style="{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: '10px 10px 0 0', paddingTop: '10px', marginBottom: '10px', height: '15%', display: 'flex', fontSize: '18px', fontWeight: 'bolder', width: '100%', backgroundColor: mbTheme.header_color, color: mbTheme.header_text_color }">
-                        <p :style="{ padding: '10px', margin: 0 }">{{ $TCT.elections[0]?.fields?.display_year || $TCT.elections[0]?.fields?.year || 'Mod Title' }}</p>
+                    <div :style="{ height: '400px', width: '217px', backgroundColor: mbTheme.main_color, backgroundAttachment: 'local', borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'black', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }">
+                    <div :style="{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: '10px 10px 0 0', paddingTop: '10px', marginBottom: mbTheme.header_margin || '10px', height: '15%', display: 'flex', fontSize: '18px', fontFamily: mbTheme.header_font || 'Arial, Helvetica, sans-serif', fontWeight: 'bolder', width: '100%', position: 'relative', backgroundImage: mbTheme.header_image_url ? 'url(' + mbTheme.header_image_url + ')' : 'none', backgroundColor: mbTheme.header_color, backgroundSize: 'cover', backgroundPosition: 'center' }">
+                        <p :style="{ padding: '10px', margin: 0, color: mbTheme.header_text_color, textShadow: mbTheme.header_text_shadow || 'none' }">{{ $TCT.elections[0]?.fields?.display_year || $TCT.elections[0]?.fields?.year || 'Mod Title' }}</p>
                     </div>
-                    <img class="mod-image" alt="Mod" :src="$TCT.elections[0]?.fields?.image_url || 'https://placekitten.com/g/180/100'" :style="{ width: '80%', border: '4px solid white', height: 'auto' }">
-                    <div :style="{ flex: '1 1 0%', height: '100%', overflowY: 'auto', textAlign: 'center', fontSize: '12px', width: '90%', margin: '5px auto', borderRadius: '5px', padding: '5px', backgroundColor: mbTheme.description_background_color, color: mbTheme.description_text_color }">
-                        {{ $TCT.elections[0]?.fields?.site_description || ($TCT.elections[0]?.fields?.summary || '').replace(/<[^>]*>/g, '').trim() || 'A Campaign Trail mod.' }}
+                    <div :style="{ flex: '1 1 0%', minHeight: 0, overflowY: 'scroll', scrollbarWidth: mbTheme.scrollbar_width || 'auto', scrollbarColor: mbTheme.scrollbar_color || 'auto', width: '100%', textAlign: 'center' }">
+                        <img class="mod-image" alt="Mod" :src="$TCT.elections[0]?.fields?.image_url || 'https://placekitten.com/g/180/100'" :style="{ width: '80%', margin: '0 auto', border: mbTheme.image_border || '4px solid white', display: mbTheme.election_image_display || 'auto', height: 'auto' }">
+                        <div :style="{ flex: '1 1 0%', height: 'auto', overflowY: 'clip', textAlign: 'center', fontSize: '12px', width: '89%', margin: '5px auto', borderRadius: '5px', padding: '5px', background: mbTheme.description_background_color, color: mbTheme.description_text_color }">
+                            {{ $TCT.elections[0]?.fields?.site_description || ($TCT.elections[0]?.fields?.summary || '').replace(/<[^>]*>/g, '').trim() || 'A Campaign Trail mod.' }}
+                        </div>
                     </div>
                     <div :style="{ display: 'inline-flex', justifyContent: 'center', flexWrap: 'wrap', width: '100%', margin: '10px', height: '12%' }">
                         <button :style="{ flexGrow: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textDecoration: 'none', outline: 'none', color: mbTheme.ui_text_color, backgroundColor: mbTheme.secondary_color, border: 'none', borderRadius: '10px', margin: '5px' }">
                             <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><path d="M8 5v14l11-7z"></path></svg>
                         </button>
-                        <button :style="{ flexGrow: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textDecoration: 'none', outline: 'none', color: mbTheme.ui_text_color, backgroundColor: mbTheme.secondary_color, border: 'none', borderRadius: '10px', margin: '5px' }">
+                        <button :style="{ flexGrow: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textDecoration: 'none', outline: 'none', color: mbTheme.ui_text_color, backgroundColor: mbTheme.secondary_hover_color || mbTheme.secondary_color, border: 'none', borderRadius: '10px', margin: '5px' }">
                             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
                         </button>
                     </div>
                     <div :style="{ backgroundColor: mbTheme.secondary_color, width: '100%', borderRadius: '0 0 10px 10px', color: mbTheme.ui_text_color, paddingTop: '10px', paddingBottom: '5px', textAlign: 'center' }">
-                        <div :style="{ fontWeight: 'bold', fontSize: '20px' }">
-                            2 FAVORITES
+                        <div :style="{ fontWeight: 'bold', fontSize: '16px' }">
+                            425 FAVORITES
+                        </div>
+                        <div :style="{ fontWeight: 'bold', fontSize: '16px' }">
+                            32851 PLAYS
                         </div>
                     </div>
                 </div>
@@ -795,38 +833,73 @@ registerCode1Component('mod-box-editor', {
                 this.$TCT.jet_data.modBoxTheme = {
                     header_color: "#0f172a",
                     header_text_color: "#ffffff",
+                    header_image_url: "",
+                    header_text_shadow: "",
+                    header_font: "",
+                    header_margin: "",
                     description_background_color: "#ffffff",
                     description_text_color: "#111827",
                     main_color: "#bfe6ff",
                     secondary_color: "#2563eb",
+                    secondary_hover_color: "",
+                    scrollbar_color: "",
+                    scrollbar_width: "",
+                    image_border: "",
+                    election_image_display: "",
                     ui_text_color: "#ffffff",
-                    site_title: "",
-                    site_image_url: ""
                 };
             }
             return this.$TCT.jet_data.modBoxTheme;
         },
-        presets() {
-            return TCTCode1Data.MOD_BOX_THEME_PRESETS;
-        }
     },
     methods: {
-        presetStyle(p) {
-            return {
-                borderColor: p.secondary_color,
-                color: p.header_text_color,
-                background: 'linear-gradient(to bottom, ' + p.header_color + ', ' + p.main_color + ')'
+        applyGeneratedTheme(kind) {
+            const jetData = this.$TCT.jet_data;
+            const modColors = {
+                header: jetData.headerColor,
+                headerText: jetData.headerTextColor,
+                main: jetData.containerColor,
+                secondary: jetData.windowColor,
+                description: jetData.descriptionWindowColor,
+                descriptionText: jetData.descriptionWindowTextColor
             };
-        },
-        applyPreset(preset) {
-            const t = this.mbTheme;
-            t.header_color = preset.header_color;
-            t.header_text_color = preset.header_text_color;
-            t.description_background_color = preset.description_background_color;
-            t.description_text_color = preset.description_text_color;
-            t.main_color = preset.main_color;
-            t.secondary_color = preset.secondary_color;
-            t.ui_text_color = preset.ui_text_color;
+
+            let theme;
+            if (kind === 'mod') {
+                theme = modBoxThemeFromColors(modColors);
+            } else if (kind === 'similar') {
+                theme = modBoxThemeFromColors({
+                    ...modColors,
+                    header: modBoxJitter(modColors.header, 24),
+                    main: modBoxJitter(modColors.main, 24),
+                    secondary: modBoxJitter(modColors.secondary, 24),
+                    description: modBoxJitter(modColors.description, 18)
+                });
+            } else if (kind === 'matching') {
+                const header = modBoxHex(jetData.headerColor, '#700016');
+                const secondary = modBoxMix(header, '#ffffff', 0.28 + Math.random() * 0.18);
+                theme = modBoxThemeFromColors({
+                    ...modColors,
+                    header: modBoxMix(header, '#111827', 0.2),
+                    main: modBoxMix(header, '#ffffff', 0.82),
+                    secondary,
+                    description: modBoxMix(secondary, '#ffffff', 0.82)
+                });
+            } else {
+                const randomBase = modBoxHexFromRgb([
+                    45 + Math.random() * 180,
+                    45 + Math.random() * 180,
+                    45 + Math.random() * 180
+                ]);
+                theme = modBoxThemeFromColors({
+                    header: modBoxMix(randomBase, '#111827', 0.72),
+                    main: modBoxMix(randomBase, '#ffffff', 0.78),
+                    secondary: randomBase,
+                    description: modBoxMix(randomBase, '#ffffff', 0.9)
+                });
+            }
+
+            Object.assign(this.mbTheme, theme);
         }
     }
 });
@@ -925,3 +998,81 @@ registerCode1Component('settings-editor', {
     </div>
     `
 });
+
+function modBoxHex(value, fallback) {
+    const raw = String(value || '').trim().replace('#', '');
+    if (/^[0-9a-f]{3}$/i.test(raw)) {
+        return '#' + raw.split('').map(char => char + char).join('').toLowerCase();
+    }
+    if (/^[0-9a-f]{6}$/i.test(raw)) return '#' + raw.toLowerCase();
+    return fallback;
+}
+
+function modBoxRgb(hex) {
+    const normalized = modBoxHex(hex, '#000000').slice(1);
+    return [0, 2, 4].map(index => parseInt(normalized.slice(index, index + 2), 16));
+}
+
+function modBoxHexFromRgb(rgb) {
+    return '#' + rgb.map(value => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0')).join('');
+}
+
+function modBoxMix(first, second, amount) {
+    const a = modBoxRgb(first);
+    const b = modBoxRgb(second);
+    return modBoxHexFromRgb(a.map((value, index) => value + (b[index] - value) * amount));
+}
+
+function modBoxJitter(hex, amount) {
+    return modBoxHexFromRgb(modBoxRgb(hex).map(channel => channel + (Math.random() * 2 - 1) * amount));
+}
+
+function modBoxLuminance(hex) {
+    return modBoxRgb(hex).reduce((sum, channel, index) => {
+        const normalized = channel / 255;
+        const linear = normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        return sum + linear * [0.2126, 0.7152, 0.0722][index];
+    }, 0);
+}
+
+function modBoxContrast(first, second) {
+    const light = Math.max(modBoxLuminance(first), modBoxLuminance(second));
+    const dark = Math.min(modBoxLuminance(first), modBoxLuminance(second));
+    return (light + 0.05) / (dark + 0.05);
+}
+
+function modBoxReadableText(background) {
+    const normalized = modBoxHex(background, '#ffffff');
+    return modBoxContrast(normalized, '#ffffff') >= modBoxContrast(normalized, '#111827') ? '#ffffff' : '#111827';
+}
+
+function modBoxThemeFromColors(colors) {
+    const header = modBoxHex(colors.header, '#0f172a');
+    const main = modBoxHex(colors.main, '#bfe6ff');
+    const secondary = modBoxHex(colors.secondary, '#2563eb');
+    const description = modBoxHex(colors.description, '#ffffff');
+    const headerText = colors.headerText && modBoxContrast(header, colors.headerText) >= 3
+        ? modBoxHex(colors.headerText, modBoxReadableText(header))
+        : modBoxReadableText(header);
+    const descriptionText = colors.descriptionText && modBoxContrast(description, colors.descriptionText) >= 3
+        ? modBoxHex(colors.descriptionText, modBoxReadableText(description))
+        : modBoxReadableText(description);
+    return {
+        header_color: header,
+        header_text_color: headerText,
+        header_image_url: '',
+        header_text_shadow: modBoxReadableText(header) === '#ffffff' ? '1px 1px 2px rgba(0, 0, 0, 0.7)' : '',
+        header_font: '',
+        header_margin: '10px',
+        description_background_color: description,
+        description_text_color: descriptionText,
+        main_color: main,
+        secondary_color: secondary,
+        secondary_hover_color: modBoxMix(secondary, modBoxReadableText(secondary), 0.15),
+        scrollbar_color: `${secondary} ${main}`,
+        scrollbar_width: 'auto',
+        image_border: `4px solid ${modBoxReadableText(main)}`,
+        election_image_display: 'block',
+        ui_text_color: modBoxReadableText(secondary)
+    };
+}

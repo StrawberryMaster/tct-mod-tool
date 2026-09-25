@@ -27,13 +27,20 @@ class TCTCode1Data {
             modBoxTheme: {
                 header_color: "#0f172a",
                 header_text_color: "#ffffff",
+                header_image_url: "",
+                header_text_shadow: "",
+                header_font: "",
+                header_margin: "",
                 description_background_color: "#ffffff",
                 description_text_color: "#111827",
                 main_color: "#bfe6ff",
                 secondary_color: "#2563eb",
+                secondary_hover_color: "",
+                scrollbar_color: "",
+                scrollbar_width: "",
+                image_border: "",
+                election_image_display: "",
                 ui_text_color: "#ffffff",
-                site_title: "",
-                site_image_url: ""
             }
         };
 
@@ -133,13 +140,20 @@ class TCTCode1Data {
                 modBoxTheme: {
                     header_color: "#0f172a",
                     header_text_color: "#ffffff",
+                    header_image_url: "",
+                    header_text_shadow: "",
+                    header_font: "",
+                    header_margin: "",
                     description_background_color: "#ffffff",
                     description_text_color: "#111827",
                     main_color: "#bfe6ff",
                     secondary_color: "#2563eb",
+                    secondary_hover_color: "",
+                    scrollbar_color: "",
+                    scrollbar_width: "",
+                    image_border: "",
+                    election_image_display: "",
                     ui_text_color: "#ffffff",
-                    site_title: "",
-                    site_image_url: ""
                 }
             };
 
@@ -357,7 +371,15 @@ class TCTCode1Data {
 
         // export modBoxTheme
         if (this.jet_data.modBoxTheme) {
-            code += "campaignTrail_temp.modBoxTheme = " + JSON.stringify(this.jet_data.modBoxTheme, null, 4) + ";\n\n";
+            const modBoxTheme = Object.fromEntries(
+                Object.entries(this.jet_data.modBoxTheme).filter(([key, value]) => {
+                    if (key === "site_title" || key === "site_image_url") return false;
+                    return typeof value !== "string" || value.trim() !== "";
+                })
+            );
+            if (Object.keys(modBoxTheme).length > 0) {
+                code += "campaignTrail_temp.modBoxTheme = " + JSON.stringify(modBoxTheme, null, 4) + ";\n\n";
+            }
         }
 
         // export jet_data (for theming)
@@ -764,90 +786,6 @@ applyTheme(theme);
         return this.elections.length > 0;
     }
 
-    static get MOD_BOX_THEME_PRESETS() {
-        return {
-            light: {
-                label: 'Light',
-                header_color: '#0f172a',
-                header_text_color: '#ffffff',
-                description_background_color: '#ffffff',
-                description_text_color: '#111827',
-                main_color: '#bfe6ff',
-                secondary_color: '#2563eb',
-                ui_text_color: '#ffffff'
-            },
-            sepia: {
-                label: 'Sepia',
-                header_color: '#5f3d1d',
-                header_text_color: '#fff8ed',
-                description_background_color: '#fffaf2',
-                description_text_color: '#2f2518',
-                main_color: '#f4eadb',
-                secondary_color: '#c28539',
-                ui_text_color: '#fff8ed'
-            },
-            dark: {
-                label: 'Dark',
-                header_color: '#020617',
-                header_text_color: '#f9fafb',
-                description_background_color: '#1f2937',
-                description_text_color: '#e5e7eb',
-                main_color: '#0b1220',
-                secondary_color: '#2563eb',
-                ui_text_color: '#ffffff'
-            },
-            mallard: {
-                label: 'Mallard',
-                header_color: '#006064',
-                header_text_color: '#ffffff',
-                description_background_color: '#ffffff',
-                description_text_color: '#0f1a1a',
-                main_color: '#eef3f3',
-                secondary_color: '#00acc1',
-                ui_text_color: '#ffffff'
-            },
-            'xp-olive': {
-                label: 'XP Olive',
-                header_color: '#4a5a1a',
-                header_text_color: '#ffffff',
-                description_background_color: '#ffffff',
-                description_text_color: '#000000',
-                main_color: '#ece9d8',
-                secondary_color: '#8cb43a',
-                ui_text_color: '#ffffff'
-            },
-            'xp-silver': {
-                label: 'XP Silver',
-                header_color: '#1f2937',
-                header_text_color: '#ffffff',
-                description_background_color: '#ffffff',
-                description_text_color: '#111827',
-                main_color: '#f0f1f4',
-                secondary_color: '#4b5563',
-                ui_text_color: '#ffffff'
-            },
-            'xp-zune': {
-                label: 'XP Zune',
-                header_color: '#111111',
-                header_text_color: '#ffffff',
-                description_background_color: '#1e1e1e',
-                description_text_color: '#e5e7eb',
-                main_color: '#121212',
-                secondary_color: '#e05a10',
-                ui_text_color: '#ffffff'
-            },
-            'xp-royale-dark': {
-                label: 'XP Royale Dark',
-                header_color: '#050714',
-                header_text_color: '#ffffff',
-                description_background_color: '#121836',
-                description_text_color: '#f1f5f9',
-                main_color: '#070b19',
-                secondary_color: '#0055ff',
-                ui_text_color: '#ffffff'
-            }
-        };
-    }
 }
 
 window.TCTCode1Data = TCTCode1Data;
