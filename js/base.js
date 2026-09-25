@@ -2585,33 +2585,33 @@ class TCTData {
                 refCandidate = c;
                 break;
             }
-            if (!refCandidate) {
-                const fallback = {};
-                for (const c of candidates) fallback[c] = 1;
-                return fallback;
-            }
-            const refAlign = alignments[refCandidate];
-            const refTarget = targetPcts[refCandidate] / 100;
-            const refMult = currentMult[refCandidate] ?? 1;
-            const result = {};
-            for (const c of candidates) {
-                const align = alignments[c] ?? 0;
-                const target = (targetPcts[c] ?? 0) / 100;
-                if (c === refCandidate) {
-                    result[c] = Math.round(refMult * 10000) / 10000;
-                } else if (align <= 0 && target <= 0) {
-                    result[c] = 0.01;
-                } else if (align <= 0) {
-                    result[c] = 5.0;
-                } else if (target <= 0) {
-                    result[c] = 0.01;
-                } else {
-                    const calculated = (target * refAlign * refMult) / (refTarget * align);
-                    result[c] = Math.round(Math.min(25.0, Math.max(0.01, calculated)) * 10000) / 10000;
-                }
-            }
-            return result;
         }
+        if (!refCandidate) {
+            const fallback = {};
+            for (const c of candidates) fallback[c] = 1;
+            return fallback;
+        }
+        const refAlign = alignments[refCandidate];
+        const refTarget = targetPcts[refCandidate] / 100;
+        const refMult = currentMult[refCandidate] ?? 1;
+        const result = {};
+        for (const c of candidates) {
+            const align = alignments[c] ?? 0;
+            const target = (targetPcts[c] ?? 0) / 100;
+            if (c === refCandidate) {
+                result[c] = Math.round(refMult * 10000) / 10000;
+            } else if (align <= 0 && target <= 0) {
+                result[c] = 0.01;
+            } else if (align <= 0) {
+                result[c] = 5.0;
+            } else if (target <= 0) {
+                result[c] = 0.01;
+            } else {
+                const calculated = (target * refAlign * refMult) / (refTarget * align);
+                result[c] = Math.round(Math.min(25.0, Math.max(0.01, calculated)) * 10000) / 10000;
+            }
+        }
+        return result;
     }
 
     applyTargetMargins(statePk, targetPcts) {
@@ -2620,7 +2620,7 @@ class TCTData {
         const entries = this.getCandidateStateMultipliersForState(pk);
         for (const entry of entries) {
             const candPk = entry.fields.candidate;
-            if (multipliers[candPk] != null) {
+            if (multipliers?.[candPk] != null) {
                 this.candidate_state_multiplier[entry.pk].fields.state_multiplier = multipliers[candPk];
             }
         }

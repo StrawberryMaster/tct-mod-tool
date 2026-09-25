@@ -314,6 +314,7 @@ registerComponent('state', {
             temp: 1,
             activeTab: 'details',
             targetPercentages: {},
+            targetMarginsApplied: false,
             stateColumns: [
                 { field: 'pk', label: 'PK', width: 1 },
                 { field: 'name', label: 'Name', editable: true, width: 3 },
@@ -556,11 +557,12 @@ registerComponent('state', {
                                                     Load current
                                                 </button>
                                                 <button @click="applyTargetMargins" :disabled="totalTargetPct !== 100"
+                                                    :aria-label="targetMarginsApplied ? 'Target multipliers applied' : 'Apply target multipliers'"
                                                     :class="[
                                                         'px-3 py-1 rounded text-xs text-white font-medium',
-                                                        totalTargetPct === 100 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                                                        totalTargetPct !== 100 ? 'bg-gray-400 cursor-not-allowed' : (targetMarginsApplied ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700')
                                                     ]">
-                                                    Apply multipliers
+                                                    {{ targetMarginsApplied ? 'Multipliers applied' : 'Apply multipliers' }}
                                                 </button>
                                             </div>
                                         </div>
@@ -621,6 +623,7 @@ registerComponent('state', {
         },
 
         setTargetPct: function (candidatePk, value) {
+            this.targetMarginsApplied = false;
             const num = parseFloat(value);
             if (value === '' || value === '-' || value === '.') {
                 this.targetPercentages[candidatePk] = value;
@@ -680,6 +683,7 @@ registerComponent('state', {
         },
 
         loadCurrentAsTarget: function () {
+            this.targetMarginsApplied = false;
             const margins = this.currentStructuredMargins;
             for (const m of margins) {
                 this.targetPercentages[m.candidate] = Math.round(m.percent * 1000) / 10;
@@ -688,6 +692,7 @@ registerComponent('state', {
         },
 
         resetMultipliersToOne: function () {
+            this.targetMarginsApplied = false;
             const entries = this.$TCT.getCandidateStateMultipliersForState(this.statePk);
             for (const entry of entries) {
                 this.$TCT.candidate_state_multiplier[entry.pk].fields.state_multiplier = 1;
@@ -703,6 +708,7 @@ registerComponent('state', {
                 targets[c.pk] = parseFloat(this.targetPercentages[c.pk]) || 0;
             }
             this.$TCT.applyTargetMargins(this.statePk, targets);
+            this.targetMarginsApplied = true;
             this.temp *= -1;
             this.$globalData.dataVersion++;
         },
