@@ -3838,11 +3838,10 @@ function tunnel(pk) {
 function getJumpIndexFromPk(pk) {
   return tunnel(pk);
 }
-
-// for backwards compatibility
 function getQuestionNumberFromPk(pk) {
   return tunnel(pk);
-}`
+}
+`
         ];
 
         // add variable declarations
