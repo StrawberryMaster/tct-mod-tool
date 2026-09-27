@@ -1318,15 +1318,15 @@ class TCTData {
             let obj = container instanceof Map ? container.get(oldPk) : container[oldPk];
             if (!obj) {
                 console.error(`Could not find ${type} with PK ${oldPk}`);
-                return false;
-            }
-            obj.pk = newPk;
-            if (container instanceof Map) {
-                container.delete(oldPk);
-                container.set(newPk, obj);
             } else {
-                delete container[oldPk];
-                container[newPk] = obj;
+                obj.pk = newPk;
+                if (container instanceof Map) {
+                    container.delete(oldPk);
+                    container.set(newPk, obj);
+                } else {
+                    delete container[oldPk];
+                    container[newPk] = obj;
+                }
             }
         }
 
@@ -1368,6 +1368,61 @@ class TCTData {
                 if (this.jet_data.nicknames[oldPk] !== undefined) {
                     this.jet_data.nicknames[newPk] = this.jet_data.nicknames[oldPk];
                     delete this.jet_data.nicknames[oldPk];
+                }
+            }
+        }
+
+        // keep CYOA/jet_data references in sync
+        if ((type === 'question' || type === 'answer') && this.jet_data) {
+            const remapList = (list) => {
+                if (!Array.isArray(list)) return;
+                for (let i = 0; i < list.length; i++) {
+                    if (Number(list[i]) === oldPk) list[i] = newPk;
+                }
+            };
+
+            for (const event of Object.values(this.jet_data.cyoa_data || {})) {
+                if (!event || typeof event !== 'object') continue;
+                if (type === 'answer') {
+                    if (Number(event.answer) === oldPk) event.answer = newPk;
+                    remapList(event.triggers);
+                }
+                if (type === 'question' && Number(event.question) === oldPk) {
+                    event.question = newPk;
+                }
+            }
+
+            const swapStores = [
+                this.jet_data.cyoa_question_swaps,
+                this.jet_data.cyoa_answer_swaps,
+                this.jet_data.cyoa_candidate_switches
+            ];
+            for (const store of swapStores) {
+                for (const rule of Object.values(store || {})) {
+                    if (!rule || typeof rule !== 'object') continue;
+                    if (type === 'answer') remapList(rule.triggers);
+                    if (Array.isArray(rule.swaps)) {
+                        for (const swap of rule.swaps) {
+                            if (!swap || typeof swap !== 'object') continue;
+                            if (Number(swap.pk1) === oldPk) swap.pk1 = newPk;
+                            if (Number(swap.pk2) === oldPk) swap.pk2 = newPk;
+                        }
+                    }
+                }
+            }
+
+            if (type === 'answer') {
+                for (const effect of Object.values(this.jet_data.cyoa_variable_effects || {})) {
+                    if (effect && Number(effect.answer) === oldPk) effect.answer = newPk;
+                }
+            }
+
+            if (type === 'question') {
+                for (const pool of this.jet_data.bunnyhop_pools || []) {
+                    if (!pool || !Array.isArray(pool.questions)) continue;
+                    for (const q of pool.questions) {
+                        if (q && Number(q.pk) === oldPk) q.pk = newPk;
+                    }
                 }
             }
         }
@@ -1656,6 +1711,14 @@ class TCTData {
         const out = Object.values(this.jet_data.cyoa_data);
         out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
         return out;
+    }
+
+    getCyoaEventTriggers(event) {
+        const values = Array.isArray(event?.triggers) ? event.triggers : [event?.answer];
+        return [...new Set(values
+            .filter(value => value != null && String(value).trim() !== '')
+            .map(Number)
+            .filter(Number.isFinite))];
     }
 
     getAllCyoaVariables() {
@@ -3766,14 +3829,19 @@ function getQuestionIndexFromPk(pk) {
 }
 
 // index to assign into question_number before nextQuestion()
-function getJumpIndexFromPk(pk) {
+function tunnel(pk) {
   const idx = getQuestionIndexFromPk(pk);
   return idx >= 0 ? idx - 1 : -1;
 }
 
 // for backwards compatibility
+function getJumpIndexFromPk(pk) {
+  return tunnel(pk);
+}
+
+// for backwards compatibility
 function getQuestionNumberFromPk(pk) {
-  return getJumpIndexFromPk(pk);
+  return tunnel(pk);
 }`
         ];
 
@@ -3876,8 +3944,8 @@ function getQuestionNumberFromPk(pk) {
 
         // sort rules for consistent generation (by answer pk, then id)
         const events = this.getAllCyoaEvents().slice().sort((a, b) => {
-            const ansA = Number(a?.answer ?? 0);
-            const ansB = Number(b?.answer ?? 0);
+            const ansA = this.getCyoaEventTriggers(a)[0] ?? 0;
+            const ansB = this.getCyoaEventTriggers(b)[0] ?? 0;
             if (ansA !== ansB) return ansA - ansB;
             return Number(a?.id ?? 0) - Number(b?.id ?? 0);
         });
@@ -3885,10 +3953,13 @@ function getQuestionNumberFromPk(pk) {
         const compiledEvents = events
             .map(event => {
                 const questionPk = Number(event?.question);
-                const answerPk = Number(event?.answer);
-                if (!Number.isFinite(questionPk) || !Number.isFinite(answerPk)) return null;
+                const triggers = this.getCyoaEventTriggers(event);
+                if (event?.question == null || String(event.question).trim() === ''
+                    || !Number.isFinite(questionPk) || !triggers.length) return null;
 
-                const answerExpr = `ans == ${answerPk}`;
+                const answerExpr = triggers.length > 1
+                    ? `[${triggers.join(', ')}].includes(ans)`
+                    : `ans == ${triggers[0]}`;
                 const condBuilt = buildConditionExpr(event?.conditions, event?.conditionOperator || 'AND');
                 const condExpr = condBuilt ? condBuilt.expr : '';
                 // parens only needed when the condition side is OR-joined under &&
@@ -3906,7 +3977,7 @@ function getQuestionNumberFromPk(pk) {
             for (let i = 0; i < compiledEvents.length; i++) {
                 const row = compiledEvents[i];
                 parts.push(`    ${i > 0 ? "else " : ""}if (${row.condition}) {\n`);
-                parts.push(`        campaignTrail_temp.question_number = getQuestionNumberFromPk(${row.questionPk});\n`);
+                parts.push(`        campaignTrail_temp.question_number = tunnel(${row.questionPk});\n`);
                 parts.push("    }\n");
             }
         }

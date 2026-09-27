@@ -384,7 +384,7 @@ registerComponent('cyoa', {
             const jet = this.$TCT.jet_data;
             const id = this.generateId([jet.cyoa_data]);
             jet.cyoa_data[id] = {
-                'answer': answers[0].pk,
+                'triggers': [answers[0].pk],
                 'question': questions[0].pk,
                 'id': id,
                 'conditions': []
@@ -1587,8 +1587,8 @@ function setCandidateIdentity(candidatePk, options) {
         if (!hasCandidateSwitch) funcsToInsert.push(candidateSwitchFunc);
         const combinedFuncs = funcsToInsert.join('\n\n');
 
-        // try to find getQuestionNumberFromPk function
-        const helperRe = /function\s+getQuestionNumberFromPk[\s\S]*?\n}/m;
+        // try to find the pk -> index helpers (tunnel depends on them)
+        const helperRe = /function\s+(?:tunnel|getQuestionNumberFromPk|getJumpIndexFromPk|getQuestionIndexFromPk)[\s\S]*?\n}/m;
         const match = helperRe.exec(out);
 
         if (match) {
@@ -1962,7 +1962,7 @@ registerComponent('cyoa-event', {
 
     data() {
         return {
-            answerVal: null,
+            triggerToAdd: null,
             questionVal: null,
             conditionToAdd: {
                 variable: '',
@@ -1978,7 +1978,11 @@ registerComponent('cyoa-event', {
             <div class="text-sm text-gray-700">
                 <div class="font-medium">Branch summary</div>
                 <div class="mt-1">
-                    If player selects answer <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800">#{{ answerVal }}</span>,
+                    If player selects
+                    <span v-if="triggerList.length">
+                        <span v-for="(pk, idx) in triggerList" :key="'summary-t-'+pk+'-'+idx" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 ml-1">#{{ pk }}</span><span v-if="idx < triggerList.length - 1">,</span>
+                    </span>
+                    <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-500 ml-1">no answers (disabled)</span>,
                     then immediately jump to question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
                     <span v-if="hasConditions">
                         when
@@ -1994,13 +1998,24 @@ registerComponent('cyoa-event', {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-1" for="answer">Answer
-                <span class="ml-1 text-xs text-gray-500 italic">(triggers the jump)</span></label>
-                <select v-model.number="answerVal" name="answer" class="w-full border rounded-sm p-2">
-                    <option v-for="answer in answers" :value="answer.pk" :key="answer.pk">
-                        {{answer.pk}} - {{description(answer)}}
-                    </option>
-                </select>
+                <label class="block text-sm font-medium mb-1" for="answer">Answers
+                <span class="ml-1 text-xs text-gray-500 italic">(trigger the jump)</span></label>
+                <div class="flex items-center gap-2">
+                    <select v-model.number="triggerToAdd" name="answer" class="w-full border rounded-sm p-2">
+                        <option :value="null" disabled>Select answer...</option>
+                        <option v-for="answer in answers" :value="answer.pk" :key="answer.pk">
+                            {{answer.pk}} - {{description(answer)}}
+                        </option>
+                    </select>
+                    <button class="bg-blue-500 text-white px-2 py-1 rounded-sm text-xs hover:bg-blue-600" @click="addTrigger">Add</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                    <span v-for="pk in triggerList" :key="'t-'+pk" class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm text-xs">
+                        #{{ pk }}
+                        <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
+                    </span>
+                    <span v-if="!triggerList.length" class="text-xs italic text-gray-500">No trigger answers yet — the branch is disabled until one is added.</span>
+                </div>
             </div>
 
             <div>
@@ -2081,16 +2096,45 @@ registerComponent('cyoa-event', {
             if (!this.$TCT.jet_data.cyoa_data[this.id]) {
                 this.$TCT.jet_data.cyoa_data[this.id] = {
                     id: this.id,
-                    answer: null,
+                    triggers: [],
                     question: null,
                     conditions: []
                 };
             }
-            if (!Array.isArray(this.$TCT.jet_data.cyoa_data[this.id].conditions)) {
-                this.$TCT.jet_data.cyoa_data[this.id].conditions = [];
+            const row = this.$TCT.jet_data.cyoa_data[this.id];
+            // migrate legacy single-answer events to the triggers list
+            if (!Array.isArray(row.triggers)) {
+                const legacy = row.answer;
+                row.triggers = legacy != null && String(legacy).trim() !== '' ? [Number(legacy)] : [];
+            } else if (row.answer != null && !row.triggers.includes(Number(row.answer))) {
+                row.triggers.push(Number(row.answer));
             }
-            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_data[this.id]);
-            return this.$TCT.jet_data.cyoa_data[this.id];
+            if (row.answer !== undefined) delete row.answer;
+            if (!Array.isArray(row.triggers)) row.triggers = [];
+            if (!Array.isArray(row.conditions)) {
+                row.conditions = [];
+            }
+            window.TCTAnswerSwapHelper.normalizeConditionOperator(row);
+            return row;
+        },
+
+        addTrigger() {
+            const row = this.getEvent();
+            const val = Number(this.triggerToAdd);
+            if (!val) return;
+            if (!row.triggers.includes(val)) {
+                row.triggers.push(val);
+                this.triggerToAdd = null;
+                this.$globalData.dataVersion++;
+                window.requestAutosaveIfEnabled?.();
+            }
+        },
+
+        removeTrigger(pk) {
+            const row = this.getEvent();
+            row.triggers = row.triggers.filter(x => x !== pk);
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         addCondition() {
@@ -2184,9 +2228,8 @@ registerComponent('cyoa-event', {
         syncFromGlobal: function () {
             const row = this.getEvent();
             // fallbacks in case of missing data
-            const answers = Object.values(this.$TCT.answers);
             const questions = Array.from(this.$TCT.questions.values());
-            this.answerVal = Number(row.answer ?? (answers[0]?.pk ?? 0));
+            this.triggerToAdd = null;
             this.questionVal = Number(row.question ?? (questions[0]?.pk ?? 0));
         }
     },
@@ -2198,9 +2241,6 @@ registerComponent('cyoa-event', {
     watch: {
         id() {
             this.syncFromGlobal();
-        },
-        answerVal(val) {
-            this.updateGlobal('answer', val);
         },
         questionVal(val) {
             this.updateGlobal('question', val);
@@ -2215,7 +2255,13 @@ registerComponent('cyoa-event', {
 
         currentAnswer: function () {
             const row = this.$TCT.jet_data.cyoa_data[this.id] || {};
-            return row.answer;
+            return (this.$TCT.getCyoaEventTriggers?.(row) || [])[0] ?? null;
+        },
+
+        triggerList() {
+            this.$globalData.dataVersion;
+            const row = this.getEvent();
+            return this.$TCT.getCyoaEventTriggers?.(row) || [];
         },
 
         eventRow() {
