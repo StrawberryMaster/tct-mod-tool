@@ -797,11 +797,11 @@ registerCode1Component('mod-box-editor', {
             <strong>Preview:</strong>
             <div class="mt-2 flex justify-center">
                     <div :style="{ height: '400px', width: '217px', backgroundColor: mbTheme.main_color, backgroundAttachment: 'local', borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'black', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }">
-                    <div :style="{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: '10px 10px 0 0', paddingTop: '10px', marginBottom: mbTheme.header_margin || '10px', height: '15%', display: 'flex', fontSize: '18px', fontFamily: mbTheme.header_font || 'Arial, Helvetica, sans-serif', fontWeight: 'bolder', width: '100%', position: 'relative', backgroundImage: mbTheme.header_image_url ? 'url(' + mbTheme.header_image_url + ')' : 'none', backgroundColor: mbTheme.header_color, backgroundSize: 'cover', backgroundPosition: 'center' }">
+                    <div :style="{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: '10px 10px 0 0', paddingTop: '10px', marginBottom: mbTheme.header_margin, height: '15%', display: 'flex', fontSize: '18px', fontFamily: mbTheme.header_font || 'Arial, Helvetica, sans-serif', fontWeight: 'bolder', width: '100%', position: 'relative', backgroundImage: mbTheme.header_image_url ? 'url(' + mbTheme.header_image_url + ')' : 'none', backgroundColor: mbTheme.header_color, backgroundSize: 'cover', backgroundPosition: 'center' }">
                         <p :style="{ padding: '10px', margin: 0, color: mbTheme.header_text_color, textShadow: mbTheme.header_text_shadow || 'none' }">{{ $TCT.elections[0]?.fields?.display_year || $TCT.elections[0]?.fields?.year || 'Mod Title' }}</p>
                     </div>
                     <div :style="{ flex: '1 1 0%', minHeight: 0, overflowY: 'scroll', scrollbarWidth: mbTheme.scrollbar_width || 'auto', scrollbarColor: mbTheme.scrollbar_color || 'auto', width: '100%', textAlign: 'center' }">
-                        <img class="mod-image" alt="Mod" :src="$TCT.elections[0]?.fields?.image_url || 'https://placekitten.com/g/180/100'" :style="{ width: '80%', margin: '0 auto', border: mbTheme.image_border || '4px solid white', display: mbTheme.election_image_display || 'auto', height: 'auto' }">
+                        <img class="mod-image" alt="Mod" :src="$TCT.elections[0]?.fields?.image_url || 'https://placekitten.com/g/180/100'" :style="{ width: '80%', margin: '0 auto', border: mbTheme.image_border || '4px solid white', display: mbTheme.election_image_display, height: 'auto' }">
                         <div :style="{ flex: '1 1 0%', height: 'auto', overflowY: 'clip', textAlign: 'center', fontSize: '12px', width: '89%', margin: '5px auto', borderRadius: '5px', padding: '5px', background: mbTheme.description_background_color, color: mbTheme.description_text_color }">
                             {{ $TCT.elections[0]?.fields?.site_description || ($TCT.elections[0]?.fields?.summary || '').replace(/<[^>]*>/g, '').trim() || 'A Campaign Trail mod.' }}
                         </div>
@@ -1063,7 +1063,7 @@ function modBoxThemeFromColors(colors) {
         header_image_url: '',
         header_text_shadow: modBoxReadableText(header) === '#ffffff' ? '1px 1px 2px rgba(0, 0, 0, 0.7)' : '',
         header_font: '',
-        header_margin: '10px',
+        header_margin: '',
         description_background_color: description,
         description_text_color: descriptionText,
         main_color: main,
@@ -1072,7 +1072,7 @@ function modBoxThemeFromColors(colors) {
         scrollbar_color: `${secondary} ${main}`,
         scrollbar_width: 'auto',
         image_border: `4px solid ${modBoxReadableText(main)}`,
-        election_image_display: 'block',
+        election_image_display: '',
         ui_text_color: modBoxReadableText(secondary)
     };
 }
