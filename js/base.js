@@ -1670,6 +1670,122 @@ class TCTData {
         return out;
     }
 
+    // as CYOA variable names end up verbatim in the generated code
+    // (e.g. `var primaryWins = 0;`), they must be valid JS identifiers
+    isValidCyoaVariableName(name) {
+        return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(String(name ?? ""));
+    }
+
+    validateCyoaVariableName(name, excludeId = null) {
+        const raw = String(name ?? "");
+        if (!raw) {
+            return "Variable names cannot be empty.";
+        }
+        if (/\s/.test(raw)) {
+            return "Variable names cannot contain spaces - e.g. use primarywins, primary_wins or primaryWins instead.";
+        }
+        if (!this.isValidCyoaVariableName(raw)) {
+            return 'Variable names must start with a letter, "$" or "_" and can only contain letters, numbers, "$" and "_".';
+        }
+
+        const duplicate = this.getAllCyoaVariables().find((variable) => (
+            variable && String(variable.id) !== String(excludeId) && variable.name === raw
+        ));
+        if (duplicate) {
+            return "Another CYOA variable already uses this name.";
+        }
+
+        return "";
+    }
+
+    // rename a CYOA variable and update every stored reference to it
+    renameCyoaVariable(oldName, newName) {
+        const from = String(oldName ?? "");
+        const to = String(newName ?? "");
+        if (!from || from === to) return false;
+
+        const renameConditions = (holder) => {
+            if (!holder || !Array.isArray(holder.conditions)) return;
+            for (const condition of holder.conditions) {
+                if (condition && typeof condition === "object" && condition.variable === from) {
+                    condition.variable = to;
+                }
+            }
+        };
+
+        // answer variable effects
+        for (const effect of Object.values(this.jet_data.cyoa_variable_effects || {})) {
+            if (effect && effect.variable === from) {
+                effect.variable = to;
+            }
+        }
+
+        // campaign data rows
+        for (const stat of Object.values(this.jet_data.cyoa_campaign_data_stats || {})) {
+            if (!stat || typeof stat !== "object" || stat.variable !== from) continue;
+            stat.variable = to;
+            // keep auto-generated labels in sync, mirroring the campaign stat editor
+            if (!stat.label || stat.label === from) {
+                stat.label = to;
+            }
+        }
+
+        // branching events, question/answer swaps and candidate switches
+        const conditionCollections = [
+            this.jet_data.cyoa_data,
+            this.jet_data.cyoa_question_swaps,
+            this.jet_data.cyoa_answer_swaps,
+            this.jet_data.cyoa_candidate_switches
+        ];
+        for (const collection of conditionCollections) {
+            for (const holder of Object.values(collection || {})) {
+                renameConditions(holder);
+            }
+        }
+
+        // endings keep variable names both flattened and inside the slides JSON
+        for (const ending of Object.values(this.jet_data.ending_data || {})) {
+            if (!ending || typeof ending !== "object") continue;
+
+            if (ending.variableConditionName === from) {
+                ending.variableConditionName = to;
+            }
+
+            if (Array.isArray(ending.variableConditions)) {
+                for (const condition of ending.variableConditions) {
+                    if (condition && typeof condition === "object" && condition.variable === from) {
+                        condition.variable = to;
+                    }
+                }
+            }
+
+            if (typeof ending.endingSlidesJson === "string" && ending.endingSlidesJson.includes(from)) {
+                try {
+                    const slides = JSON.parse(ending.endingSlidesJson);
+                    if (Array.isArray(slides)) {
+                        let changed = false;
+                        for (const slide of slides) {
+                            if (!slide || !Array.isArray(slide.variableConditions)) continue;
+                            for (const condition of slide.variableConditions) {
+                                if (condition && typeof condition === "object" && condition.variable === from) {
+                                    condition.variable = to;
+                                    changed = true;
+                                }
+                            }
+                        }
+                        if (changed) {
+                            ending.endingSlidesJson = JSON.stringify(slides, null, 2);
+                        }
+                    }
+                } catch (_err) {
+                    // leave malformed slides JSON untouched
+                }
+            }
+        }
+
+        return true;
+    }
+
     getAllEndings() {
         const normalizeEnding = (entry) => {
             if (!entry || typeof entry !== "object") return entry;
@@ -3663,6 +3779,12 @@ function getQuestionNumberFromPk(pk) {
 
         // add variable declarations
         const variables = this.getAllCyoaVariables();
+        const invalidVariableNames = variables
+            .map((variable) => String(variable?.name ?? ""))
+            .filter((name) => name && !/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name));
+        if (invalidVariableNames.length > 0) {
+            console.warn("CYOA variables with invalid names will produce broken generated code:", invalidVariableNames);
+        }
         if (variables.length > 0) {
             parts.push("\n\n// CYOA variables\n");
             for (const variable of variables) {

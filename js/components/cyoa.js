@@ -27,6 +27,18 @@ registerComponent('cyoa', {
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA variables</summary>
                 <p class="px-3 py-2 text-sm text-gray-700 italic">Your variable can be used in conditions and effects, e.g., to track player choices or stats.</p>
+                <p class="px-3 pb-2 text-sm text-gray-700">
+                    Variable names are written straight into your mod's code, so they cannot contain spaces or other special characters.
+                    For example, use <code class="font-mono">primarywins</code>, <code class="font-mono">primary_wins</code> or <code class="font-mono">primaryWins</code>
+                    instead of <code class="font-mono">Primary Wins</code>.
+                </p>
+                <div v-if="invalidVariables.length" class="mx-3 mb-2 p-2 rounded-sm border border-red-300 bg-red-50 text-sm text-red-800">
+                    <p class="font-medium">These variable names contain spaces or other invalid characters and will break your generated code:</p>
+                    <ul class="list-disc list-inside">
+                        <li v-for="variable in invalidVariables" :key="'invalid-var-' + variable.id" class="font-mono">{{ variable.name || '(empty)' }}</li>
+                    </ul>
+                    <p class="mt-1">Rename them so they only use letters, numbers, <code class="font-mono">$</code> and <code class="font-mono">_</code> (no spaces).</p>
+                </div>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button
@@ -672,6 +684,13 @@ registerComponent('cyoa', {
         cyoaEvents: function () {
             this.$globalData.dataVersion;
             return this.$TCT.getAllCyoaEvents();
+        },
+
+        invalidVariables: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.getAllCyoaVariables().filter((variable) => (
+                !this.$TCT.isValidCyoaVariableName?.(variable?.name)
+            ));
         },
 
         cyoaVariables: function () {
@@ -2261,7 +2280,13 @@ registerComponent('cyoa-variable', {
                     name="name"
                     type="text"
                     class="w-full border rounded-sm p-2 text-sm"
+                    :class="nameWarning ? 'border-red-400 bg-red-50' : ''"
                     placeholder="e.g. wins, trust">
+                <p v-if="nameWarning" class="mt-1 text-xs text-red-600">
+                    {{ nameWarning }}
+                    <button type="button" class="ml-1 underline hover:no-underline" @click="fixName()">Fix name</button>
+                </p>
+                <p v-else class="mt-1 text-xs text-gray-500">No spaces allowed - use letters, numbers, "_" and "$" only.</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Starting value:</label>
@@ -2282,11 +2307,36 @@ registerComponent('cyoa-variable', {
             }
         },
 
+        fixName: function () {
+            // turn e.g. "Primary Wins" into a valid identifier: "Primary_Wins"
+            let cleaned = String(this.nameVal ?? '')
+                .trim()
+                .replace(/\s+/g, '_')
+                .replace(/[^A-Za-z0-9_$]/g, '_')
+                .replace(/_{2,}/g, '_');
+            if (!cleaned) cleaned = 'variable';
+            if (/^[0-9]/.test(cleaned)) cleaned = '_' + cleaned;
+            this.nameVal = cleaned;
+        },
+
         updateGlobal: function (field, val) {
-            if (!this.$TCT.jet_data.cyoa_variables[this.id]) return;
-            const current = this.$TCT.jet_data.cyoa_variables[this.id][field];
+            const variable = this.$TCT.jet_data.cyoa_variables[this.id];
+            if (!variable) return;
+
+            if (field === 'name') {
+                const oldName = variable.name;
+                if (oldName === val) return;
+                variable.name = val;
+                // keep every stored reference to this variable in sync
+                this.$TCT.renameCyoaVariable?.(oldName, val);
+                this.$globalData.dataVersion++;
+                window.requestAutosaveIfEnabled?.();
+                return;
+            }
+
+            const current = variable[field];
             if (current === val) return;
-            this.$TCT.jet_data.cyoa_variables[this.id][field] = val;
+            variable[field] = val;
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -2295,6 +2345,13 @@ registerComponent('cyoa-variable', {
             const variable = this.$TCT.jet_data.cyoa_variables[this.id] || {};
             this.nameVal = variable.name || '';
             this.defaultValueVal = variable.defaultValue || 0;
+        }
+    },
+
+    computed: {
+        nameWarning: function () {
+            this.$globalData.dataVersion;
+            return this.$TCT.validateCyoaVariableName?.(this.nameVal, this.id) || '';
         }
     },
 

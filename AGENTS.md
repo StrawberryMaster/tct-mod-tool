@@ -70,7 +70,7 @@ All records have `{ pk, fields: { ... }, model: "..." }` structure. Questions us
 ## CYOA system (`js/base.js:2960+`, `js/components/cyoa.js`)
 
 - **noCounter**: Internal counter `e.noCounter = player_answers.length` — counts questions already answered. A condition value of N activates after question N (i.e., before question N+1). Displayed as "Question number" in UI.
-- **CYOA variables**: Stored in `jet_data.cyoa_variables` — user-defined name/value pairs with auto-incrementing `id`.
+- **CYOA variables**: Stored in `jet_data.cyoa_variables` — user-defined name/value pairs with auto-incrementing `id`. Names must be valid JS identifiers (no spaces, e.g. `primarywins`/`primary_wins`/`primaryWins`) because they are emitted verbatim by `getCYOACode()` (`var <name> = <default>;`); validate them with `TCTData.validateCyoaVariableName(name, excludeId)` / `isValidCyoaVariableName(name)`. Renaming an existing variable must go through `TCTData.renameCyoaVariable(oldName, newName)`, which rewrites every stored reference: `cyoa_variable_effects`, `cyoa_campaign_data_stats` (incl. auto-generated labels), conditions in `cyoa_data` / `cyoa_question_swaps` / `cyoa_answer_swaps` / `cyoa_candidate_switches`, and endings (`variableConditions`, legacy `variableConditionName`, `endingSlidesJson` slides).
 - **CYOA events** (branching): answer triggers → condition check → question jump.
 - **Question/Answer swaps**: Post-answer swaps that modify future question/answer positions. Stored in `jet_data.cyoa_question_swaps` / `cyoa_answer_swaps`.
 - **Bunnyhop**: Shuffles question pools (`jet_data.bunnyhop_pools`).
