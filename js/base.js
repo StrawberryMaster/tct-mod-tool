@@ -1862,9 +1862,9 @@ class TCTData {
             if (entry.audioArtist == null) entry.audioArtist = "";
             if (entry.audioCover == null) entry.audioCover = "";
             if (entry.audioUrl == null) entry.audioUrl = "";
-            if (entry.endingAccentColor == null) entry.endingAccentColor = TCTData.DEFAULT_ENDING_ACCENT;
-            if (entry.endingBackgroundColor == null) entry.endingBackgroundColor = TCTData.DEFAULT_ENDING_BG;
-            if (entry.endingTextColor == null) entry.endingTextColor = TCTData.DEFAULT_ENDING_TEXT;
+            if (!entry.endingAccentColor) entry.endingAccentColor = TCTData.DEFAULT_ENDING_ACCENT;
+            if (!entry.endingBackgroundColor) entry.endingBackgroundColor = TCTData.DEFAULT_ENDING_BG;
+            if (!entry.endingTextColor) entry.endingTextColor = TCTData.DEFAULT_ENDING_TEXT;
             if (entry.variableConditionEnabled == null) entry.variableConditionEnabled = false;
             if (entry.variableConditionName == null) entry.variableConditionName = "";
             if (entry.variableConditionOperator == null) entry.variableConditionOperator = "==";
@@ -3251,6 +3251,15 @@ class TCTData {
         const endings = this.getAllEndings();
         if (endings.length === 0) return "";
 
+        const normalizeEndingColor = (color, defaultColor) => {
+            if (color == null) return defaultColor;
+            const str = String(color).trim();
+            if (!str) return defaultColor;
+            if (str.toLowerCase() === "transparent") return "transparent";
+            if (/^[0-9a-fA-F]{3,8}$/.test(str)) return "#" + str.toLowerCase();
+            return str;
+        };
+
         const preparedEndings = endings.map((ending) => ({
             id: ending?.id,
             variable: Number(ending?.variable ?? 0),
@@ -3266,9 +3275,9 @@ class TCTData {
             audioArtist: ending?.audioArtist || "",
             audioCover: ending?.audioCover || "",
             audioUrl: ending?.audioUrl || "",
-            endingAccentColor: ending?.endingAccentColor || "#11299e",
-            endingBackgroundColor: ending?.endingBackgroundColor || "#ffffff",
-            endingTextColor: ending?.endingTextColor || "#000000",
+            endingAccentColor: normalizeEndingColor(ending?.endingAccentColor, TCTData.DEFAULT_ENDING_ACCENT),
+            endingBackgroundColor: normalizeEndingColor(ending?.endingBackgroundColor, TCTData.DEFAULT_ENDING_BG),
+            endingTextColor: normalizeEndingColor(ending?.endingTextColor, TCTData.DEFAULT_ENDING_TEXT),
             variableConditions: Array.isArray(ending?.variableConditions) ? ending.variableConditions : [],
             variableConditionOperator: ending?.variableConditionOperator || "AND",
             outcomeCondition: ending?.outcomeCondition || "ignore",
@@ -3430,6 +3439,7 @@ const styleEndingDescription = () => {
     const bg = theme.backgroundColor || "#ffffff";
     const fg = theme.textColor || "#000000";
     const border = theme.accentColor || "#11299e";
+    const isBorderTransparent = String(border).toLowerCase() === "transparent";
 
     Object.assign(desc.style, {
         textAlign: "left",
@@ -3447,7 +3457,7 @@ const styleEndingDescription = () => {
         transform: "translateZ(0)",
         backgroundColor: bg,
         color: fg,
-        border: "2px solid " + border,
+        border: isBorderTransparent ? "none" : "2px solid " + border,
         borderRadius: "4px",
         padding: "10px"
     });
@@ -3465,12 +3475,14 @@ const applyEndingImage = (slide) => {
         return;
     }
 
+    const e = campaignTrail_temp;
+    const theme = e._endingTheme || {};
+    const border = theme.accentColor || "#11299e";
+    const imageBorder = String(border).toLowerCase() === "transparent" ? "none" : "3px solid " + border;
+
     if (!imageEl.dataset.endingStyled) {
-        const e = campaignTrail_temp;
-        const theme = e._endingTheme || {};
-        const border = theme.accentColor || "#11299e";
         Object.assign(imageEl.style, {
-            border: "3px solid " + border,
+            border: imageBorder,
             display: "block",
             width: "210px",
             height: "250px",
@@ -3479,9 +3491,7 @@ const applyEndingImage = (slide) => {
         imageEl.dataset.endingStyled = "1";
     } else {
         imageEl.style.display = "block";
-        const e = campaignTrail_temp;
-        const theme = e._endingTheme || {};
-        imageEl.style.border = "3px solid " + (theme.accentColor || "#11299e");
+        imageEl.style.border = imageBorder;
     }
 
     if (slide.image && imageEl.getAttribute("src") !== slide.image) {
@@ -3522,11 +3532,15 @@ const applyEndingButtons = () => {
     }
 
     const buttonBg = theme.accentColor || "#11299e";
-    const buttonText = "#ffffff";
+    const isBtnTransparent = String(buttonBg).toLowerCase() === "transparent";
+    const buttonBgColor = isBtnTransparent ? "transparent" : buttonBg;
+    const buttonText = isBtnTransparent ? (theme.textColor || "#000000") : "#ffffff";
+    const buttonBorder = isBtnTransparent ? ("1px solid " + buttonText) : ("1px solid " + buttonBg);
+
     btnContainer.querySelectorAll("button").forEach((btn) => {
         Object.assign(btn.style, {
-            backgroundColor: buttonBg,
-            border: "1px solid " + buttonBg,
+            backgroundColor: buttonBgColor,
+            border: buttonBorder,
             color: buttonText,
             padding: "4px 10px",
             cursor: "pointer"
@@ -3712,9 +3726,9 @@ endingPicker = (out, totv, aa, quickstats) => {
             e.multiple_endings = true;
             e.page = -1;
             e._endingTheme = {
-                accentColor: entry?.endingAccentColor || "#11299e",
-                backgroundColor: entry?.endingBackgroundColor || "#ffffff",
-                textColor: entry?.endingTextColor || "#000000"
+                accentColor: (entry?.endingAccentColor != null && entry.endingAccentColor !== "") ? entry.endingAccentColor : "#11299e",
+                backgroundColor: (entry?.endingBackgroundColor != null && entry.endingBackgroundColor !== "") ? entry.endingBackgroundColor : "#ffffff",
+                textColor: (entry?.endingTextColor != null && entry.endingTextColor !== "") ? entry.endingTextColor : "#000000"
             };
             e.endingSlides = buildSlides(entry, quickstats, out);
             e._endingAudioPlayedKey = (typeof window !== "undefined" && window.__tctLastEndingAudioKey) || "";

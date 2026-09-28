@@ -650,7 +650,9 @@ registerComponent('ending', {
     props: ['id'],
 
     data() {
-        return {};
+        return {
+            _prevColors: {}
+        };
     },
 
     template: `
@@ -659,16 +661,74 @@ registerComponent('ending', {
             <h2 class="text-sm font-semibold text-gray-700 mb-2">Slide colors (this applies to all slides in this case)</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Accent color</label>
-                    <input :value="endingRow.endingAccentColor" @input="updateEndingColor('endingAccentColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm font-medium text-gray-700">Accent color</label>
+                        <label class="inline-flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+                            <input type="checkbox"
+                                   :checked="isEndingColorTransparent('endingAccentColor')"
+                                   @change="toggleEndingColorTransparent('endingAccentColor', '#11299e', $event.target.checked)"
+                                   class="rounded text-blue-600">
+                            <span>Transparent?</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <input :value="safeColorPickerValue(endingRow.endingAccentColor, '#11299e')"
+                               :disabled="isEndingColorTransparent('endingAccentColor')"
+                               @input="updateEndingColor('endingAccentColor', $event.target.value)"
+                               type="color"
+                               class="h-9 w-10 border rounded-sm p-0.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                               title="Choose color with color picker">
+                        <input :value="endingRow.endingAccentColor"
+                               @input="updateEndingColor('endingAccentColor', $event.target.value)"
+                               @blur="onEndingColorBlur('endingAccentColor', '#11299e')"
+                               type="text"
+                               placeholder="#11299e"
+                               class="flex-1 border rounded-sm h-9 px-2 text-sm font-mono focus:outline-hidden focus:ring-1 focus:ring-blue-500">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Background color</label>
-                    <input :value="endingRow.endingBackgroundColor" @input="updateEndingColor('endingBackgroundColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm font-medium text-gray-700">Background color</label>
+                        <label class="inline-flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+                            <input type="checkbox"
+                                   :checked="isEndingColorTransparent('endingBackgroundColor')"
+                                   @change="toggleEndingColorTransparent('endingBackgroundColor', '#ffffff', $event.target.checked)"
+                                   class="rounded text-blue-600">
+                            <span>Transparent?</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <input :value="safeColorPickerValue(endingRow.endingBackgroundColor, '#ffffff')"
+                               :disabled="isEndingColorTransparent('endingBackgroundColor')"
+                               @input="updateEndingColor('endingBackgroundColor', $event.target.value)"
+                               type="color"
+                               class="h-9 w-10 border rounded-sm p-0.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                               title="Choose color with color picker">
+                        <input :value="endingRow.endingBackgroundColor"
+                               @input="updateEndingColor('endingBackgroundColor', $event.target.value)"
+                               @blur="onEndingColorBlur('endingBackgroundColor', '#ffffff')"
+                               type="text"
+                               placeholder="#ffffff"
+                               class="flex-1 border rounded-sm h-9 px-2 text-sm font-mono focus:outline-hidden focus:ring-1 focus:ring-blue-500">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Text color</label>
-                    <input :value="endingRow.endingTextColor" @input="updateEndingColor('endingTextColor', $event.target.value)" type="color" class="w-full border rounded-sm h-9 px-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm font-medium text-gray-700">Text color</label>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <input :value="safeColorPickerValue(endingRow.endingTextColor, '#000000')"
+                               @input="updateEndingColor('endingTextColor', $event.target.value)"
+                               type="color"
+                               class="h-9 w-10 border rounded-sm p-0.5 cursor-pointer shrink-0"
+                               title="Choose color with color picker">
+                        <input :value="endingRow.endingTextColor"
+                               @input="updateEndingColor('endingTextColor', $event.target.value)"
+                               @blur="onEndingColorBlur('endingTextColor', '#000000')"
+                               type="text"
+                               placeholder="#000000"
+                               class="flex-1 border rounded-sm h-9 px-2 text-sm font-mono focus:outline-hidden focus:ring-1 focus:ring-blue-500">
+                    </div>
                 </div>
             </div>
         </div>
@@ -1132,7 +1192,7 @@ registerComponent('ending', {
 
             const mainSlide = flatSlides.find((slide) => (slide.slideGroup || 'main') === 'main') || flatSlides[0] || this.serializeSlide(this.createEmptySlide());
             const row = this.getEndingRow();
-            
+
             row.variable = mainSlide.variable;
             row.operator = mainSlide.operator;
             row.amount = mainSlide.amount;
@@ -1389,6 +1449,74 @@ registerComponent('ending', {
         updateEndingColor: function(field, value) {
             const row = this.getEndingRow();
             row[field] = value;
+            const str = String(value || '').trim();
+            if (str && str.toLowerCase() !== 'transparent') {
+                if (!this._prevColors) this._prevColors = {};
+                this._prevColors[field] = str;
+            }
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        isEndingColorTransparent: function(field) {
+            const row = this.endingRow || this.getEndingRow();
+            return String(row[field] || '').trim().toLowerCase() === 'transparent';
+        },
+
+        toggleEndingColorTransparent: function(field, fallbackHex, isChecked) {
+            const row = this.getEndingRow();
+            if (isChecked) {
+                const current = String(row[field] || '').trim();
+                if (current && current.toLowerCase() !== 'transparent') {
+                    if (!this._prevColors) this._prevColors = {};
+                    this._prevColors[field] = current;
+                }
+                row[field] = 'transparent';
+            } else {
+                const prev = this._prevColors?.[field];
+                row[field] = (prev && String(prev).trim().toLowerCase() !== 'transparent') ? prev : fallbackHex;
+            }
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        safeColorPickerValue: function(color, fallback) {
+            let str = String(color || '').trim();
+            if (!str) return fallback;
+            if (str.toLowerCase() === 'transparent') {
+                const field = fallback === '#ffffff' ? 'endingBackgroundColor' : (fallback === '#11299e' ? 'endingAccentColor' : 'endingTextColor');
+                const prev = this._prevColors?.[field];
+                if (prev && String(prev).trim().toLowerCase() !== 'transparent') {
+                    str = String(prev).trim();
+                } else {
+                    return fallback;
+                }
+            }
+            if (/^#?[0-9a-fA-F]{3}$/.test(str)) {
+                const hex = str.replace('#', '');
+                return '#' + hex.split('').map(c => c + c).join('').toLowerCase();
+            }
+            if (/^#?[0-9a-fA-F]{6}$/.test(str)) {
+                const hex = str.replace('#', '');
+                return '#' + hex.toLowerCase();
+            }
+            if (/^#?[0-9a-fA-F]{8}$/.test(str)) {
+                const hex = str.replace('#', '').slice(0, 6);
+                return '#' + hex.toLowerCase();
+            }
+            return fallback;
+        },
+
+        onEndingColorBlur: function(field, fallbackHex) {
+            const row = this.getEndingRow();
+            let val = String(row[field] || '').trim();
+            if (!val) {
+                row[field] = fallbackHex;
+            } else if (val.toLowerCase() === 'transparent') {
+                row[field] = 'transparent';
+            } else if (/^[0-9a-fA-F]{3}$/.test(val) || /^[0-9a-fA-F]{4}$/.test(val) || /^[0-9a-fA-F]{6}$/.test(val) || /^[0-9a-fA-F]{8}$/.test(val)) {
+                row[field] = '#' + val.toLowerCase();
+            }
             this.$globalData.dataVersion++;
             window.requestAutosaveIfEnabled?.();
         },
@@ -1488,4 +1616,3 @@ registerComponent('ending', {
         }
     }
 })
-
