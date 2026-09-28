@@ -4191,6 +4191,8 @@ class CodeExtractor {
     }
 }
 
+const JS_STRING_LITERAL = /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/;
+
 function extractJSON(raw_file, start, end, backup = null, backupEnd = null, required = true, fallback = [], outRange = null, fromIndex = 0) {
     let f = raw_file;
     let startIndex = f.indexOf(start, Math.max(0, Number(fromIndex) || 0));
@@ -4202,21 +4204,14 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
     let startString = f.substring(startIndex + start.length);
     if (start.includes("JSON.parse")) {
-        let s = startString.trimStart();
+        const s = startString.trimStart();
         if (s[0] === '"' || s[0] === "'") {
-            const quote = s[0];
-            let i = 1, escaped = false, literalContent = "";
-            for (; i < s.length; i++) {
-                const ch = s[i];
-                if (escaped) { literalContent += "\\" + ch; escaped = false; continue; }
-                if (ch === "\\") { escaped = true; continue; }
-                if (ch === quote) break;
-                literalContent += ch;
-            }
-            if (i < s.length && s[i] === quote) {
+            JS_STRING_LITERAL.lastIndex = 0;
+            const literal = JS_STRING_LITERAL.exec(s);
+            if (literal) {
                 let jsonText;
-                try { jsonText = JSON.parse(quote + literalContent + quote); }
-                catch (e) { jsonText = literalContent.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n"); }
+                try { jsonText = JSON.parse(literal[0]); }
+                catch (e) { jsonText = literal[0].slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\").replace(/\\n/g, "\n"); }
 
                 try {
                     let candidate = jsonText.replace(/,\s*([}\]])/g, "$1");
@@ -4225,7 +4220,7 @@ function extractJSON(raw_file, start, end, backup = null, backupEnd = null, requ
 
                     if (outRange) {
                         outRange.start = startIndex;
-                        outRange.end = startIndex + start.length + startString.indexOf(s) + i + 1;
+                        outRange.end = startIndex + start.length + startString.indexOf(s) + literal[0].length;
                         let rest = f.substring(outRange.end).trimStart();
                         if (rest.startsWith(");")) outRange.end = f.indexOf(");", outRange.end) + 2;
                         else if (rest.startsWith(")")) outRange.end = f.indexOf(")", outRange.end) + 1;
@@ -4318,6 +4313,7 @@ function loadDataFromFile(raw_json) {
 
     // walk text from startIndex tracking strings, comments,
     // and bracket depth. returns index after the matching closeChar, or -1
+    const BRACKET_TOKEN = /[\\"'`\/{}[\]\r\n]/g;
     const findMatchingBracket = (text, startIndex, openChar, closeChar) => {
         let depth = 0;
         let inString = false;
@@ -4326,8 +4322,11 @@ function loadDataFromFile(raw_json) {
         let inSingleLine = false;
         let inMultiLine = false;
 
-        for (let i = startIndex; i < text.length; i++) {
-            const ch = text[i];
+        BRACKET_TOKEN.lastIndex = startIndex;
+        let token;
+        while ((token = BRACKET_TOKEN.exec(text)) !== null) {
+            const i = token.index;
+            const ch = token[0];
             const next = text[i + 1];
 
             if (inSingleLine) {
@@ -4338,11 +4337,10 @@ function loadDataFromFile(raw_json) {
             if (inMultiLine) {
                 if (ch === '*' && next === '/') {
                     inMultiLine = false;
-                    i++;
+                    BRACKET_TOKEN.lastIndex = i + 2;
                 }
                 continue;
             }
-
             if (inString) {
                 if (!escape && ch === stringChar) {
                     inString = false;
@@ -4362,13 +4360,13 @@ function loadDataFromFile(raw_json) {
 
             if (ch === '/' && next === '/') {
                 inSingleLine = true;
-                i++;
+                BRACKET_TOKEN.lastIndex = i + 2;
                 continue;
             }
 
             if (ch === '/' && next === '*') {
                 inMultiLine = true;
-                i++;
+                BRACKET_TOKEN.lastIndex = i + 2;
                 continue;
             }
 
@@ -4470,7 +4468,9 @@ function loadDataFromFile(raw_json) {
     };
 
     const normalizeTextEncoding = (text) => {
-        return typeof text === 'string' ? text.replaceAll("â€™", "'").replaceAll("â€”", "—") : text;
+        if (typeof text !== 'string') return text;
+        if (text.indexOf('\u00e2') === -1) return text;
+        return text.replaceAll("â€™", "'").replaceAll("â€”", "—");
     };
 
     const getSection = (name, required = true, fallback = []) => {
@@ -4535,6 +4535,14 @@ function loadDataFromFile(raw_json) {
         return resolved;
     };
 
+    const modelToType = {
+        'campaign_trail.question': 'question',
+        'campaign_trail.answer': 'answer',
+        'campaign_trail.state': 'state',
+        'campaign_trail.issue': 'issue',
+        'campaign_trail.candidate': 'candidate'
+    };
+
     const ensureUniqueAndStore = (container, obj) => {
         if (!obj || typeof obj !== 'object') return;
         obj.fields = obj.fields || {};
@@ -4548,14 +4556,7 @@ function loadDataFromFile(raw_json) {
             needsRemap = true;
         }
 
-        // dentify key referenced parent types to handle their remappings in partitioned maps
-        const modelToType = {
-            'campaign_trail.question': 'question',
-            'campaign_trail.answer': 'answer',
-            'campaign_trail.state': 'state',
-            'campaign_trail.issue': 'issue',
-            'campaign_trail.candidate': 'candidate'
-        };
+        // identify referenced parent types to handle remappings in partitioned maps
         const type = modelToType[obj.model];
 
         if (needsRemap) {
@@ -4630,17 +4631,20 @@ function loadDataFromFile(raw_json) {
             'issue': 'issue',
             'state': 'state'
         };
+        const fkFields = Object.keys(fkToType);
 
         allContainers.forEach(container => {
             const values = container instanceof Map ? Array.from(container.values()) : Object.values(container);
             values.forEach(item => {
                 if (!item || !item.fields) return;
-                for (const [field, type] of Object.entries(fkToType)) {
-                    const oldVal = item.fields[field];
+                const fields = item.fields;
+                for (let i = 0; i < fkFields.length; i++) {
+                    const field = fkFields[i];
+                    const oldVal = fields[field];
                     if (oldVal !== undefined) {
-                        const repMap = pkReplacements[type];
+                        const repMap = pkReplacements[fkToType[field]];
                         if (repMap && repMap.has(oldVal)) {
-                            item.fields[field] = repMap.get(oldVal);
+                            fields[field] = repMap.get(oldVal);
                         }
                     }
                 }
