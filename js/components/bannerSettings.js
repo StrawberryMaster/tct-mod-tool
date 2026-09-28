@@ -11,7 +11,9 @@ registerComponent('banner-settings', {
             formCanName: '',
             formCanImage: '',
             formRunName: '',
-            formRunImage: ''
+            formRunImage: '',
+            formSignColor: '#0000D1',
+            formSignBorderColor: '#700016'
         };
     },
 
@@ -118,6 +120,39 @@ registerComponent('banner-settings', {
                     </div>
 
                     <div class="border-t pt-4">
+                        <h2 class="font-semibold mb-2 text-sm uppercase tracking-wide text-gray-600">Campaign sign</h2>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium mb-1" for="signColor">Sign background</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="signColor" v-model="formSignColor" type="color"
+                                           class="h-9 w-12 border rounded-sm p-1 bg-white cursor-pointer">
+                                    <input v-model="formSignColor" type="text"
+                                           class="flex-1 border rounded-sm p-2 font-mono text-sm focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
+                                           placeholder="#0000D1">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1" for="signBorderColor">Sign border</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="signBorderColor" v-model="formSignBorderColor" type="color"
+                                           class="h-9 w-12 border rounded-sm p-1 bg-white cursor-pointer">
+                                    <input v-model="formSignBorderColor" type="text"
+                                           class="flex-1 border rounded-sm p-2 font-mono text-sm focus:outline-hidden focus:ring-3 focus:ring-blue-400 focus:border-blue-400"
+                                           placeholder="#700016">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button"
+                                    class="bg-gray-500 text-white px-3 py-1 rounded-sm hover:bg-gray-600"
+                                    @click="resetSignColors">
+                                Reset to default
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
                         <h2 class="font-semibold mb-2 text-sm uppercase tracking-wide text-gray-600">Preview Controls</h2>
                         <div class="flex flex-wrap gap-4 items-center">
                             <label class="text-sm flex items-center gap-2">
@@ -143,45 +178,46 @@ registerComponent('banner-settings', {
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">Live preview</summary>
                 <div class="p-4">
-                    <div class="flex items-stretch justify-center gap-4 bg-orange-50 p-4 rounded-sm border relative overflow-hidden">
-
-                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded-sm shadow-inner relative">
+                    <!-- Mirrors the original TCT banner footer:
+                         candidate pic | progress bar + campaign sign | running mate pic -->
+                    <div class="tct-banner-preview">
+                        <div id="candidate_pic" class="tct_banner_pic">
                             <template v-if="formCanImage">
                                 <img v-if="!canImageFailed"
                                      :key="'live-'+canImageKey"
                                      :src="previewCanImageSrc"
-                                     class="object-cover h-full"
                                      :alt="'Candidate '+formCanName"
                                      @load="onImgLoad('can')"
                                      @error="onImgError('can')">
-                                <span v-else class="text-gray-500 text-xs">Candidate Image Failed</span>
+                                <span v-else>Image failed</span>
                             </template>
-                            <span v-else class="text-gray-500 text-xs">Candidate Image</span>
+                            <span v-else>Candidate</span>
                         </div>
 
-                        <div class="flex flex-col items-center justify-center px-6">
-                            <div class="text-sm font-semibold mb-2">Question {{ safePreviewQuestion }} of {{ safePreviewTotal }}</div>
-                            <div class="border-4 border-yellow-400 rounded-xs px-6 py-4 bg-[var(--banner-bg)] text-white font-bold text-center leading-tight">
-                                <div class="text-3xl tracking-wide">{{ formCanName || 'Candidate' }}</div>
-                                <div v-if="formRunName" class="text-xl font-medium mt-1 opacity-90">{{ formRunName }}</div>
+                        <div class="inner_window_sign_display">
+                            <div id="progress_bar">
+                                <h3>Question {{ safePreviewQuestion }} of {{ safePreviewTotal }}</h3>
+                            </div>
+                            <div id="campaign_sign" :style="signStyle">
+                                <p>{{ formCanName || 'Candidate' }}</p>
+                                <p v-if="formRunName">{{ formRunName }}</p>
                             </div>
                         </div>
 
-                        <div class="w-40 h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded-sm shadow-inner relative">
+                        <div id="running_mate_pic" class="tct_banner_pic">
                             <template v-if="formRunImage">
                                 <img v-if="!runImageFailed"
                                      :key="'live-'+runImageKey"
                                      :src="previewRunImageSrc"
-                                     class="object-cover h-full"
                                      :alt="'Running Mate '+formRunName"
                                      @load="onImgLoad('run')"
                                      @error="onImgError('run')">
-                                <span v-else class="text-gray-500 text-xs">Running Mate Image Failed</span>
+                                <span v-else>Image failed</span>
                             </template>
-                            <span v-else class="text-gray-500 text-xs">Running Mate Image</span>
+                            <span v-else>Running Mate</span>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-3">This is a visual approximation intended for layout reference.</p>
+                    <p class="text-xs text-gray-500 mt-3">This mirrors the banner shown at the bottom of the game window in The Campaign Trail.</p>
                 </div>
             </details>
 
@@ -190,6 +226,10 @@ registerComponent('banner-settings', {
     `,
 
     methods: {
+        validCssColor(value, fallback) {
+            const v = (value || '').trim();
+            return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v) ? v : fallback;
+        },
         toggleEnabled() {
             this.$TCT.jet_data.banner_enabled = !this.$TCT.jet_data.banner_enabled;
             if (this.$TCT.jet_data.banner_enabled) {
@@ -207,8 +247,14 @@ registerComponent('banner-settings', {
             this.formCanImage = d.canImage || '';
             this.formRunName = d.runName || '';
             this.formRunImage = d.runImage || '';
+            this.formSignColor = d.signColor || '#0000D1';
+            this.formSignBorderColor = d.signBorderColor || '#700016';
             this.resetImageState('can');
             this.resetImageState('run');
+        },
+        resetSignColors() {
+            this.formSignColor = '#0000D1';
+            this.formSignBorderColor = '#700016';
         },
         // ensure reactive keys exist on the banner_data object
         ensureReactiveBannerData() {
@@ -220,6 +266,8 @@ registerComponent('banner-settings', {
             if (!Object.prototype.hasOwnProperty.call(obj, 'canImage')) obj.canImage = '';
             if (!Object.prototype.hasOwnProperty.call(obj, 'runName')) obj.runName = '';
             if (!Object.prototype.hasOwnProperty.call(obj, 'runImage')) obj.runImage = '';
+            if (!Object.prototype.hasOwnProperty.call(obj, 'signColor')) obj.signColor = '#0000D1';
+            if (!Object.prototype.hasOwnProperty.call(obj, 'signBorderColor')) obj.signBorderColor = '#700016';
             // keep globals stable; don't reset local values here
         },
         refreshPreview() {
@@ -271,6 +319,14 @@ registerComponent('banner-settings', {
         },
         safePreviewTotal() {
             return Math.max(this.safePreviewQuestion, this.previewTotal || this.safePreviewQuestion);
+        },
+
+        // only apply valid CSS colors; fall back to the TCT defaults otherwise
+        signStyle() {
+            return {
+                backgroundColor: this.validCssColor(this.formSignColor, '#0000D1'),
+                borderColor: this.validCssColor(this.formSignBorderColor, '#700016')
+            };
         }
     },
 
@@ -299,6 +355,16 @@ registerComponent('banner-settings', {
             this.resetImageState('run');
             this.previewTick++;
             this.pingGlobal();
+        },
+        formSignColor(val) {
+            this.ensureReactiveBannerData();
+            this.$TCT.jet_data.banner_data.signColor = this.validCssColor(val, '#0000D1');
+            this.pingGlobal();
+        },
+        formSignBorderColor(val) {
+            this.ensureReactiveBannerData();
+            this.$TCT.jet_data.banner_data.signBorderColor = this.validCssColor(val, '#700016');
+            this.pingGlobal();
         }
     },
 
@@ -313,4 +379,3 @@ registerComponent('banner-settings', {
         this.ensureReactiveBannerData();
     }
 })
-

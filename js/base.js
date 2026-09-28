@@ -3096,12 +3096,22 @@ class TCTData {
         // banner data if enabled
         if (this.jet_data.banner_enabled && this.jet_data.banner_data) {
             const b = this.jet_data.banner_data;
+            const signColor = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((b.signColor || '').trim())
+                ? b.signColor.trim() : '#0000D1';
+            const signBorderColor = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((b.signBorderColor || '').trim())
+                ? b.signBorderColor.trim() : '#700016';
             parts.push(
                 `campaignTrail_temp.candidate_image_url = "${b.canImage || ''}";\n`,
                 `campaignTrail_temp.running_mate_image_url = "${b.runImage || ''}";\n`,
                 `campaignTrail_temp.candidate_last_name = "${b.canName || ''}";\n`,
-                `campaignTrail_temp.running_mate_last_name = "${b.runName || ''}";\n\n`
+                `campaignTrail_temp.running_mate_last_name = "${b.runName || ''}";\n`,
+                `campaignTrail_temp.campaign_sign_color = "${signColor}";\n`,
+                `campaignTrail_temp.campaign_sign_border_color = "${signBorderColor}";\n\n`
             );
+
+            // the sign colors are applied through a real #campaign_sign CSS rule,
+            // since the mod's own stylesheet can't be edited from here
+            parts.push(this.getBannerSignStyleCode());
         }
 
         parts.push(this.getEndingCode());
@@ -3120,7 +3130,7 @@ class TCTData {
 
         // banner settings should override any older banner assignments
         if (this.jet_data.banner_enabled) {
-            codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
+            codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
         }
 
         // CYOA merging logic
@@ -3746,6 +3756,47 @@ endingPicker = (out, totv, aa, quickstats) => {
         ].join("");
 
         return parts;
+    }
+
+    // Emits the #campaign_sign CSS rule so the banner settings actually restyle the
+    // sign in game (the mod's own stylesheet is not modified). Wrapped in the
+    // TCT_BANNER_SIGN markers so it can be stripped again on import.
+    getBannerSignStyleCode() {
+        const b = this.jet_data.banner_data || {};
+        const isHex = (v) => /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(String(v || "").trim());
+        const background = isHex(b.signColor) ? b.signColor.trim() : "#0000D1";
+        const border = isHex(b.signBorderColor) ? b.signBorderColor.trim() : "#700016";
+
+        return `
+// [TCT_BANNER_SIGN_START]
+;(() => {
+    const css = [
+        "#campaign_sign {",
+        "    background-color: ${background};",
+        "    border-style: solid;",
+        "    border-width: .5em;",
+        "    border-color: ${border};",
+        "}"
+    ].join("\\n");
+
+    const apply = () => {
+        let tag = document.getElementById("campaign_sign_style");
+        if (!tag) {
+            tag = document.createElement("style");
+            tag.id = "campaign_sign_style";
+            (document.head || document.documentElement).appendChild(tag);
+        }
+        tag.textContent = css;
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", apply);
+    } else {
+        apply();
+    }
+})();
+// [TCT_BANNER_SIGN_END]
+`;
     }
 
     getBunnyhopCode() {
@@ -4613,9 +4664,11 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\/\/\s*\[JETS_BUNNYHOP_START\][\s\S]*?\/\/\s*\[JETS_BUNNYHOP_END\]/g);
+    // the generated #campaign_sign style block is always machine-generated
+    extractor.excludeRegex(/\/\/\s*\[TCT_BANNER_SIGN_START\][\s\S]*?\/\/\s*\[TCT_BANNER_SIGN_END\]/g);
     // keep manual banner assignments in custom code unless the banner module is enabled
     if (jet_data.banner_enabled) {
-        extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
+        extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
     }
     extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
