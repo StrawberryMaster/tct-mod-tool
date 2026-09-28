@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tct-mod-tool-v2';
+const CACHE_NAME = 'tct-mod-tool-v3';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './js/tailwind.js',
   './js/vue3.js',
   './js/db.js',
+  './js/autosave.js',
   './js/engine.js',
   './js/base.js',
   './js/components/editor.js',

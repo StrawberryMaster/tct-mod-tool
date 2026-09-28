@@ -268,14 +268,11 @@ registerComponent('toolbar', {
                 // request an immediate save
                 if (typeof requestAutosaveDebounced === 'function') requestAutosaveDebounced(0);
             } else {
-                // stop the interval if it exists
+                // stop the safety-net interval
                 try {
-                    if (typeof autosaveInterval !== 'undefined' && autosaveInterval) {
-                        clearInterval(autosaveInterval);
-                        autosaveInterval = null;
-                    }
+                    if (typeof stopAutosave === 'function') stopAutosave();
                 } catch (e) {
-                    console.warn("Failed to clear autosave interval:", e);
+                    console.warn("Failed to stop autosave:", e);
                 }
             }
 

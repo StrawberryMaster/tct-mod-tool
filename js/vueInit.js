@@ -1,30 +1,53 @@
 const { createApp, reactive, ref, computed, watch } = Vue;
 
 let app = null;
-let autosaveInterval = null;
+let autosaveController = null;
 let autosaveEnabled = false;
 let autosaveData = null;
 
+function createAutosaveController() {
+    if (autosaveController) return autosaveController;
+    if (!window.TCTAutosave) return null;
+
+    autosaveController = window.TCTAutosave.create({
+        name: 'code2',
+        store: 'autosaves',
+        key: 'autosave',
+        localStorageKey: 'autosave',
+        eventName: 'tct:autosaved',
+        debounce: 600,
+        maxWait: 4000,
+        interval: 15000,
+        isEnabled: () => !!window.autosaveEnabled,
+        getVersion: () => (window.$globalData ? window.$globalData.dataVersion : null),
+        serialize: () => {
+            const tct = window.$TCT;
+            if (!tct || typeof tct.exportCode2 !== 'function') return '';
+            return tct.exportCode2();
+        }
+    });
+
+    // whatever the page started with is already in storage, so no rewrite needed
+    if (autosaveData) autosaveController.seed(autosaveData);
+
+    return autosaveController;
+}
+
 // global exports
-window.autosaveEnabled = autosaveEnabled;
-window.saveAutosave = saveAutosave;
-
-// debounced autosave request
-const requestAutosaveDebounced = (() => {
-    let timer = null;
-    return (delay = 600) => {
-        if (!window.autosaveEnabled) return;
-
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            requestAnimationFrame(() => {
-                try { saveAutosave(); }
-                catch (e) { console.error("Autosave failed:", e); }
-            });
-        }, delay);
-    };
-})();
-window.requestAutosaveDebounced = requestAutosaveDebounced;
+window.autosaveEnabled = false;
+window.saveAutosave = (reason) => {
+    const c = createAutosaveController();
+    return c ? c.saveNow(reason || 'manual') : Promise.resolve(false);
+};
+window.requestAutosaveDebounced = (delay) => {
+    const c = createAutosaveController();
+    return c ? c.request(delay) : false;
+};
+window.requestAutosaveIfEnabled = () => {
+    const c = createAutosaveController();
+    return c ? c.markDirty() : false;
+};
+window.$autosaveStats = () => (autosaveController ? autosaveController.getStats() : null);
 
 async function initAndLoad() {
     if (window.TCTDB) {
@@ -74,30 +97,14 @@ function shouldBeSavedAsNumber(value) {
 }
 
 function startAutosave() {
-    if (autosaveInterval) clearInterval(autosaveInterval);
-    autosaveInterval = setInterval(saveAutosave, 15000);
+    const c = createAutosaveController();
+    if (c) c.start();
 }
-
-function saveAutosave() {
-    const tct = window.$TCT;
-    if (!tct || typeof tct.exportCode2 !== 'function') return;
-
-    try {
-        const code2 = tct.exportCode2();
-        if (window.TCTDB) {
-            TCTDB.set('autosaves', 'autosave', code2)
-                .catch(err => {
-                    console.warn("IndexedDB autosave failed, falling back to localStorage:", err);
-                    localStorage.setItem("autosave", code2);
-                });
-        } else {
-            localStorage.setItem("autosave", code2);
-        }
-        window.dispatchEvent(new CustomEvent('tct:autosaved'));
-    } catch (e) {
-        console.error("Error during export/save:", e);
-    }
+function stopAutosave() {
+    if (autosaveController) autosaveController.stop();
 }
+window.startAutosave = startAutosave;
+window.stopAutosave = stopAutosave;
 
 function firstNonNull(arr) {
     return arr.find(x => x !== null);
@@ -223,6 +230,10 @@ async function loadData(dataName, isFirstLoad) {
         }
 
         console.log(`Loaded data. Mode:`, app.config.globalProperties.$globalData.mode);
+
+        // loading a template/replacement changes the
+        // content without bumping dataVersion, so flag it
+        window.requestAutosaveIfEnabled?.();
 
     } catch (err) {
         console.error("Critical error in loadData:", err);

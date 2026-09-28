@@ -20,8 +20,9 @@ index.html             — main SPA (mounts #app)
 code1.html             — secondary page (separate Vue app)
 js/
   base.js              — TCTData class (data model, import/export, code gen, ~3767 lines)
-  vueInit.js           — Vue app creation, autosave, data loading, global helpers
+  vueInit.js           — Vue app creation, autosave wiring, data loading, global helpers
   db.js                — IndexedDB wrapper (230 lines)
+  autosave.js          — shared autosave controller (dirty tracking, dedupe, idle writes)
   engine.js            — map rendering engine
   components/
     editor.js          — toolbar + editor shell
@@ -41,7 +42,17 @@ public/*.txt           — 28 base scenario Code 2 templates (loaded by name)
 - **Component registration**: `window.registerComponent('name', { template: \`...\`, data, methods, computed })`. Components queue until Vue app mounts, then registered globally.
 - **Global reactive state**: `window.$TCT` (reactive `TCTData` instance), `window.$globalData` (reactive object with `mode`, `question`, `state`, `issue`, `candidate`, `dataVersion`, `filename`).
 - **Reactivity trigger**: Every data mutation must increment `$globalData.dataVersion++` (triggers Vue re-renders for computed properties that reference it).
-- **Autosave**: Call `window.requestAutosaveIfEnabled?.()` after each mutation. Autosaves every 15s to IndexedDB.
+- **Autosave**: Call `window.requestAutosaveIfEnabled?.()` after each mutation. It is **cheap** — it only marks the data dirty and schedules a write; it never serializes. `js/autosave.js` then decides whether to actually export/write:
+  1. *cheap gate* — nothing dirty and `$globalData.dataVersion` unchanged since the last write → skipped in O(1) (navigating between questions, switching tabs, opening panels).
+  2. *content gate* — the `exportCode2()` payload is FNV-1a hashed and compared to the last written one → identical content is not written (undone edits, re-renders that only bump `dataVersion`).
+  3. *single flight* — never two exports/writes at once; edits landing mid-export trigger exactly one debounced follow-up pass.
+  4. *idle first* — `requestIdleCallback` (2s deadline) after a 600ms debounce, with a 4s `maxWait` cap so continuous typing still saves periodically.
+  5. *lifecycle* — pending work is flushed on `visibilitychange`/`pagehide`/`beforeunload`; a 15s interval remains only as a safety net for mutations that forget to call the hook (it costs O(1) when clean).
+  Failures never busy-loop; the state stays dirty and the next tick retries. `window.$autosaveStats()` (and `$code1AutosaveStats()` on the Code 1 page) returns counters for debugging.
+  Explicit saves (`window.saveAutosave()`) bypass both gates so the user's click always writes.
+  Loads/replaces of data do **not** bump `dataVersion`, so `loadData()` in `js/vueInit.js` calls `requestAutosaveIfEnabled()` explicitly.
+  Every settled flush dispatches `<eventName>:settled` (e.g. `tct:autosaved:settled`) with `{wrote, failed, reason, pending}` so UI can show "Saved"/"Saved just now"/"Save failed" instead of a permanent "Saving...". Because a skipped write fires it with `wrote: false`, the status always resolves.
+- **Code 1 page** mirrors this via `window.requestCode1AutosaveIfEnabled()` / `requestCode1AutosaveDebounced(delay)`; its deep Vue watcher only marks dirty and lets the controller decide.
 - **Templates loaded from `public/*.txt`** — fetched via HTTP and parsed by `loadDataFromFile()` in `base.js`.
 - **Themes**: 6 themes (`light`, `sepia`, `dark`, `mallard`, `xp-olive`, `xp-silver`) via `data-theme` attribute + CSS custom properties.
 - **Tooltips**: Plain HTML `title` attribute (no tooltip library).

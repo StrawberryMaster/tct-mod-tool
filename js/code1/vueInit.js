@@ -1,28 +1,53 @@
 const { createApp, reactive, ref, computed, watch, onMounted } = Vue;
 
 let app = null;
-let autosaveInterval = null;
+let autosaveController = null;
 let autosaveEnabled = false;
+let code1AutosaveData = null;
+
+function createCode1AutosaveController() {
+    if (autosaveController) return autosaveController;
+    if (!window.TCTAutosave) return null;
+
+    autosaveController = window.TCTAutosave.create({
+        name: 'code1',
+        store: 'autosaves',
+        key: 'code1_autosave',
+        localStorageKey: 'code1_autosave',
+        eventName: 'tct:code1_autosaved',
+        debounce: 600,
+        maxWait: 4000,
+        interval: 15000,
+        isEnabled: () => !!window.code1_autosaveEnabled,
+        getVersion: () => (window.$globalData ? window.$globalData.dataVersion : null),
+        serialize: () => {
+            const tct = window.$TCT;
+            if (!tct || typeof tct.exportCode1 !== 'function') return '';
+            return tct.exportCode1();
+        }
+    });
+
+    // what we just loaded is already in storage
+    if (code1AutosaveData) autosaveController.seed(code1AutosaveData);
+
+    return autosaveController;
+}
 
 // global exports
-window.code1_autosaveEnabled = autosaveEnabled;
-
-// debounced autosave request
-const requestAutosaveDebounced = (() => {
-    let timer = null;
-    return (delay = 600) => {
-        if (!window.code1_autosaveEnabled) return;
-
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            requestAnimationFrame(() => {
-                try { saveAutosave(); }
-                catch (e) { console.error("Code 1 Autosave failed:", e); }
-            });
-        }, delay);
-    };
-})();
-window.requestCode1AutosaveDebounced = requestAutosaveDebounced;
+window.code1_autosaveEnabled = false;
+window.requestCode1AutosaveDebounced = (delay) => {
+    const c = createCode1AutosaveController();
+    return c ? c.request(delay) : false;
+};
+window.requestCode1AutosaveIfEnabled = () => {
+    const c = createCode1AutosaveController();
+    return c ? c.markDirty() : false;
+};
+window.saveCode1Autosave = (reason) => {
+    const c = createCode1AutosaveController();
+    return c ? c.saveNow(reason || 'manual') : Promise.resolve(false);
+};
+window.$code1AutosaveStats = () => (autosaveController ? autosaveController.getStats() : null);
 
 window.$promptCode1ChangePk = function (type, oldPk, label) {
     const newPk = prompt(`Enter new PK for ${label || type} (currently ${oldPk}):`, oldPk);
@@ -56,35 +81,14 @@ async function initCode1Storage() {
 }
 
 function startAutosave() {
-    if (autosaveInterval) clearInterval(autosaveInterval);
-    autosaveInterval = setInterval(saveAutosave, 15000);
+    const c = createCode1AutosaveController();
+    if (c) c.start();
 }
 function stopAutosave() {
-    if (autosaveInterval) { clearInterval(autosaveInterval); autosaveInterval = null; }
+    if (autosaveController) autosaveController.stop();
 }
 window.code1StartAutosave = startAutosave;
 window.code1StopAutosave = stopAutosave;
-
-function saveAutosave() {
-    const tct = window.$TCT;
-    if (!tct || typeof tct.exportCode1 !== 'function') return;
-
-    try {
-        const code1 = tct.exportCode1();
-        if (window.TCTDB) {
-            TCTDB.set('autosaves', 'code1_autosave', code1)
-                .catch(err => {
-                    console.warn("Code 1 IndexedDB autosave failed, falling back to localStorage:", err);
-                    localStorage.setItem("code1_autosave", code1);
-                });
-        } else {
-            localStorage.setItem("code1_autosave", code1);
-        }
-        window.dispatchEvent(new CustomEvent('tct:code1_autosaved'));
-    } catch (e) {
-        console.error("Error during Code 1 export/save:", e);
-    }
-}
 
 // global data for Code 1
 const globalData = reactive({
@@ -111,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         autosaveData = localStorage.getItem("code1_autosave");
     }
+    code1AutosaveData = autosaveData;
 
     if (autosaveData) {
         console.log("Loading Code 1 from autosave...");
@@ -137,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     globalData.dataVersion++;
-                    requestAutosaveDebounced();
+                    window.requestCode1AutosaveIfEnabled?.();
                 },
                 { deep: true }
             );

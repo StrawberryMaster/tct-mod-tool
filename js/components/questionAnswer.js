@@ -26,10 +26,12 @@ registerComponent('question', {
 
     mounted() {
         window.addEventListener('tct:autosaved', this.onAutosaved);
+        window.addEventListener('tct:autosaved:settled', this.onAutosaveSettled);
         this.localDescription = this.description || '';
     },
         beforeUnmount() {
         window.removeEventListener('tct:autosaved', this.onAutosaved);
+        window.removeEventListener('tct:autosaved:settled', this.onAutosaveSettled);
     },
 
     watch: {
@@ -51,14 +53,17 @@ registerComponent('question', {
         // push edits into store and debounce autosave so typing is smooth
         localDescription(newVal) {
             const q = this.$TCT.questions.get(this.pk);
-            if (q) {
-                q.fields.description = newVal;
-                this.markDirty();
-                // debounce autosave more aggressively while typing to avoid UI stalls
-                if (window.autosaveEnabled) {
-                    window.requestAutosaveDebounced?.(1200);
-                    this.savedMessage = 'Saving...';
-                }
+            if (!q) return;
+            // the buffer was just synced FROM the store (switching question,
+            // clone, import, delete...): the value is already stored, so this is
+            // not an edit and must not mark anything dirty
+            if ((q.fields.description || '') === (newVal || '')) return;
+            q.fields.description = newVal;
+            this.markDirty();
+            // debounce autosave more aggressively while typing to avoid UI stalls
+            if (window.autosaveEnabled) {
+                window.requestAutosaveDebounced?.(1200);
+                this.savedMessage = 'Saving...';
             }
         },
         // keep answer input buffer in sync when switching answers
@@ -80,13 +85,15 @@ registerComponent('question', {
         localAnswerDescription(newVal) {
             if (!this.activeAnswer) return;
             const a = this.$TCT.answers[this.activeAnswer];
-            if (a) {
-                a.fields.description = newVal;
-                this.markDirty();
-                if (window.autosaveEnabled) {
-                    window.requestAutosaveDebounced?.(1200);
-                    this.savedMessage = 'Saving...';
-                }
+            if (!a) return;
+            // buffer synced from the store (switching answers, clone, ...):
+            // the value is already stored, so this is not an edit
+            if ((a.fields.description || '') === (newVal || '')) return;
+            a.fields.description = newVal;
+            this.markDirty();
+            if (window.autosaveEnabled) {
+                window.requestAutosaveDebounced?.(1200);
+                this.savedMessage = 'Saving...';
             }
         }
     },
@@ -372,6 +379,18 @@ registerComponent('question', {
         onAutosaved() {
             this.savedMessage = 'Saved just now';
         },
+        // the save attempt finished: settle the indicator whether or not
+        // anything actually had to be written
+        onAutosaveSettled(e) {
+            const detail = (e && e.detail) || {};
+            if (detail.failed) {
+                this.savedMessage = 'Save failed - will retry';
+            } else if (detail.wrote) {
+                this.savedMessage = 'Saved just now';
+            } else {
+                this.savedMessage = detail.pending ? 'Unsaved changes' : 'Saved';
+            }
+        },
         quickAutosaveIfEnabled() {
             if (window.autosaveEnabled) {
                 window.requestAutosaveDebounced?.();
@@ -633,12 +652,15 @@ registerComponent('question', {
         },
 
         saveQuestion() {
-            if (typeof window.requestAutosaveDebounced === 'function') {
-                window.requestAutosaveDebounced(0);
-            } else if (typeof saveAutosave === 'function') {
-                saveAutosave();
+            // if nothing changed there is genuinely nothing to
+            // write! write the accurate outcome then
+            window.requestAutosaveIfEnabled?.();
+            if (window.autosaveEnabled) {
+                window.requestAutosaveDebounced?.(0);
+                this.savedMessage = 'Saving...';
+            } else {
+                this.savedMessage = 'Autosave is off';
             }
-            this.savedMessage = 'Saved just now';
         },
 
         getFeedbackForAnswer(pk) {
