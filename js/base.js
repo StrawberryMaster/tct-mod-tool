@@ -1113,6 +1113,36 @@ const TEMPLATE_NAMES =
         "2020-Trump.txt",
     ]
 
+// default scenario
+const DEFAULT_TEMPLATE = "1844-Clay.txt";
+
+/**
+ * Groups template file names by election year
+ */
+function groupTemplatesByYear(names) {
+    const groups = [];
+    let current = null;
+
+    for (const name of names) {
+        const match = /^(\d+)([a-z]?)-(.+)\.txt$/.exec(name);
+        if (!match) continue; // ignore anything not following the convention
+
+        const year = match[1] + match[2];
+
+        if (!current || current.year !== year) {
+            current = {
+                year: year,
+                label: match[2] ? year + " (alt)" : year,
+                candidates: []
+            };
+            groups.push(current);
+        }
+        current.candidates.push({ file: name, name: match[3].replace(/_/g, " ") });
+    }
+
+    return groups;
+}
+
 class TCTData {
     static DEFAULT_VOTE_VARIABLE = 1.125;
     static DEFAULT_ISSUE_WEIGHT = 1.5;

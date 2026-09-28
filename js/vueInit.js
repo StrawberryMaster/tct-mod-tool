@@ -71,7 +71,7 @@ async function initAndLoad() {
         startAutosave();
     }
 
-    loadData(TEMPLATE_NAMES[0], true);
+    loadData(DEFAULT_TEMPLATE, true);
 }
 
 const MODES = {

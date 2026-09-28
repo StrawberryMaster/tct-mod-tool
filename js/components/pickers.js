@@ -649,16 +649,29 @@ registerComponent('template-picker', {
     template: `
     <div class="mx-auto py-1 px-3">
 
+    <label for="templateFilter" class="text-xs text-gray-600">Filter:</label>
+    <input id="templateFilter" v-model="filter" type="search" placeholder="year or candidate..."
+           class="w-full mb-1 p-1 border border-gray-300 rounded-sm text-sm">
     <label for="templatePicker">Choose a template:</label><br>
 
-    <select @change="onChange" name="templatePicker" id="templatePicker">
-        <option v-for="template in templates" :value="template">{{trimmedName(template)}}</option>
+    <select @change="onChange" name="templatePicker" id="templatePicker" size="1">
+        <template v-for="group in filteredGroups" :key="group.year">
+            <optgroup v-if="group.candidates.length > 1" :label="group.label">
+                <option v-for="c in group.candidates" :key="c.file" :value="c.file">{{ c.name }}</option>
+            </optgroup>
+            <option v-else :value="group.candidates[0].file">{{ group.label }} - {{ group.candidates[0].name }}</option>
+        </template>
     </select>
+    <p v-if="!filteredGroups.length" class="text-xs text-gray-500 italic mt-1">No template matches "{{ filter }}".</p>
 
     <p class="text-sm text-gray-700 italic">WARNING: Choosing a new template will erase all existing progress!</p>
 
     </div>
     `,
+
+    data() {
+        return { filter: '' };
+    },
 
     methods: {
         onChange: function (evt) {
@@ -667,12 +680,25 @@ registerComponent('template-picker', {
 
         trimmedName(f) {
             return f.replace(".txt", "")
+        },
+
+        matches(group) {
+            const q = this.filter.trim().toLowerCase();
+            if (!q) return true;
+            return group.year.toLowerCase().includes(q) ||
+                group.candidates.some(c => c.name.toLowerCase().includes(q));
         }
     },
 
     computed: {
         templates: function () {
             return TEMPLATE_NAMES;
+        },
+        templateGroups: function () {
+            return groupTemplatesByYear(TEMPLATE_NAMES);
+        },
+        filteredGroups: function () {
+            return this.templateGroups.filter(this.matches);
         }
     }
 })
@@ -732,7 +758,8 @@ registerComponent('unified-tools-picker', {
     data() {
         return {
             showDropdown: false,
-            selectedTemplate: ''
+            selectedTemplate: '',
+            filter: ''
         };
     },
 
@@ -746,11 +773,20 @@ registerComponent('unified-tools-picker', {
         <div class="p-4 space-y-4">
             <!-- Template Selection -->
             <div>
+                <label for="unifiedTemplateFilter" class="block text-xs text-gray-600 mb-1">Filter:</label>
+                <input id="unifiedTemplateFilter" v-model="filter" type="search" placeholder="year or candidate..."
+                       class="w-full mb-1 p-1 border border-gray-300 rounded-sm text-sm">
                 <label for="templatePicker" class="block text-sm font-medium text-gray-700 mb-1">Choose a template:</label>
-                <select @change="onChange" name="templatePicker" id="templatePicker" 
+                <select @change="onChange" name="templatePicker" id="templatePicker" size="1"
                         class="w-full p-2 border border-gray-300 rounded-sm text-sm bg-gray-50">
-                    <option v-for="template in templates" :value="template">{{trimmedName(template)}}</option>
+                    <template v-for="group in filteredGroups" :key="group.year">
+                        <optgroup v-if="group.candidates.length > 1" :label="group.label">
+                            <option v-for="c in group.candidates" :key="c.file" :value="c.file">{{ c.name }}</option>
+                        </optgroup>
+                        <option v-else :value="group.candidates[0].file">{{ group.label }} - {{ group.candidates[0].name }}</option>
+                    </template>
                 </select>
+                <p v-if="!filteredGroups.length" class="text-xs text-gray-500 italic mt-1">No template matches "{{ filter }}".</p>
                 <p class="text-xs text-red-600 italic mt-1">WARNING: Choosing a new template will erase all existing progress!</p>
             </div>
 
@@ -820,19 +856,34 @@ registerComponent('unified-tools-picker', {
             this.$globalData.mode = BULK;
         },
         onChange(evt) {
+            const chosen = evt.target.value;
             if (confirm("This will overwrite your existing data. Are you sure?")) {
-                loadData(evt.target.value);
+                this.selectedTemplate = chosen;
+                loadData(chosen);
             } else {
+                // put the selection back where it was
                 evt.target.value = this.selectedTemplate;
             }
         },
         trimmedName(f) {
             return f.replace(".txt", "")
+        },
+        matches(group) {
+            const q = this.filter.trim().toLowerCase();
+            if (!q) return true;
+            return group.year.toLowerCase().includes(q) ||
+                group.candidates.some(c => c.name.toLowerCase().includes(q));
         }
     },
     computed: {
         templates: function () {
             return TEMPLATE_NAMES;
+        },
+        templateGroups: function () {
+            return groupTemplatesByYear(TEMPLATE_NAMES);
+        },
+        filteredGroups: function () {
+            return this.templateGroups.filter(this.matches);
         }
     }
 })
