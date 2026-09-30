@@ -1240,6 +1240,9 @@ registerComponent('candidate', {
     }
 })
 
+const stateMapInteraction = new WeakMap();
+const stateMapViewportFrame = new WeakMap();
+
 registerComponent('issue-state-map-editor', {
     props: ['issuePk'],
     data() {
@@ -1250,12 +1253,11 @@ registerComponent('issue-state-map-editor', {
             editScore: 0,
             editWeight: 1,
             mapData: [],
+            mapEntryIndex: Object.create(null),
             mapAvailable: false,
             fallbackViewBox: null,
             usingBasicShapes: false,
             stateDropdownPk: null,
-            renderVersion: 0,
-
             zoom: 1,
             minZoom: 0.25,
             maxZoom: 10,
@@ -1350,14 +1352,26 @@ registerComponent('issue-state-map-editor', {
                 }
             });
             this.stateMetrics = metrics;
-            this.renderVersion++;
+        },
+
+        setMapData(entries) {
+            this.mapData = entries || [];
+            const index = Object.create(null);
+            for (const entry of this.mapData) {
+                if (!Array.isArray(entry) || entry.length < 2) continue;
+                const keys = this.$TCT._getMapLookupKeys?.(entry[0]) || [entry[0]];
+                for (const key of keys) {
+                    if (key && !index[key]) index[key] = entry;
+                }
+            }
+            this.mapEntryIndex = index;
         },
 
         async loadMapData() {
             try {
                 const mapping = this.$TCT.jet_data?.mapping_data;
                 if (mapping?.mapSvg) {
-                    this.mapData = this.$TCT.getMapForPreview(mapping.mapSvg) || [];
+                    this.setMapData(this.$TCT.getMapForPreview(mapping.mapSvg));
                     if (this.mapData.length) {
                         this.mapAvailable = true;
                         this.initializeViewport(true);
@@ -1367,7 +1381,7 @@ registerComponent('issue-state-map-editor', {
                 if (typeof loadDefaultUSMap === 'function') {
                     const svg = await loadDefaultUSMap();
                     if (svg) {
-                        this.mapData = this.$TCT.getMapForPreview(svg) || [];
+                        this.setMapData(this.$TCT.getMapForPreview(svg));
                         if (this.mapData.length) {
                             this.mapAvailable = true;
                             this.fallbackViewBox = '0 0 1000 589';
@@ -1393,14 +1407,14 @@ registerComponent('issue-state-map-editor', {
             const size = 40;
             const padding = 10;
 
-            this.mapData = states.map((state, index) => {
+            this.setMapData(states.map((state, index) => {
                 const row = Math.floor(index / cols);
                 const col = index % cols;
                 const x = col * (size + padding) + 50;
                 const y = row * (size + padding) + 50;
                 const path = `M${x},${y} h${size} v${size} h-${size} Z`;
                 return [state.fields?.abbr || `S${state.pk}`, path, ''];
-            });
+            }));
 
             this.usingBasicShapes = true;
             this.mapAvailable = true;
@@ -1460,6 +1474,7 @@ registerComponent('issue-state-map-editor', {
                 const scaleChange = 1 / this.zoom - 1 / oldZoom;
                 this.panX += (centerPoint.x) * scaleChange * this.zoom;
             }
+            this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
         },
 
         zoomIn() { this.setZoom(this.zoom * 1.25); },
@@ -1467,11 +1482,32 @@ registerComponent('issue-state-map-editor', {
 
         onWheel(evt) {
             const direction = evt.deltaY > 0 ? 0.9 : 1.1;
-            this.setZoom(this.zoom * direction);
+            let interaction = stateMapInteraction.get(this);
+            if (!interaction) {
+                interaction = { panX: this.panX, panY: this.panY, zoom: this.zoom, wheelTimer: null };
+                stateMapInteraction.set(this, interaction);
+            }
+            interaction.zoom = Math.min(this.maxZoom, Math.max(this.minZoom, interaction.zoom * direction));
+            this.applyViewBoxToDom(interaction.panX, interaction.panY, interaction.zoom);
+
+            clearTimeout(interaction.wheelTimer);
+            interaction.wheelTimer = setTimeout(() => {
+                this.zoom = interaction.zoom;
+                this.panX = interaction.panX;
+                this.panY = interaction.panY;
+                this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
+                stateMapInteraction.delete(this);
+            }, 120);
         },
 
         startPan(evt) {
             if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+            stateMapInteraction.set(this, {
+                panX: this.panX,
+                panY: this.panY,
+                zoom: this.zoom,
+                wheelTimer: null
+            });
             this.isPanning = true;
             this.dragMoved = false;
             this.lastPointer = { x: evt.clientX, y: evt.clientY };
@@ -1480,7 +1516,8 @@ registerComponent('issue-state-map-editor', {
         },
 
         onPan(evt) {
-            if (!this.isPanning || !this.svgBounds) return;
+            const interaction = stateMapInteraction.get(this);
+            if (!this.isPanning || !this.svgBounds || !interaction) return;
 
             const dx = evt.clientX - this.lastPointer.x;
             const dy = evt.clientY - this.lastPointer.y;
@@ -1492,16 +1529,23 @@ registerComponent('issue-state-map-editor', {
             const scaleX = (this.baseWidth / this.zoom) / this.svgBounds.width;
             const scaleY = (this.baseHeight / this.zoom) / this.svgBounds.height;
 
-            this.panX -= dx * scaleX;
-            this.panY -= dy * scaleY;
+            interaction.panX -= dx * scaleX;
+            interaction.panY -= dy * scaleY;
 
             this.lastPointer = { x: evt.clientX, y: evt.clientY };
+            this.applyViewBoxToDom(interaction.panX, interaction.panY, interaction.zoom);
         },
 
         endPan(evt) {
             if (!this.isPanning) return;
             this.isPanning = false;
             this.lastPointer = null;
+            const interaction = stateMapInteraction.get(this);
+            if (interaction) {
+                this.panX = interaction.panX;
+                this.panY = interaction.panY;
+                this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
+            }
             if (evt?.pointerId !== undefined) {
                 evt.currentTarget?.releasePointerCapture?.(evt.pointerId);
             }
@@ -1509,6 +1553,24 @@ registerComponent('issue-state-map-editor', {
 
         onResize() {
             // recalculate bounds if needed
+        },
+
+        applyViewBoxToDom(panX, panY, zoom) {
+            const width = this.baseWidth / zoom;
+            const height = this.baseHeight / zoom;
+            const viewBox = `${panX} ${panY} ${width} ${height}`;
+            if (stateMapViewportFrame.has(this)) {
+                stateMapViewportFrame.get(this).viewBox = viewBox;
+                return;
+            }
+
+            const pending = { viewBox };
+            stateMapViewportFrame.set(this, pending);
+            requestAnimationFrame(() => {
+                stateMapViewportFrame.delete(this);
+                const maps = this.$el?.querySelectorAll?.('svg[data-state-map]') || [];
+                maps.forEach(map => map.setAttribute('viewBox', pending.viewBox));
+            });
         },
 
         toggleStateSelection(statePk) {
@@ -1618,7 +1680,8 @@ registerComponent('issue-state-map-editor', {
         getStatePath(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
+                const keys = this.$TCT._getMapLookupKeys?.(abbr) || [abbr];
+                const entry = keys.map(key => this.mapEntryIndex[key]).find(Boolean);
                 if (entry) return entry[1];
             }
             if (state.d) return state.d;
@@ -1628,7 +1691,8 @@ registerComponent('issue-state-map-editor', {
         getStateTransform(state) {
             const abbr = state.fields?.abbr;
             if (abbr) {
-                const entry = this.$TCT.findMapEntry(this.mapData, abbr);
+                const keys = this.$TCT._getMapLookupKeys?.(abbr) || [abbr];
+                const entry = keys.map(key => this.mapEntryIndex[key]).find(Boolean);
                 if (entry) return entry[2] || '';
             }
             return state.transform || '';
@@ -1672,6 +1736,8 @@ registerComponent('issue-state-map-editor', {
             <svg
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
+                data-state-map="true"
+                shape-rendering="optimizeSpeed"
                 :viewBox="viewBoxString"
                 preserveAspectRatio="xMidYMid meet"
                 class="w-full h-96 select-none cursor-move"
@@ -1684,7 +1750,7 @@ registerComponent('issue-state-map-editor', {
                 @pointercancel="endPan"
                 @wheel.prevent="onWheel"
             >
-                <g :key="renderVersion">
+                <g>
                     <path
                         v-for="state in states"
                         :key="state.pk"
@@ -1699,8 +1765,6 @@ registerComponent('issue-state-map-editor', {
                         }"
                         @pointerdown.stop
                         @click.stop="handleStateClick(state.pk)"
-                        @mouseenter="onMouseEnter(state.pk)"
-                        @mouseleave="onMouseLeave"
                         vector-effect="non-scaling-stroke"
                     >
                         <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>
@@ -1811,6 +1875,8 @@ registerComponent('issue-state-map-editor', {
                             <svg
                                 version="1.1"
                                 xmlns="http://www.w3.org/2000/svg"
+                                data-state-map="true"
+                                shape-rendering="optimizeSpeed"
                                 :viewBox="viewBoxString"
                                 preserveAspectRatio="xMidYMid meet"
                                 class="w-full h-full select-none cursor-move min-h-[400px]"
@@ -1824,7 +1890,7 @@ registerComponent('issue-state-map-editor', {
                                 @wheel.prevent="onWheel"
                                 @contextmenu.prevent
                             >
-                                <g :key="'modal-' + renderVersion">
+                                <g>
                                     <path
                                         v-for="state in states"
                                         :key="'modal-' + state.pk"
@@ -1839,8 +1905,6 @@ registerComponent('issue-state-map-editor', {
                                         }"
                                         @pointerdown.stop
                                         @click.stop="handleStateClick(state.pk)"
-                                        @mouseenter="onMouseEnter(state.pk)"
-                                        @mouseleave="onMouseLeave"
                                         vector-effect="non-scaling-stroke"
                                     >
                                         <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>

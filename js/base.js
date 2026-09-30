@@ -1144,6 +1144,7 @@ function groupTemplatesByYear(names) {
 }
 
 const mapShapeParseCache = new WeakMap();
+const mapShapeLookupCache = new WeakMap();
 
 class TCTData {
     static DEFAULT_VOTE_VARIABLE = 1.125;
@@ -3097,6 +3098,9 @@ class TCTData {
         try {
             const svg = this.jet_data?.mapping_data?.mapSvg;
             if (!svg || typeof svg !== 'string') return null;
+            const cached = mapShapeLookupCache.get(this);
+            if (cached?.svg === svg) return cached.lookup;
+
             const parsed = this._extractMapShapes(svg);
             const map = {};
             for (const s of parsed.out) {
@@ -3107,6 +3111,7 @@ class TCTData {
                     if (!(key in map)) map[key] = s;
                 }
             }
+            mapShapeLookupCache.set(this, { svg, lookup: map });
             return map;
         } catch (e) {
             return null;
@@ -3146,12 +3151,13 @@ class TCTData {
     getStateTransformJavascriptForMapping() {
         const states = Object.values(this.states);
         const parts = [];
+        const needsLookup = states.some((state) => !state.transform && !state.fields?.transform);
+        const lookup = needsLookup ? this._getMapShapeLookup?.() : null;
 
         for (let i = 0; i < states.length; i++) {
             const state = states[i];
             let transform = state.transform ?? state.fields?.transform ?? "";
             if (!transform) {
-                const lookup = this._getMapShapeLookup?.();
                 const keys = this._getMapLookupKeys(state.fields?.abbr)
                     .concat(this._getMapLookupKeys(state.fields?.name));
                 for (const key of keys) {
