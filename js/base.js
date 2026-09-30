@@ -1143,6 +1143,8 @@ function groupTemplatesByYear(names) {
     return groups;
 }
 
+const mapShapeParseCache = new WeakMap();
+
 class TCTData {
     static DEFAULT_VOTE_VARIABLE = 1.125;
     static DEFAULT_ISSUE_WEIGHT = 1.5;
@@ -2383,6 +2385,16 @@ class TCTData {
             return { out, warnings };
         }
 
+        const cached = mapShapeParseCache.get(this);
+        if (cached?.svg === svg) {
+            return cached.result;
+        }
+
+        const cacheResult = (result) => {
+            mapShapeParseCache.set(this, { svg, result });
+            return result;
+        };
+
         try {
             if (typeof DOMParser !== 'undefined') {
                 const parser = new DOMParser();
@@ -2427,7 +2439,7 @@ class TCTData {
                     });
                 }
 
-                return { out, warnings };
+                return cacheResult({ out, warnings });
             }
         } catch (err) {
             warnings.push(`DOM parsing failed: ${err?.message || err}`);
@@ -2466,7 +2478,7 @@ class TCTData {
             out.push({ id, abbr, name: (nameMatch?.[1] || id), d, transform, tag: 'path', index: i });
         }
 
-        return { out, warnings };
+        return cacheResult({ out, warnings });
     }
 
     getMapForPreview(svg) {
@@ -3059,6 +3071,28 @@ class TCTData {
         this._invalidateCache('state_issue_scores_by_issue');
     }
 
+    _getMapLookupKeys(value) {
+        if (value == null) return [];
+
+        const raw = String(value).trim();
+        if (!raw) return [];
+
+        const keys = new Set([raw, raw.replaceAll('-', '_')]);
+        const canonical = raw.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (canonical) keys.add(canonical);
+        const compact = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (compact) keys.add(compact);
+        const sanitized = this._sanitizeMapAbbr(raw, '');
+        if (sanitized) {
+            keys.add(sanitized);
+            const sanitizedCanonical = sanitized.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            if (sanitizedCanonical) keys.add(sanitizedCanonical);
+            const sanitizedCompact = sanitized.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (sanitizedCompact) keys.add(sanitizedCompact);
+        }
+        return Array.from(keys);
+    }
+
     _getMapShapeLookup() {
         try {
             const svg = this.jet_data?.mapping_data?.mapSvg;
@@ -3066,8 +3100,12 @@ class TCTData {
             const parsed = this._extractMapShapes(svg);
             const map = {};
             for (const s of parsed.out) {
-                if (!(s.abbr in map)) map[s.abbr] = s;
-                if (s.id && !(s.id in map)) map[s.id] = s;
+                const keys = this._getMapLookupKeys(s.abbr)
+                    .concat(this._getMapLookupKeys(s.id))
+                    .concat(this._getMapLookupKeys(s.name));
+                for (const key of keys) {
+                    if (!(key in map)) map[key] = s;
+                }
             }
             return map;
         } catch (e) {
@@ -3085,8 +3123,15 @@ class TCTData {
             let d = state.d;
             if (d == null && state.fields?.d != null) d = state.fields.d;
             if (d == null && lookup) {
-                const hit = lookup[state.fields.abbr];
-                if (hit) d = hit.d;
+                const keys = this._getMapLookupKeys(state.fields?.abbr)
+                    .concat(this._getMapLookupKeys(state.fields?.name));
+                for (const key of keys) {
+                    const hit = lookup[key];
+                    if (hit) {
+                        d = hit.d;
+                        break;
+                    }
+                }
             }
             if (d == null) {
                 console.warn(`Map export: no shape "d" for state "${state.fields.abbr}". Emitting empty path instead; please re-import the SVG via Mapping tab.`);
@@ -3107,8 +3152,15 @@ class TCTData {
             let transform = state.transform ?? state.fields?.transform ?? "";
             if (!transform) {
                 const lookup = this._getMapShapeLookup?.();
-                const hit = lookup?.[state.fields.abbr];
-                if (hit?.transform) transform = hit.transform;
+                const keys = this._getMapLookupKeys(state.fields?.abbr)
+                    .concat(this._getMapLookupKeys(state.fields?.name));
+                for (const key of keys) {
+                    const hit = lookup?.[key];
+                    if (hit?.transform) {
+                        transform = hit.transform;
+                        break;
+                    }
+                }
             }
 
             if (!transform) continue;
@@ -4680,7 +4732,7 @@ function loadDataFromFile(raw_json) {
             .replaceAll("&gt;", ">");
         const mapObjectMatch = decodedMapSource.match(/_initCreateStates:function\(\)\{[\s\S]*?var\s+\w+\s*=\s*(\{[\s\S]*?\});\s*var\s+tr\s*=/);
         if (mapObjectMatch) {
-            const pathRegex = /(?:["']((?:\\.|[^"'])+)["']|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
+            const pathRegex = /(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
             // this keeps per-state SVG transforms in a sibling
             // `var tr = {...}` object; without them, shapes authored in a
             // different coordinate space render outside the viewBox
@@ -4688,19 +4740,19 @@ function loadDataFromFile(raw_json) {
             const trStart = mapObjectMatch.index + mapObjectMatch[0].length;
             const trBodyMatch = decodedMapSource.slice(trStart).match(/^\s*(\{[\s\S]*?\})\s*;/);
             if (trBodyMatch) {
-                const trRegex = /(?:["']((?:\\.|[^"'])+)["']|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
+                const trRegex = /(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([A-Za-z_$][\w$]*))\s*:\s*"((?:\\.|[^"\\])*)"/g;
                 let trMatch;
                 while ((trMatch = trRegex.exec(trBodyMatch[1])) !== null) {
-                    const trName = trMatch[1] || trMatch[2] || "";
-                    const trValue = trMatch[3].replaceAll('\\"', '"').trim();
+                    const trName = trMatch[1] || trMatch[2] || trMatch[3] || "";
+                    const trValue = trMatch[4].replaceAll('\\"', '"').trim();
                     if (trName && trValue) transformByName.set(trName, trValue);
                 }
             }
             const svgPaths = [];
             let pathMatch;
             while ((pathMatch = pathRegex.exec(mapObjectMatch[1])) !== null) {
-                const name = pathMatch[1] || pathMatch[2];
-                const path = pathMatch[3].replaceAll('\\"', '"');
+                const name = pathMatch[1] || pathMatch[2] || pathMatch[3];
+                const path = pathMatch[4].replaceAll('\\"', '"');
                 if (!path.trim()) continue;
                 const escapedName = name.replaceAll('"', '&quot;');
                 const trValue = transformByName.get(name) || "";
@@ -4801,13 +4853,24 @@ function loadDataFromFile(raw_json) {
             const parsed = tmp._extractMapShapes(svg);
             const byAbbr = {};
             for (const shape of parsed.out) {
-                if (!(shape.abbr in byAbbr)) byAbbr[shape.abbr] = shape;
+                const keys = tmp._getMapLookupKeys(shape.abbr)
+                    .concat(tmp._getMapLookupKeys(shape.id))
+                    .concat(tmp._getMapLookupKeys(shape.name));
+                for (const key of keys) {
+                    if (!(key in byAbbr)) byAbbr[key] = shape;
+                }
             }
             for (const key of Object.keys(states)) {
                 const st = states[key];
-                if (st.d == null && st.fields?.d == null && byAbbr[st.fields?.abbr]) {
-                    st.d = byAbbr[st.fields.abbr].d;
-                    st.transform = byAbbr[st.fields.abbr].transform || "";
+                if (st.d != null || st.fields?.d != null) continue;
+                const stateKeys = tmp._getMapLookupKeys(st.fields?.abbr)
+                    .concat(tmp._getMapLookupKeys(st.fields?.name));
+                for (const stateKey of stateKeys) {
+                    const shape = byAbbr[stateKey];
+                    if (!shape) continue;
+                    st.d = shape.d;
+                    st.transform = shape.transform || "";
+                    break;
                 }
             }
         }
