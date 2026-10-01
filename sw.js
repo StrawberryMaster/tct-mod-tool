@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tct-mod-tool-v3';
+const CACHE_NAME = 'tct-mod-tool-v4';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -10,6 +10,8 @@ const ASSETS_TO_CACHE = [
   './js/db.js',
   './js/autosave.js',
   './js/engine.js',
+  './js/mapview.js',
+  './js/components/mapBinder.js',
   './js/base.js',
   './js/components/editor.js',
   './js/components/pickers.js',

@@ -1240,9 +1240,6 @@ registerComponent('candidate', {
     }
 })
 
-const stateMapInteraction = new WeakMap();
-const stateMapViewportFrame = new WeakMap();
-
 registerComponent('issue-state-map-editor', {
     props: ['issuePk'],
     data() {
@@ -1258,19 +1255,9 @@ registerComponent('issue-state-map-editor', {
             fallbackViewBox: null,
             usingBasicShapes: false,
             stateDropdownPk: null,
-            zoom: 1,
-            minZoom: 0.25,
-            maxZoom: 10,
-            baseWidth: 1000,
-            baseHeight: 600,
-            panX: 0,
-            panY: 0,
-            isPanning: false,
-            dragMoved: false,
-            lastPointer: null,
-            svgBounds: null,
-            viewportInitialized: false,
-            isExpanded: false
+            isExpanded: false,
+            // bumped whenever anything that only affects map *colours* changes
+            mapStyleVersion: 0
         };
     },
     watch: {
@@ -1280,6 +1267,15 @@ registerComponent('issue-state-map-editor', {
                 this.resetSelection();
                 this.loadStateScores();
             }
+        },
+        // a data change only alters map *colours*, so re-style the existing
+        // paths instead of rebuilding the geometry
+        mapStyleVersion() {
+            this.refreshMaps();
+        },
+        '$globalData.dataVersion'() {
+            this.loadStateScores();
+            this.mapStyleVersion++;
         }
     },
     computed: {
@@ -1303,33 +1299,19 @@ registerComponent('issue-state-map-editor', {
                     weight: this.stateMetrics[state.pk]?.weight ?? 0
                 }))
                 .sort((a, b) => a.name.localeCompare(b.name));
-        },
-        viewBoxString() {
-            const width = this.baseWidth / this.zoom;
-            const height = this.baseHeight / this.zoom;
-            return `${this.panX} ${this.panY} ${width} ${height}`;
-        },
-        zoomLabel() {
-            return `${Math.round(this.zoom * 100)}%`;
-        },
-        mapCanvasStyle() {
-            return {
-                backgroundColor: 'var(--map-bg)'
-            };
         }
     },
     mounted() {
         this.loadStateScores();
         this.loadMapData();
-        window.addEventListener('resize', this.onResize);
         this._onKeydown = (e) => {
             if (e.key === 'Escape' && this.isExpanded) this.toggleExpand();
         };
         window.addEventListener('keydown', this._onKeydown);
     },
-        beforeUnmount() {
-        window.removeEventListener('resize', this.onResize);
+    beforeUnmount() {
         window.removeEventListener('keydown', this._onKeydown);
+        this.destroyMaps();
     },
     methods: {
         resetSelection() {
@@ -1374,7 +1356,7 @@ registerComponent('issue-state-map-editor', {
                     this.setMapData(this.$TCT.getMapForPreview(mapping.mapSvg));
                     if (this.mapData.length) {
                         this.mapAvailable = true;
-                        this.initializeViewport(true);
+                        this.mountMaps();
                         return;
                     }
                 }
@@ -1385,7 +1367,7 @@ registerComponent('issue-state-map-editor', {
                         if (this.mapData.length) {
                             this.mapAvailable = true;
                             this.fallbackViewBox = '0 0 1000 589';
-                            this.initializeViewport(true);
+                            this.mountMaps();
                             return;
                         }
                     }
@@ -1419,17 +1401,55 @@ registerComponent('issue-state-map-editor', {
             this.usingBasicShapes = true;
             this.mapAvailable = true;
             this.fallbackViewBox = `0 0 ${cols * (size + padding) + 100} ${Math.ceil(states.length / cols) * (size + padding) + 100}`;
-            this.initializeViewport(true);
+            this.mountMaps();
         },
 
-        initializeViewport(force = false) {
-            const dims = this.resolveBaseDimensions();
-            this.baseWidth = dims.width;
-            this.baseHeight = dims.height;
-            if (!this.viewportInitialized || force) {
-                this.viewportInitialized = true;
-                this.resetViewport();
-            }
+        // ------------------------------------------------- map rendering
+
+        createMapBinder(hostSelector) {
+            const binder = window.createMapBinder(this, {
+                getEntries: () => this.mapData,
+                getItems: () => this.states,
+                getBaseBox: () => this.resolveBaseDimensions(),
+                resolve: (state) => this.resolveMapEntry(state),
+                getFill: (pk) => this.getStateColor(pk),
+                getStroke: (pk) => this.stateStroke(pk),
+                getStrokeWidth: (pk) => this.strokeWidth(pk),
+                onPick: (pk) => this.handleStateClick(pk),
+                onHover: (pk) => {
+                    if (this.highlightedState === pk) return;
+                    this.highlightedState = pk;
+                    this.refreshMaps();
+                }
+            });
+            binder.attach(hostSelector);
+            return binder;
+        },
+
+        /** (re)creates every visible map; called when hosts appear or vanish */
+        mountMaps() {
+            this.destroyMaps();
+            if (!this.mapAvailable) return;
+            this.$nextTick(() => {
+                const inline = this.$el.querySelector('[data-map-host="inline"]');
+                if (inline) this.mapBinders.push(this.createMapBinder('[data-map-host="inline"]'));
+                const modal = this.$el.querySelector('[data-map-host="modal"]');
+                if (modal) this.mapBinders.push(this.createMapBinder('[data-map-host="modal"]'));
+            });
+        },
+
+        destroyMaps() {
+            (this.mapBinders || []).forEach(b => b.destroy());
+            this.mapBinders = [];
+        },
+
+        /** re-applies colours to all mounted maps */
+        refreshMaps() {
+            (this.mapBinders || []).forEach(b => b.refresh());
+        },
+
+        forEachMap(fn) {
+            (this.mapBinders || []).forEach(fn);
         },
 
         resolveBaseDimensions() {
@@ -1437,141 +1457,38 @@ registerComponent('issue-state-map-editor', {
             const mapWidth = Number(mapping.x);
             const mapHeight = Number(mapping.y);
             if (mapWidth > 0 && mapHeight > 0) {
-                return { width: mapWidth, height: mapHeight };
+                return { x: Number(mapping.dx) || 0, y: Number(mapping.dy) || 0, width: mapWidth, height: mapHeight };
             }
             const parsed = this.parseViewBoxString(this.fallbackViewBox);
             if (parsed) return parsed;
-            return { width: 1000, height: 600 };
+            return { x: 0, y: 0, width: 1000, height: 600 };
         },
 
         parseViewBoxString(str) {
             if (!str) return null;
             const parts = str.split(/\s+/).map(Number);
             if (parts.length === 4 && parts.every(v => Number.isFinite(v))) {
-                return { width: parts[2], height: parts[3] };
+                return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
             }
             return null;
         },
 
-
-        resetViewport() {
-            this.zoom = 1;
-            const mapping = this.$TCT?.jet_data?.mapping_data || {};
-            const dx = Number(mapping.dx);
-            const dy = Number(mapping.dy);
-            this.panX = Number.isFinite(dx) ? dx : 0;
-            this.panY = Number.isFinite(dy) ? dy : 0;
-        },
-
-        setZoom(next, centerPoint = null) {
-            const target = Math.min(this.maxZoom, Math.max(this.minZoom, next));
-            if (target === this.zoom) return;
-
-            const oldZoom = this.zoom;
-            this.zoom = target;
-
-            if (centerPoint) {
-                const scaleChange = 1 / this.zoom - 1 / oldZoom;
-                this.panX += (centerPoint.x) * scaleChange * this.zoom;
+        resolveMapEntry(state) {
+            const abbr = state.fields?.abbr;
+            if (abbr) {
+                const keys = this.$TCT._getMapLookupKeys?.(abbr) || [abbr];
+                for (let i = 0; i < keys.length; i++) {
+                    const entry = this.mapEntryIndex[keys[i]];
+                    if (entry) return entry;
+                }
             }
-            this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
+            if (state.d) return [abbr || `S${state.pk}`, state.d, state.transform || ''];
+            return null;
         },
 
-        zoomIn() { this.setZoom(this.zoom * 1.25); },
-        zoomOut() { this.setZoom(this.zoom / 1.25); },
-
-        onWheel(evt) {
-            const direction = evt.deltaY > 0 ? 0.9 : 1.1;
-            let interaction = stateMapInteraction.get(this);
-            if (!interaction) {
-                interaction = { panX: this.panX, panY: this.panY, zoom: this.zoom, wheelTimer: null };
-                stateMapInteraction.set(this, interaction);
-            }
-            interaction.zoom = Math.min(this.maxZoom, Math.max(this.minZoom, interaction.zoom * direction));
-            this.applyViewBoxToDom(interaction.panX, interaction.panY, interaction.zoom);
-
-            clearTimeout(interaction.wheelTimer);
-            interaction.wheelTimer = setTimeout(() => {
-                this.zoom = interaction.zoom;
-                this.panX = interaction.panX;
-                this.panY = interaction.panY;
-                this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
-                stateMapInteraction.delete(this);
-            }, 120);
-        },
-
-        startPan(evt) {
-            if (evt.pointerType === 'mouse' && evt.button !== 0) return;
-            stateMapInteraction.set(this, {
-                panX: this.panX,
-                panY: this.panY,
-                zoom: this.zoom,
-                wheelTimer: null
-            });
-            this.isPanning = true;
-            this.dragMoved = false;
-            this.lastPointer = { x: evt.clientX, y: evt.clientY };
-            this.svgBounds = evt.currentTarget.getBoundingClientRect();
-            evt.currentTarget.setPointerCapture?.(evt.pointerId);
-        },
-
-        onPan(evt) {
-            const interaction = stateMapInteraction.get(this);
-            if (!this.isPanning || !this.svgBounds || !interaction) return;
-
-            const dx = evt.clientX - this.lastPointer.x;
-            const dy = evt.clientY - this.lastPointer.y;
-
-            if (!this.dragMoved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
-                this.dragMoved = true;
-            }
-
-            const scaleX = (this.baseWidth / this.zoom) / this.svgBounds.width;
-            const scaleY = (this.baseHeight / this.zoom) / this.svgBounds.height;
-
-            interaction.panX -= dx * scaleX;
-            interaction.panY -= dy * scaleY;
-
-            this.lastPointer = { x: evt.clientX, y: evt.clientY };
-            this.applyViewBoxToDom(interaction.panX, interaction.panY, interaction.zoom);
-        },
-
-        endPan(evt) {
-            if (!this.isPanning) return;
-            this.isPanning = false;
-            this.lastPointer = null;
-            const interaction = stateMapInteraction.get(this);
-            if (interaction) {
-                this.panX = interaction.panX;
-                this.panY = interaction.panY;
-                this.applyViewBoxToDom(this.panX, this.panY, this.zoom);
-            }
-            if (evt?.pointerId !== undefined) {
-                evt.currentTarget?.releasePointerCapture?.(evt.pointerId);
-            }
-        },
-
-        onResize() {
-            // recalculate bounds if needed
-        },
-
-        applyViewBoxToDom(panX, panY, zoom) {
-            const width = this.baseWidth / zoom;
-            const height = this.baseHeight / zoom;
-            const viewBox = `${panX} ${panY} ${width} ${height}`;
-            if (stateMapViewportFrame.has(this)) {
-                stateMapViewportFrame.get(this).viewBox = viewBox;
-                return;
-            }
-
-            const pending = { viewBox };
-            stateMapViewportFrame.set(this, pending);
-            requestAnimationFrame(() => {
-                stateMapViewportFrame.delete(this);
-                const maps = this.$el?.querySelectorAll?.('svg[data-state-map]') || [];
-                maps.forEach(map => map.setAttribute('viewBox', pending.viewBox));
-            });
-        },
+        zoomIn() { this.forEachMap(b => b.zoomIn()); },
+        zoomOut() { this.forEachMap(b => b.zoomOut()); },
+        resetViewport() { this.forEachMap(b => b.fit()); },
 
         toggleStateSelection(statePk) {
             const isSelected = !!this.selectedStates[statePk];
@@ -1590,13 +1507,10 @@ registerComponent('issue-state-map-editor', {
                     }
                 }
             }
+            this.mapStyleVersion++;
         },
 
         handleStateClick(statePk) {
-            if (this.dragMoved) {
-                this.dragMoved = false;
-                return;
-            }
             this.toggleStateSelection(statePk);
         },
 
@@ -1614,10 +1528,12 @@ registerComponent('issue-state-map-editor', {
                 }
             });
             this.selectedStates = newSelection;
+            this.mapStyleVersion++;
         },
 
         clearSelection() {
             this.selectedStates = {};
+            this.mapStyleVersion++;
         },
 
         ensureEntry(statePk) {
@@ -1657,6 +1573,7 @@ registerComponent('issue-state-map-editor', {
 
             this.$globalData.dataVersion++;
             this.loadStateScores();
+            this.mapStyleVersion++;
         },
 
         getStateColor(statePk) {
@@ -1677,27 +1594,6 @@ registerComponent('issue-state-map-editor', {
             return score > 0 ? palette.positive[bucket] : palette.negative[bucket];
         },
 
-        getStatePath(state) {
-            const abbr = state.fields?.abbr;
-            if (abbr) {
-                const keys = this.$TCT._getMapLookupKeys?.(abbr) || [abbr];
-                const entry = keys.map(key => this.mapEntryIndex[key]).find(Boolean);
-                if (entry) return entry[1];
-            }
-            if (state.d) return state.d;
-            return 'M0,0 h20 v20 h-20 Z';
-        },
-
-        getStateTransform(state) {
-            const abbr = state.fields?.abbr;
-            if (abbr) {
-                const keys = this.$TCT._getMapLookupKeys?.(abbr) || [abbr];
-                const entry = keys.map(key => this.mapEntryIndex[key]).find(Boolean);
-                if (entry) return entry[2] || '';
-            }
-            return state.transform || '';
-        },
-
         stateStroke(statePk) {
             const palette = (window.getThemeConfig && window.getThemeConfig())?.stateStroke || {
                 selected: '#000000',
@@ -1715,62 +1611,15 @@ registerComponent('issue-state-map-editor', {
             return 0.75;
         },
 
-        onMouseEnter(statePk) {
-            this.highlightedState = statePk;
-        },
-
-        onMouseLeave() {
-            this.highlightedState = null;
-        },
-
         toggleExpand() {
             this.isExpanded = !this.isExpanded;
-            this.$nextTick(() => {
-                this.initializeViewport(true);
-            });
+            this.$nextTick(() => this.mountMaps());
         }
     },
     template: `
     <div class="space-y-4">
         <div v-if="mapAvailable" class="relative border rounded overflow-hidden shadow-inner">
-            <svg
-                version="1.1"
-                xmlns="http://www.w3.org/2000/svg"
-                data-state-map="true"
-                shape-rendering="optimizeSpeed"
-                :viewBox="viewBoxString"
-                preserveAspectRatio="xMidYMid meet"
-                class="w-full h-96 select-none cursor-move"
-                :style="mapCanvasStyle"
-                style="touch-action: none;"
-                @pointerdown="startPan"
-                @pointermove="onPan"
-                @pointerup="endPan"
-                @pointerleave="endPan"
-                @pointercancel="endPan"
-                @wheel.prevent="onWheel"
-            >
-                <g>
-                    <path
-                        v-for="state in states"
-                        :key="state.pk"
-                        :d="getStatePath(state)"
-                        :transform="getStateTransform(state) || null"
-                        :style="{
-                            fill: getStateColor(state.pk),
-                            stroke: stateStroke(state.pk),
-                            'stroke-width': strokeWidth(state.pk),
-                            cursor: 'pointer',
-                            transition: 'fill 0.2s ease'
-                        }"
-                        @pointerdown.stop
-                        @click.stop="handleStateClick(state.pk)"
-                        vector-effect="non-scaling-stroke"
-                    >
-                        <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>
-                    </path>
-                </g>
-            </svg>
+            <div data-map-host="inline" class="w-full h-96" style="background-color: var(--map-bg); overscroll-behavior: contain;"></div>
 
             <div class="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
                 <button class="bg-white shadow border rounded px-2 py-1 text-sm font-bold hover:bg-gray-100" @click.stop="zoomIn">+</button>
@@ -1872,45 +1721,7 @@ registerComponent('issue-state-map-editor', {
                         </div>
 
                         <div class="relative border rounded-lg overflow-hidden flex-1 min-h-[400px] bg-gray-50 flex items-stretch">
-                            <svg
-                                version="1.1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                data-state-map="true"
-                                shape-rendering="optimizeSpeed"
-                                :viewBox="viewBoxString"
-                                preserveAspectRatio="xMidYMid meet"
-                                class="w-full h-full select-none cursor-move min-h-[400px]"
-                                :style="mapCanvasStyle"
-                                style="touch-action: none;"
-                                @pointerdown="startPan"
-                                @pointermove="onPan"
-                                @pointerup="endPan"
-                                @pointerleave="endPan"
-                                @pointercancel="endPan"
-                                @wheel.prevent="onWheel"
-                                @contextmenu.prevent
-                            >
-                                <g>
-                                    <path
-                                        v-for="state in states"
-                                        :key="'modal-' + state.pk"
-                                        :d="getStatePath(state)"
-                                        :transform="getStateTransform(state) || null"
-                                        :style="{
-                                            fill: getStateColor(state.pk),
-                                            stroke: stateStroke(state.pk),
-                                            'stroke-width': strokeWidth(state.pk),
-                                            cursor: 'pointer',
-                                            transition: 'fill 0.2s ease'
-                                        }"
-                                        @pointerdown.stop
-                                        @click.stop="handleStateClick(state.pk)"
-                                        vector-effect="non-scaling-stroke"
-                                    >
-                                        <title>{{ state.fields.name }}: {{ (stateMetrics[state.pk]?.score || 0).toFixed(2) }}</title>
-                                    </path>
-                                </g>
-                            </svg>
+                            <div data-map-host="modal" class="w-full h-full min-h-[400px]" style="background-color: var(--map-bg); overscroll-behavior: contain;"></div>
 
                             <!-- Zoom Controls Overlay -->
                             <div class="absolute bottom-4 right-4 flex flex-col gap-1 z-10">

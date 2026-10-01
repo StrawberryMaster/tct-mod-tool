@@ -23,8 +23,9 @@ js/
   vueInit.js           — Vue app creation, autosave wiring, data loading, global helpers
   db.js                — IndexedDB wrapper (230 lines)
   autosave.js          — shared autosave controller (dirty tracking, dedupe, idle writes)
-  engine.js            — map rendering engine
+  mapview.js           — TCTMapView: fast SVG map renderer (decimation, pan/zoom, culling)
   components/
+    mapBinder.js       — Vue bridge for TCTMapView (keeps Vue out of the map DOM)
     editor.js          — toolbar + editor shell
     pickers.js         — navigation pickers (questions, states, issues, candidates)
     questionAnswer.js  — question & answer editing
@@ -35,6 +36,8 @@ js/
     mapping.js         — map preview component
     bulk.js            — bulk editing tools
 public/*.txt           — 28 base scenario Code 2 templates (loaded by name)
+tools/
+  test-map.js           — runs every map test: `node tools/test-map.js [code2.txt]`
 ```
 
 ## Key architecture patterns
@@ -42,6 +45,11 @@ public/*.txt           — 28 base scenario Code 2 templates (loaded by name)
 - **Component registration**: `window.registerComponent('name', { template: \`...\`, data, methods, computed })`. Components queue until Vue app mounts, then registered globally.
 - **Global reactive state**: `window.$TCT` (reactive `TCTData` instance), `window.$globalData` (reactive object with `mode`, `question`, `state`, `issue`, `candidate`, `dataVersion`, `filename`).
 - **Reactivity trigger**: Every data mutation must increment `$globalData.dataVersion++` (triggers Vue re-renders for computed properties that reference it).
+- **Maps are NOT Vue-rendered**: `js/mapview.js` owns the `<svg>` subtree of every map. Never add a `v-for` over map paths — Vue re-diffing megabytes of `d` geometry is what made large maps unusable. Instead:
+  - Put an empty host element in the template (`<div data-map-host="inline">`).
+  - Build a binder with `createMapBinder(this, { getEntries, getItems, getBaseBox, resolve, getFill, getStroke, getStrokeWidth, onPick, onHover })`, then `binder.attach(selector)`.
+  - Keep `mapBinders` (array) and call `mountMaps()` / `destroyMaps()` / `refreshMaps()`.
+  - Bump `mapStyleVersion` when only colours change; its watcher calls `refreshMaps()`, which writes just the changed attributes. Never rebuild geometry for a colour change.
 - **Autosave**: Call `window.requestAutosaveIfEnabled?.()` after each mutation. It is **cheap** — it only marks the data dirty and schedules a write; it never serializes. `js/autosave.js` then decides whether to actually export/write:
   1. *cheap gate* — nothing dirty and `$globalData.dataVersion` unchanged since the last write → skipped in O(1) (navigating between questions, switching tabs, opening panels).
   2. *content gate* — the `exportCode2()` payload is FNV-1a hashed and compared to the last written one → identical content is not written (undone edits, re-renders that only bump `dataVersion`).

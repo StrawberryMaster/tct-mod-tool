@@ -1145,6 +1145,7 @@ function groupTemplatesByYear(names) {
 
 const mapShapeParseCache = new WeakMap();
 const mapShapeLookupCache = new WeakMap();
+const mapBboxCache = new WeakMap();
 
 class TCTData {
     static DEFAULT_VOTE_VARIABLE = 1.125;
@@ -2670,6 +2671,15 @@ class TCTData {
     }
 
     getMapBbox(svg) {
+        const cached = mapBboxCache.get(this);
+        if (cached?.svg === svg) return cached.bbox;
+
+        const bbox = this._computeMapBbox(svg);
+        mapBboxCache.set(this, { svg, bbox });
+        return bbox;
+    }
+
+    _computeMapBbox(svg) {
         const parsed = this._extractMapShapes(svg);
         if (!parsed.out || parsed.out.length === 0) return null;
 

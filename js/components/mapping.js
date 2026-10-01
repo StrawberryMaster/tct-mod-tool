@@ -37,7 +37,7 @@ registerComponent('mapping', {
                 <div class="p-4 space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1" for="mapSvg">Map SVG:</label>
-                        <textarea v-model="mapSvg" name="mapSvg" rows="4" 
+                        <textarea v-model="mapSvg" name="mapSvg" rows="4"
                                   class="w-full border border-gray-300 rounded-sm px-2 py-1 font-mono text-sm"
                                   placeholder="Paste your SVG code here..."></textarea>
                     </div>
@@ -47,7 +47,7 @@ registerComponent('mapping', {
                         <input @input="onInput($event)" :value="electionPk" name="electionPk" type="number"
                                class="w-full border border-gray-300 rounded-sm px-2 py-1">
                         <p class="text-sm text-gray-600 italic mt-1">
-                            NOTE: Set this to the pk of your election so all states have this filled out automatically. 
+                            NOTE: Set this to the pk of your election so all states have this filled out automatically.
                             Otherwise you will need to fill it in for each state yourself.
                         </p>
                     </div>
@@ -73,12 +73,12 @@ registerComponent('mapping', {
                              </button>
                         </div>
                         <p class="text-sm text-gray-600 italic mt-2">
-                            <strong>WARNING:</strong> If you click this, all your states and anything referencing your states 
-                            will be deleted from your code 2 and replaced from what the tool gets from your SVG. 
+                            <strong>WARNING:</strong> If you click this, all your states and anything referencing your states
+                            will be deleted from your code 2 and replaced from what the tool gets from your SVG.
                             You should only be doing this once when starting to make the mod.
                         </p>
                         <p class="text-sm text-blue-600 font-medium mt-2">
-                            💡 The current zoom level ({{ Math.round(zoomLevel * 100) }}%) and pan position will be applied 
+                            💡 The current zoom level ({{ Math.round(zoomLevel * 100) }}%) and pan position will be applied
                             to the final map dimensions in your mod.
                         </p>
 
@@ -104,7 +104,7 @@ registerComponent('mapping', {
                             <button @click="zoomIn" class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-sm">+</button>
                             <button @click="resetZoom" class="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs ml-2">Reset</button>
                         </div>
-                        <div 
+                        <div
                             @mousedown="startDrag"
                             @mousemove="onDrag"
                             @mouseup="endDrag"
@@ -113,7 +113,7 @@ registerComponent('mapping', {
                             @touchmove="onDrag"
                             @touchend="endDrag"
                             @wheel="onWheel"
-                            style="cursor: grab; touch-action: none;"
+                            style="cursor: grab; touch-action: none; overscroll-behavior: contain;"
                             :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
                         >
                             <map-preview :svg="mapSvg" :dx="effectiveDx" :dy="effectiveDy" :x="effectiveX" :y="effectiveY"></map-preview>
@@ -129,32 +129,32 @@ registerComponent('mapping', {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Width (x):</label>
-                                <input v-model.number="x" type="number" 
+                                <input v-model.number="x" type="number"
                                        class="w-full border border-gray-300 rounded-sm px-2 py-1">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Height (y):</label>
-                                <input v-model.number="y" type="number" 
+                                <input v-model.number="y" type="number"
                                        class="w-full border border-gray-300 rounded-sm px-2 py-1">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">X Offset (dx):</label>
-                                <input v-model.number="dx" type="number" 
+                                <input v-model.number="dx" type="number"
                                        class="w-full border border-gray-300 rounded-sm px-2 py-1">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Y Offset (dy):</label>
-                                <input v-model.number="dy" type="number" 
+                                <input v-model.number="dy" type="number"
                                        class="w-full border border-gray-300 rounded-sm px-2 py-1">
                             </div>
                         </div>
                     </div>
 
                     <p class="text-sm text-gray-600 italic">
-                        NOTE: Each time you exit this tab your preview will disappear if you don't press "Load map from SVG", 
+                        NOTE: Each time you exit this tab your preview will disappear if you don't press "Load map from SVG",
                         so make sure to do all your mapping in one session.
                     </p>
                 </div>
@@ -370,47 +370,82 @@ registerComponent('map-preview', {
     props: ['svg', 'x', 'y', 'dx', 'dy'],
 
     template: `
-    <div id="map_container">
-        <svg height="400.125" version="1.1" width="722.156" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" :style="svgStyle" :viewBox="viewBox" preserveAspectRatio="xMinYMin">
-            <path v-for="x in mapCode" :d="x[1]" :transform="x[2] || null" :id="x[0]" :style="pathStyle"></path>
-        </svg>
+    <div id="map_container" class="w-full" style="background-color: var(--map-bg); overflow: hidden; position: relative;">
+        <div ref="host" style="width: 100%; height: 400px;"></div>
     </div>
     `,
 
-    computed: {
+    data() {
+        return { entries: [] };
+    },
 
-        mapCode: function () {
-            if (this.svg == null || this.svg == "") {
-                // no svg
-                return [];
-            }
+    watch: {
+        svg: { immediate: true, handler() { this.rebuild(); } },
+        x() { this.updateBox(); },
+        y() { this.updateBox(); },
+        dx() { this.updateBox(); },
+        dy() { this.updateBox(); }
+    },
 
-            return this.$TCT.getMapForPreview(this.svg);
-        },
+    mounted() {
+        this.mountPreview();
+        this.rebuild();
+        this.updateBox();
+    },
 
-        viewBox: function () {
-            return `${this.dx ?? 0} ${this.dy ?? 0} ${this.x ?? 925} ${this.y ?? 595}`
-        },
+    beforeUnmount() {
+        this.view?.destroy();
+        this.view = null;
+    },
 
-        svgStyle: function () {
-            return {
-                backgroundColor: 'var(--map-bg)',
-                overflow: 'hidden',
-                position: 'relative',
-                left: '-0.895844px',
-                top: '-0.552084px'
+    methods: {
+        mountPreview() {
+            if (this.view || !this.$refs.host) return;
+            const view = new window.TCTMapView.MapView(null, {
+                maxZoom: 1,
+                minZoom: 1,
+                buildBudgetMs: 12
+            });
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            svg.setAttribute('data-map-preview', 'true');
+            svg.style.width = '100%';
+            svg.style.height = '100%';
+            svg.style.display = 'block';
+            // the preview is not interactive; gestures belong to the parent's
+            // drag-to-pan handler, so let them through untouched
+            svg.style.pointerEvents = 'none';
+            view.setSvg(svg);
+            view.providers = {
+                fill: () => 'var(--map-fill)',
+                stroke: () => 'var(--map-stroke)',
+                width: () => 1
             };
+            this.$refs.host.appendChild(svg);
+            this.view = view;
         },
 
-        pathStyle: function () {
-            return {
-                WebkitTapHighlightColor: 'rgba(0, 0, 0, 0)',
-                fill: 'var(--map-fill)',
-                stroke: 'var(--map-stroke)',
-                strokeWidth: 1
-            };
+        rebuild() {
+            this.mountPreview();
+            if (!this.view) return;
+            const entries = (this.svg == null || this.svg === '')
+                ? []
+                : (this.$TCT.getMapForPreview(this.svg) || []);
+            this.items = entries.map((entry, index) => ({ pk: index }));
+            this.entries = entries;
+            this.view.setData(this.items, (item) => entries[item.pk]);
+            this.updateBox();
+        },
+
+        updateBox() {
+            if (!this.view) return;
+            const w = Number(this.x);
+            const h = Number(this.y);
+            const boxX = Number(this.dx) || 0;
+            const boxY = Number(this.dy) || 0;
+            this.view.setBaseBox(boxX, boxY, w > 0 ? w : 925, h > 0 ? h : 595);
+            this.view.setViewport(boxX, boxY, 1);
         }
     }
 
 });
-
