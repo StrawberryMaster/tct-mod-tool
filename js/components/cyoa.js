@@ -348,6 +348,9 @@ registerComponent('cyoa', {
             if (jet.bunnyhop_enabled == null) { jet.bunnyhop_enabled = false; changed = true; }
             if (jet.bunnyhop_pools == null) { jet.bunnyhop_pools = []; changed = true; }
 
+            // repair any pre-existing rules once, here
+            this.$TCT.normalizeCyoaRules?.();
+
             if (changed) {
                 this.$globalData.dataVersion++;
             }
@@ -1123,12 +1126,54 @@ window.TCTAnswerSwapHelper = {
         return triggerStr || conditionStr;
     },
 
+    // defensive repair for rules loaded from an exported file
+    // the export replacer in base.js strips nulls and empty arrays, so a rule
+    // saved before it was fully configured comes back without `triggers`,
+    // `conditions` or `swaps`
+    normalizeRuleArrays(rule) {
+        if (!rule || typeof rule !== 'object') return rule;
+
+        if (!Array.isArray(rule.triggers)) {
+            rule.triggers = [];
+        } else {
+            // drop junk in place so the array identity (and reactivity) is kept
+            for (let i = rule.triggers.length - 1; i >= 0; i--) {
+                const v = rule.triggers[i];
+                if (v == null || v === '' || !Number.isFinite(Number(v))) {
+                    rule.triggers.splice(i, 1);
+                }
+            }
+        }
+
+        if (!Array.isArray(rule.conditions)) rule.conditions = [];
+        if (rule.swaps !== undefined && !Array.isArray(rule.swaps)) rule.swaps = [];
+
+        this.normalizeConditionOperator(rule);
+        return rule;
+    },
+
+    // true when a rule has everything needed to emit any code for it
+    // used to warn about half-configured rules instead of dropping them
+    isRuleIncomplete(rule, kind) {
+        if (!rule || typeof rule !== 'object') return true;
+        const triggers = Array.isArray(rule.triggers) ? rule.triggers : [];
+        const hasConditions = Array.isArray(rule.conditions) && rule.conditions.some(c => c && c.variable);
+        if (!triggers.length && !hasConditions) return true;
+        if (kind === 'answer' || kind === 'question') {
+            const swaps = Array.isArray(rule.swaps) ? rule.swaps : [];
+            return !swaps.some(s => s && Number.isFinite(Number(s.pk1)) && Number.isFinite(Number(s.pk2)));
+        }
+        return false;
+    },
+
     normalizeConditionOperator(rule) {
         if (!rule || typeof rule !== 'object') return rule;
         if (!Array.isArray(rule.conditions)) rule.conditions = [];
         if (rule.conditions.length > 1) {
             if (!rule.conditionOperator) rule.conditionOperator = 'AND';
-        } else {
+        } else if (rule.conditionOperator !== undefined) {
+            // only delete when actually present, so calling this from a computed
+            // getter does not dirty reactive state on every evaluation
             delete rule.conditionOperator;
         }
         return rule;
@@ -2570,7 +2615,7 @@ registerComponent('cyoa-question-swap', {
             if (!this.$TCT.jet_data.cyoa_question_swaps[this.id].conditions) {
                 this.$TCT.jet_data.cyoa_question_swaps[this.id].conditions = [];
             }
-            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_question_swaps[this.id]);
+            window.TCTAnswerSwapHelper.normalizeRuleArrays(this.$TCT.jet_data.cyoa_question_swaps[this.id]);
             return this.$TCT.jet_data.cyoa_question_swaps[this.id];
         },
 
@@ -2739,6 +2784,11 @@ registerComponent('cyoa-question-swap', {
         validSwaps() {
             this.$globalData.dataVersion;
             return (this.rule.swaps || []).filter(s => s.pk1 != null && s.pk2 != null);
+        },
+
+        isIncomplete() {
+            this.$globalData.dataVersion;
+            return window.TCTAnswerSwapHelper.isRuleIncomplete(this.getRule(), 'question');
         }
     },
 
@@ -2772,6 +2822,9 @@ registerComponent('cyoa-question-swap', {
                 </span>
             </span>
             <span v-else class="italic text-gray-500">No swaps defined yet.</span>
+            <div v-if="isIncomplete" class="mt-1 text-xs font-semibold text-red-700">
+                ⚠ This rule is incomplete and will NOT appear in the exported code. It needs at least one trigger answer (or a condition) and one swap with both PKs selected.
+            </div>
         </div>
 
         <!-- Triggers -->
@@ -2903,7 +2956,7 @@ registerComponent('cyoa-answer-swap', {
             if (!this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions) {
                 this.$TCT.jet_data.cyoa_answer_swaps[this.id].conditions = [];
             }
-            window.TCTAnswerSwapHelper.normalizeConditionOperator(this.$TCT.jet_data.cyoa_answer_swaps[this.id]);
+            window.TCTAnswerSwapHelper.normalizeRuleArrays(this.$TCT.jet_data.cyoa_answer_swaps[this.id]);
             return this.$TCT.jet_data.cyoa_answer_swaps[this.id];
         },
 
@@ -3073,6 +3126,11 @@ registerComponent('cyoa-answer-swap', {
         validSwaps() {
             this.$globalData.dataVersion;
             return (this.rule.swaps || []).filter(s => s.pk1 != null && s.pk2 != null);
+        },
+
+        isIncomplete() {
+            this.$globalData.dataVersion;
+            return window.TCTAnswerSwapHelper.isRuleIncomplete(this.getRule(), 'answer');
         }
     },
 
@@ -3106,6 +3164,9 @@ registerComponent('cyoa-answer-swap', {
                 </span>
             </span>
             <span v-else class="italic text-gray-500">No swaps defined yet.</span>
+            <div v-if="isIncomplete" class="mt-1 text-xs font-semibold text-red-700">
+                ⚠ This rule is incomplete and will NOT appear in the exported code. It needs at least one trigger answer (or a condition) and one swap with both PKs selected.
+            </div>
         </div>
 
         <!-- Triggers -->
@@ -3244,8 +3305,7 @@ registerComponent('cyoa-candidate-switch', {
                 };
             }
             const rule = this.$TCT.jet_data.cyoa_candidate_switches[this.id];
-            if (!Array.isArray(rule.conditions)) rule.conditions = [];
-            window.TCTAnswerSwapHelper.normalizeConditionOperator(rule);
+            window.TCTAnswerSwapHelper.normalizeRuleArrays(rule);
             if (!Array.isArray(rule.issue_scores)) rule.issue_scores = [];
             return rule;
         },

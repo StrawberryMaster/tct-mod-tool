@@ -1790,6 +1790,52 @@ class TCTData {
         return this.jet_data.nicknames[pk];
     }
 
+    // CYOA rule stores that hold { triggers, conditions, ... } rule objects
+    static CYOA_RULE_STORES() {
+        return ["cyoa_data", "cyoa_question_swaps", "cyoa_answer_swaps", "cyoa_candidate_switches"];
+    }
+
+    // repair CYOA rules that came back from an export missing their arrays.
+    // exportCode2() strips nulls and empty arrays to keep the output compact,
+    // so a rule saved before it was fully configured reloads without e.g.
+    // `triggers`. the editor templates index those arrays directly, so the
+    // shape has to be restored once on load
+    normalizeCyoaRules() {
+        const jet = this.jet_data;
+        if (!jet || typeof jet !== "object") return this;
+
+        for (const storeName of TCTData.CYOA_RULE_STORES()) {
+            const store = jet[storeName];
+            if (!store || typeof store !== "object") continue;
+            for (const key of Object.keys(store)) {
+                const rule = store[key];
+                if (!rule || typeof rule !== "object") continue;
+
+                if (!Array.isArray(rule.triggers)) {
+                    rule.triggers = [];
+                } else {
+                    for (let i = rule.triggers.length - 1; i >= 0; i--) {
+                        const v = rule.triggers[i];
+                        if (v == null || v === "" || !Number.isFinite(Number(v))) {
+                            rule.triggers.splice(i, 1);
+                        }
+                    }
+                }
+
+                if (!Array.isArray(rule.conditions)) rule.conditions = [];
+                if (rule.swaps !== undefined && !Array.isArray(rule.swaps)) rule.swaps = [];
+
+                // conditionOperator is only meaningful with 2+ conditions
+                if (rule.conditions.length > 1) {
+                    if (!rule.conditionOperator) rule.conditionOperator = "AND";
+                } else if (rule.conditionOperator !== undefined) {
+                    delete rule.conditionOperator;
+                }
+            }
+        }
+        return this;
+    }
+
     getAllCyoaEvents() {
         const out = Object.values(this.jet_data.cyoa_data);
         out.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
@@ -3320,6 +3366,21 @@ class TCTData {
                     generatedEffects = fnBody.split(/\n\s*\/\/ Branching logic\b/m)[0].replace(/^\n+/, "").trimEnd();
                 }
 
+                // extract the branching/tunneling logic separately
+                // this is so a mod with its own hand-written cyoAdventure
+                // code won't lose its data
+                let generatedBranching = "";
+                if (effectMatch) {
+                    let fnBody = effectMatch[1];
+                    const branchSplit = fnBody.split(/\n\s*\/\/ Branching logic\b/m);
+                    if (branchSplit.length > 1) {
+                        // group 1 is the function body up to the final "\n}",
+                        // so this already contains balanced if-blocks; do NOT
+                        // strip a trailing "}" or the output won't parse
+                        generatedBranching = branchSplit.slice(1).join("\n").trimEnd();
+                    }
+                }
+
                 // inject effects block
                 const blockStart = "// [JETS_CYOA_VARIABLE_EFFECTS_START]";
                 const blockEnd = "// [JETS_CYOA_VARIABLE_EFFECTS_END]";
@@ -3353,6 +3414,55 @@ class TCTData {
                         const block = `\n${indent}${blockStart}\n${formattedEffects}\n${indent}${blockEnd}\n`;
 
                         codeToAdd = codeToAdd.slice(0, insertionPoint) + block + codeToAdd.slice(insertionPoint);
+                    }
+                }
+
+                // inject branching/tunneling logic into the user's own cyoAdventure
+                if (generatedBranching) {
+                    const brStart = "// [JETS_CYOA_BRANCHING_START]";
+                    const brEnd = "// [JETS_CYOA_BRANCHING_END]";
+                    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+                    // drop any previously injected block so re-exports don't stack up
+                    codeToAdd = codeToAdd.replace(
+                        new RegExp(`\\n?[ \\t]*${esc(brStart)}[\\s\\S]*?${esc(brEnd)}\\n?`, "g"),
+                        "\n"
+                    );
+
+                    const brRe = /cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{/m;
+                    const fnMatch = codeToAdd.match(brRe);
+                    if (fnMatch) {
+                        // prefer a deterministic anchor: the end of the effects block we
+                        // just wrote. Bbace-counting is unsafe here because the mod's own
+                        // code contains braces inside string literals
+                        const endMarkerRe = new RegExp(`^[ \\t]*${esc(blockEnd)}[ \\t]*$`, "m");
+                        const endMatch = codeToAdd.match(endMarkerRe);
+                        let anchor = -1;
+                        let indent = "    ";
+
+                        if (endMatch) {
+                            anchor = endMatch.index + endMatch[0].length;
+                            const indentMatch = endMatch[0].match(/^[ \t]*/);
+                            if (indentMatch) indent = indentMatch[0];
+                        } else {
+                            // no effects block: fall back to just after the ans/noCounter setup
+                            const setupRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?e\.noCounter\s*=\s*[^;]+;[ \t]*\r?\n)/;
+                            const setup = codeToAdd.match(setupRe);
+                            if (setup) {
+                                anchor = setup.index + setup[0].length;
+                                const indentMatch = setup[0].match(/(?:^|\n)([ \t]*)e\.noCounter\s*=/);
+                                if (indentMatch) indent = indentMatch[1];
+                            }
+                        }
+
+                        if (anchor !== -1) {
+                            const formatted = generatedBranching
+                                .split("\n")
+                                .map(l => l.trim() ? `${indent}${l.replace(/^ {1,4}/, "")}` : "")
+                                .join("\n");
+                            const brBlock = `\n${indent}${brStart}\n${indent}// Branching logic\n${formatted}\n${indent}${brEnd}\n`;
+                            codeToAdd = codeToAdd.slice(0, anchor) + brBlock + codeToAdd.slice(anchor);
+                        }
                     }
                 }
 
@@ -4909,5 +5019,5 @@ function loadDataFromFile(raw_json) {
         states,
         highest_pk,
         jet_data
-    });
+    }).normalizeCyoaRules();
 }
