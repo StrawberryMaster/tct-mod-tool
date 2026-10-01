@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.5.2
+
+Catch-up release: because I never really updated this changelog since 1.3.9 (the most recent version on Jet's), this is a simplified summary of everything that landed since then (see the git history for details).
+
+- Migrated the tool from Vue 2 to Vue 3 (plus repeated Vue/Tailwind upgrades since) and did large cleanups across `base.js`, the components, `engine.js`, `db.js` and `sw.js`.
+- Rewrote how mod files are loaded and exported: much faster loading, fixes for mods that use `JSON.parse` or comments in JSON, `jet_data` no longer gets wiped after repeated imports/exports, duplicated exported code no longer breaks editing, and non-native Code 2 elements are kept in the save. Exported code was also significantly refactored so future updates stop breaking it.
+- Storage now uses IndexedDB (with a localStorage fallback) so bigger mods stay editable, plus PWA/offline support, autosave optimizations (debouncing, dirty tracking, clearer save indicator) and error handling around IndexedDB.
+- Massively faster visualization of maps, especially for large custom maps (e.g. United Kingdom constituencies and Canadian riding districts):
+    - Map geometry is simplified to what is actually visible at the current zoom (a 4 MB map draws as ~0.7 MB), and off-screen states are skipped while zoomed in. Zooming restores full detail automatically.
+    - Panning and zooming no longer re-render the map, and editing a state's colour is instant instead of rebuilding every state shape.
+    - Zoom is driven by the viewBox, so it stays sharp at every level instead of going blurry.
+    - Fixed the scroll wheel scrolling the page behind the map while zooming, a stray line across some imported maps, and custom map shapes displaying as undefined.
+- Custom map tooling: drag/zoom on the map preview, a standardized custom map screen, and smarter import/export (viewport fields, out-of-border SVG shapes, minified maps, `data-id` paths, better SVG area recognition). Also added a map GUI for issue scores, better issue visualisation, and dark-theme compatible maps. It can be expanded!
+- CYOA: new variables system (UI + code generation), question swaps, an answer swapper (including multiple variables per swap), candidate switching, running mates in CYOA, and grouped branching events.
+- Fixed CYOA tunneling (branching) being silently dropped from the export when a mod has its own hand-written `cyoAdventure`: branching is now injected between `// [JETS_CYOA_BRANCHING_START]` / `_END]` markers and is replaced (not duplicated) on re-export.
+- Fixed crashes and other oddities with CYOA rules: half-configured swap rules are repaired on load by `TCTData.normalizeCyoaRules()`, incomplete rules show a warning instead of being silently skipped, some stored CYOA no longer fails to appear on-screen, and condition operators only appear when really necessary.
+- Enhanced ending system: redesigned endings page, support for other ending operators, generic win/loss/tie endings, auto order/reorder fixes, and a better colour picker. It's loosely based off the page-style ending system used in Little Big Man and The Major Leagues.
+- Banner settings improvements, including a fix for candidate banners not updating and the banner preview not refreshing.
+- Themes and UI: new themes (including Sepia and two extra dark themes), theme refactoring, custom accent/background/text colours for headers, windows and description windows, a minimizable unified toolbar, accessibility improvements, and a large question modal for longer mods.
+- New editing features: mod presets, campaign data, an add-on Code 1 editor (with TCT.net examples), live preview (start screen, game mode/difficulty selection), state visits/advisor URLs, pasting Code 2 files directly, PK editing + an election PK editor, question reordering and deletion from the picker, issue add/clone, and experimental fine-tuning of initial margins.
+- Bulk tools: extra bulk options, smart random effects, delete-all-state-effects, a modernized/expanded bulk issue page, and a fix for batch edit.
+- More base scenarios added (with attribution to its creators on TCT.net), plus a better scenario select.
+- Assorted fixes: target multipliers not working, 2016 PKs, custom quotes breaking, running-mate creation reusing existing links, deleted issues leaving effects behind, modboxes, and many smaller ones.
+
 ## 1.3.9
 
 - Add bulk multi state multiplier tool
