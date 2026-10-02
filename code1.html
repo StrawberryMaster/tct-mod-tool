@@ -934,6 +934,54 @@
             color: rgba(255, 255, 255, 0.95);
         }
 
+        /* changelog modal body (see js/changelog.js) */
+        .changelog-body h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.75rem;
+        }
+
+        .changelog-body h2 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin: 1.5rem 0 0.5rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid var(--toolbar-panel-border);
+        }
+
+        .changelog-body h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .changelog-body p {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .changelog-body ul {
+            list-style: disc;
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .changelog-body ul ul {
+            margin: 0.25rem 0;
+        }
+
+        .changelog-body li {
+            margin: 0.35rem 0;
+            line-height: 1.6;
+        }
+
+        .changelog-body code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.875em;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            background: var(--muted-surface);
+            border: 1px solid var(--toolbar-panel-border);
+        }
+
         .theme-control {
             background: var(--control-bg);
             color: var(--control-text);
@@ -1000,7 +1048,7 @@
 
     <div class="theme-app-footer" role="contentinfo" aria-label="Footer">
         <div class="footer-left">Made by <a href="https://jetsimon.com/">Jet Simon</a></div>
-        <div class="footer-center"><a href="./changelog.html">Changelog</a><span class="sep">|</span><span>Version 1.5.2</span></div>
+        <div class="footer-center"><a href="./changelog.html" data-changelog>Changelog</a><span class="sep">|</span><span>Version 1.5.2</span></div>
         <div class="footer-right"><a href="https://github.com/StrawberryMaster/tct-mod-tool">GitHub repo</a><span class="sep">|</span><a href="https://github.com/JetSimon/jets-code-one-tool">original repo</a></div>
     </div>
 
@@ -1011,6 +1059,8 @@
     <script src="js/code1/components/pickers.js"></script>
     <script src="js/code1/components/editor.js"></script>
     <script src="js/code1/vueInit.js"></script>
+    <script src="js/markdown.js"></script>
+    <script src="js/changelog.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
