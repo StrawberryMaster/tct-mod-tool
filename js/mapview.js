@@ -420,6 +420,7 @@
             this._disposed = false;
             this._built = false;
             this._hover = null;
+            this._downPk = null;      // pk under the pointer at pointerdown
             this._interacting = false;   // true while a drag is in progress
             this._listeners = [];
             this._onFrame = this._onFrame.bind(this);
@@ -848,6 +849,8 @@
 
             this._onPointerDown = (e) => {
                 if (e.button != null && e.button !== 0) return;
+                // remember what is under the pointer *before* capturing it
+                this._downPk = this.pkFromEvent(e);
                 this._drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
                 // freeze culling for the duration of the gesture: the viewport
                 // this frame lags the pointer, so culling now could briefly hide
@@ -878,10 +881,17 @@
                 this._drag = null;
                 this._interacting = false;
                 try { svg.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+                if (e.type === 'pointercancel') {
+                    // the gesture was aborted, so no click will follow to consume _downPk
+                    this._downPk = null;
+                }
                 if (moved) {
                     // swallow the click browsers synthesise after a drag
                     this._suppressClick = true;
-                    setTimeout(() => { this._suppressClick = false; }, 0);
+                    setTimeout(() => {
+                        this._suppressClick = false;
+                        this._downPk = null;
+                    }, 0);
                 }
                 // cull only now that the gesture is over and the viewport is final
                 this._flush();
@@ -898,7 +908,11 @@
             this._onWheel = null;
             this._onClick = (e) => {
                 if (this._suppressClick) return;
-                const pk = this.pkFromEvent(e);
+                // prefer the target's own pk; fall back to the one captured at
+                // pointerdown, because pointer capture makes `click` target the
+                // <svg> rather than the <path> (see _onPointerDown)
+                const pk = this.pkFromEvent(e) ?? this._downPk;
+                this._downPk = null;
                 if (pk != null) {
                     e.stopPropagation();
                     this.onPick?.(pk, e);
