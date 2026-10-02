@@ -422,6 +422,7 @@
             this._hover = null;
             this._downPk = null;      // pk under the pointer at pointerdown
             this._interacting = false;   // true while a drag is in progress
+            this._cursor = null;      // last cursor written, to avoid redundant writes
             this._listeners = [];
             this._onFrame = this._onFrame.bind(this);
             // the element may be supplied later (see `setSvg`), which lets the
@@ -840,6 +841,20 @@
             return pk == null ? null : Number(pk);
         }
 
+        /**
+         * Keeps the cursor honest about what a click would do
+         */
+        _updateCursor() {
+            if (!this.svg) return;
+            let cursor;
+            if (this._drag && this._drag.moved) cursor = 'grabbing';
+            else if (this._hover != null) cursor = 'pointer';
+            else cursor = 'grab';
+            if (cursor === this._cursor) return;
+            this._cursor = cursor;
+            this.svg.style.cursor = cursor;
+        }
+
         _bindEvents() {
             const svg = this.svg;
             const add = (type, fn, opts) => {
@@ -867,12 +882,14 @@
                     this._drag.x = e.clientX;
                     this._drag.y = e.clientY;
                     if (this._drag.moved) this.panByPixels(dx, dy);
+                    this._updateCursor();
                     return;
                 }
                 const pk = this.pkFromEvent(e);
                 if (pk !== this._hover) {
                     this._hover = pk;
                     this.onHover?.(pk);
+                    this._updateCursor();
                 }
             };
             this._onPointerUp = (e) => {
@@ -895,12 +912,15 @@
                 }
                 // cull only now that the gesture is over and the viewport is final
                 this._flush();
+                // the drag is over, so the cursor reverts to whatever is under it
+                this._updateCursor();
                 this.onDragEnd?.(moved);
             };
             this._onPointerLeave = () => {
                 if (this._hover != null) {
                     this._hover = null;
                     this.onHover?.(null);
+                    this._updateCursor();
                 }
             };
             // wheel is intentionally not bound here: owners attach it to a container that

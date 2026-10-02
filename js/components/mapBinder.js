@@ -35,6 +35,9 @@
             svg.style.height = '100%';
             svg.style.display = 'block';
             svg.style.touchAction = 'none';
+            // cursor is owned by MapView (it tracks hover + drag, see
+            // MapView._updateCursor); seeding it here keeps it sane before the
+            // first pointermove arrives
             svg.style.cursor = 'grab';
             svg.style.userSelect = 'none';
             return svg;
@@ -63,8 +66,6 @@
             view.onPick = (pk, event) => config.onPick?.(pk, event);
             view.onPickEmpty = (event) => config.onPickEmpty?.(event);
             view.onHover = (pk) => config.onHover?.(pk);
-            view.onDragStart = () => { if (view.svg) view.svg.style.cursor = 'grabbing'; };
-            view.onDragEnd = () => { if (view.svg) view.svg.style.cursor = 'grab'; };
             view.onZoom = () => config.onZoom?.(view.zoom);
 
             const host = typeof hostSelector === 'string'
