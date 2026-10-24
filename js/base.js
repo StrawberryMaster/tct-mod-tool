@@ -1728,10 +1728,54 @@ class TCTData {
         this._invalidateCache('state_score_by_answer');
     }
 
+    _isPkInUse(pk) {
+        const containers = [
+            this.questions,
+            this.answers,
+            this.issues,
+            this.state_issue_scores,
+            this.candidate_issue_score,
+            this.running_mate_issue_score,
+            this.candidate_state_multiplier,
+            this.answer_score_global,
+            this.answer_score_issue,
+            this.answer_score_state,
+            this.answer_feedback
+        ];
+
+        for (const container of containers) {
+            if (!container) continue;
+            const values = container instanceof Map ? container.values() : Object.values(container);
+            for (const item of values) {
+                if (Number(item?.pk) === pk) return true;
+            }
+        }
+
+        // imported CYOA records use their own `id` values, which are not
+        // included while loading the legacy model collections
+        for (const store of Object.values(this.jet_data || {})) {
+            if (!store || typeof store !== "object") continue;
+            const entries = Array.isArray(store)
+                ? store.map((item) => [null, item])
+                : Object.entries(store);
+            for (const [key, item] of entries) {
+                if (Number(key) === pk || Number(item?.pk) === pk || Number(item?.id) === pk) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     getNewPk() {
-        const pk = this.highest_pk + 1
-        this.highest_pk = pk
-        return pk
+        let pk = Number(this.highest_pk);
+        if (!Number.isFinite(pk)) pk = -1;
+        do {
+            pk++;
+        } while (this._isPkInUse(pk));
+        this.highest_pk = pk;
+        return pk;
     }
 
     getAnswersForQuestion(pk) {
