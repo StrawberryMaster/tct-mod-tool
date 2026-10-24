@@ -3360,11 +3360,16 @@ class TCTData {
         }
 
         // remove stale generated banner blocks
-        codeToAdd = codeToAdd.replace(/\/\/\s*\[TCT_BANNER_SIGN_START\][\s\S]*?\/\/\s*\[TCT_BANNER_SIGN_END\]/g, "");
+        codeToAdd = stripGeneratedBlock(codeToAdd,
+            "// [TCT_BANNER_SIGN_START]", "// [TCT_BANNER_SIGN_END]");
+        codeToAdd = stripGeneratedBlock(codeToAdd,
+            "// [JETS_BUNNYHOP_START]", "// [JETS_BUNNYHOP_END]");
+        codeToAdd = stripGeneratedBlock(codeToAdd,
+            "// [JETS_ENDINGS_START]", "// [JETS_ENDINGS_END]");
 
         // banner settings should override any older banner assignments
         if (this.jet_data.banner_enabled) {
-            codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
+            codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
         }
 
         // CYOA merging logic
@@ -3426,8 +3431,7 @@ class TCTData {
                 const blockStart = "// [JETS_CYOA_VARIABLE_EFFECTS_START]";
                 const blockEnd = "// [JETS_CYOA_VARIABLE_EFFECTS_END]";
 
-                const existingBlockRe = new RegExp(`\\n?\\s*${blockStart.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}[\\s\\S]*?${blockEnd.replace(/\[/g, '\\[').replace(/\]/g, '\\]')}\\n?`, "g");
-                codeToAdd = codeToAdd.replace(existingBlockRe, "\n");
+                codeToAdd = stripGeneratedBlock(codeToAdd, blockStart, blockEnd);
 
                 if (generatedEffects) {
                     const noCounterRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[\s\S]*?e\.noCounter\s*=\s*[^;]+;[ \t]*\r?\n)/;
@@ -3462,13 +3466,8 @@ class TCTData {
                 if (generatedBranching) {
                     const brStart = "// [JETS_CYOA_BRANCHING_START]";
                     const brEnd = "// [JETS_CYOA_BRANCHING_END]";
-                    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
                     // drop any previously injected block so re-exports don't stack up
-                    codeToAdd = codeToAdd.replace(
-                        new RegExp(`\\n?[ \\t]*${esc(brStart)}[\\s\\S]*?${esc(brEnd)}\\n?`, "g"),
-                        "\n"
-                    );
+                    codeToAdd = stripGeneratedBlock(codeToAdd, brStart, brEnd);
 
                     const brRe = /cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{/m;
                     const fnMatch = codeToAdd.match(brRe);
@@ -3476,7 +3475,7 @@ class TCTData {
                         // prefer a deterministic anchor: the end of the effects block we
                         // just wrote. Bbace-counting is unsafe here because the mod's own
                         // code contains braces inside string literals
-                        const endMarkerRe = new RegExp(`^[ \\t]*${esc(blockEnd)}[ \\t]*$`, "m");
+                        const endMarkerRe = new RegExp(`^[ \\t]*${escapeRegex(blockEnd)}[ \\t]*$`, "m");
                         const endMatch = codeToAdd.match(endMarkerRe);
                         let anchor = -1;
                         let indent = "    ";
@@ -4369,6 +4368,11 @@ class CodeExtractor {
         while ((match = globalRegex.exec(this.raw)) !== null) {
             this.exclude(match.index, match.index + match[0].length);
         }
+
+    }
+
+    excludeMarkedBlock(startMarker, endMarker) {
+        this.excludeRegex(markedBlockRegex(startMarker, endMarker));
     }
 
     getRemainingCode() {
@@ -4409,6 +4413,12 @@ class CodeExtractor {
         return combined.trim();
     }
 }
+
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const markedBlockRegex = (startMarker, endMarker) =>
+    new RegExp(`^[ \\t]*${escapeRegex(startMarker)}[ \\t]*\\r?$[\\s\\S]*?^[ \\t]*${escapeRegex(endMarker)}[ \\t]*\\r?$`, "gm");
+const stripGeneratedBlock = (source, startMarker, endMarker) =>
+    typeof source === "string" ? source.replace(markedBlockRegex(startMarker, endMarker), "\n") : source;
 
 const JS_STRING_LITERAL = /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/;
 
@@ -4692,12 +4702,72 @@ function loadDataFromFile(raw_json) {
         return text.replaceAll("â€™", "'").replaceAll("â€”", "—");
     };
 
+    const isTopLevelAssignment = (text, endIndex) => {
+        let braceDepth = 0;
+        let parenDepth = 0;
+        let bracketDepth = 0;
+        let quote = "";
+        let escaped = false;
+        let lineComment = false;
+        let blockComment = false;
+
+        for (let i = 0; i < endIndex; i++) {
+            const ch = text[i];
+            const next = text[i + 1];
+
+            if (lineComment) {
+                if (ch === "\n" || ch === "\r") lineComment = false;
+                continue;
+            }
+            if (blockComment) {
+                if (ch === "*" && next === "/") {
+                    blockComment = false;
+                    i++;
+                }
+                continue;
+            }
+            if (quote) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch === "\\") {
+                    escaped = true;
+                } else if (ch === quote) {
+                    quote = "";
+                }
+                continue;
+            }
+            if (ch === "/" && next === "/") {
+                lineComment = true;
+                i++;
+                continue;
+            }
+            if (ch === "/" && next === "*") {
+                blockComment = true;
+                i++;
+                continue;
+            }
+            if (ch === '"' || ch === "'" || ch === "`") {
+                quote = ch;
+                continue;
+            }
+            if (ch === "{") braceDepth++;
+            else if (ch === "}") braceDepth = Math.max(0, braceDepth - 1);
+            else if (ch === "(") parenDepth++;
+            else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
+            else if (ch === "[") bracketDepth++;
+            else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
+        }
+
+        return braceDepth === 0 && parenDepth === 0 && bracketDepth === 0;
+    };
+
     const getSection = (name, required = true, fallback = []) => {
         const pattern = new RegExp(`campaignTrail_temp\\.${name}\\s*=\\s*(JSON\\.parse\\s*\\(|[\\{\\[]|\\"[\\{\\[]|\\'[\\{\\[])`, "ig");
         const matches = [];
         let match;
 
         while ((match = pattern.exec(raw_json)) !== null) {
+            if (!isTopLevelAssignment(raw_json, match.index)) continue;
             matches.push({
                 full: match[0],
                 marker: match[1],
@@ -4965,14 +5035,14 @@ function loadDataFromFile(raw_json) {
     extractor.excludeRegex(/\/\/\s*#\s*(start|end)code/gi);
     extractor.excludeRegex(/\/\/\s*Generated mapping code[\s\S]*?\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
     extractor.excludeRegex(/\(function\(e,t,n,r,i\)\{[\s\S]*?s\(e,"usmap",l,c\)\}\)\(jQuery,document,window,Raphael\)\s*;?/gi);
-    extractor.excludeRegex(/\/\/\s*\[JETS_BUNNYHOP_START\][\s\S]*?\/\/\s*\[JETS_BUNNYHOP_END\]/g);
+    extractor.excludeMarkedBlock("// [JETS_BUNNYHOP_START]", "// [JETS_BUNNYHOP_END]");
     // the generated #campaign_sign style block is always machine-generated
-    extractor.excludeRegex(/\/\/\s*\[TCT_BANNER_SIGN_START\][\s\S]*?\/\/\s*\[TCT_BANNER_SIGN_END\]/g);
+    extractor.excludeMarkedBlock("// [TCT_BANNER_SIGN_START]", "// [TCT_BANNER_SIGN_END]");
     // keep manual banner assignments in custom code unless the banner module is enabled
     if (jet_data.banner_enabled) {
-        extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
+        extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
     }
-    extractor.excludeRegex(/\/\/\s*\[JETS_ENDINGS_START\][\s\S]*?\/\/\s*\[JETS_ENDINGS_END\]/g);
+    extractor.excludeMarkedBlock("// [JETS_ENDINGS_START]", "// [JETS_ENDINGS_END]");
     excludeAllButLastRegex(/campaignTrail_temp\.multiple_endings\s*=\s*true\s*;?/gi);
 
     if (jet_data.endings_enabled) {
