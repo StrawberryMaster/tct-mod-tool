@@ -3359,6 +3359,9 @@ class TCTData {
             codeToAdd = codeToAdd.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").replace(/^\n+/, "").replace(/\n+$/, "");
         }
 
+        // remove stale generated banner blocks
+        codeToAdd = codeToAdd.replace(/\/\/\s*\[TCT_BANNER_SIGN_START\][\s\S]*?\/\/\s*\[TCT_BANNER_SIGN_END\]/g, "");
+
         // banner settings should override any older banner assignments
         if (this.jet_data.banner_enabled) {
             codeToAdd = codeToAdd.replace(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|running_mate_state_id|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(['"]).*?\2|\d+)\s*;\s*\n?/g, "");
