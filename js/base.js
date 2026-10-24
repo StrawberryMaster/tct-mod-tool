@@ -3333,17 +3333,11 @@ class TCTData {
         // banner data if enabled
         if (this.jet_data.banner_enabled && this.jet_data.banner_data) {
             const b = this.jet_data.banner_data;
-            const signColor = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((b.signColor || '').trim())
-                ? b.signColor.trim() : '#0000D1';
-            const signBorderColor = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test((b.signBorderColor || '').trim())
-                ? b.signBorderColor.trim() : '#700016';
             parts.push(
                 `campaignTrail_temp.candidate_image_url = "${b.canImage || ''}";\n`,
                 `campaignTrail_temp.running_mate_image_url = "${b.runImage || ''}";\n`,
                 `campaignTrail_temp.candidate_last_name = "${b.canName || ''}";\n`,
-                `campaignTrail_temp.running_mate_last_name = "${b.runName || ''}";\n`,
-                `campaignTrail_temp.campaign_sign_color = "${signColor}";\n`,
-                `campaignTrail_temp.campaign_sign_border_color = "${signBorderColor}";\n\n`
+                `campaignTrail_temp.running_mate_last_name = "${b.runName || ''}";\n\n`
             );
 
             // the sign colors are applied through a real #campaign_sign CSS rule,
@@ -4071,14 +4065,14 @@ endingPicker = (out, totv, aa, quickstats) => {
         return `
 // [TCT_BANNER_SIGN_START]
 ;(() => {
-    const css = [
-        "#campaign_sign {",
-        "    background-color: ${background};",
-        "    border-style: solid;",
-        "    border-width: .5em;",
-        "    border-color: ${border};",
-        "}"
-    ].join("\\n");
+    const css = \`
+    #campaign_sign {
+        background-color: ${background};
+        border-style: solid;
+        border-width: .5em;
+        border-color: ${border};
+    }
+    \`;
 
     const apply = () => {
         let tag = document.getElementById("campaign_sign_style");
