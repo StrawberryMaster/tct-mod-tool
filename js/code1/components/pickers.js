@@ -391,6 +391,14 @@ registerCode1Component('candidate-editor', {
             if (confirm(`Are you sure you want to delete ${cand.fields.first_name} ${cand.fields.last_name}?`)) {
                 const fullIdx = this.$TCT.candidates.indexOf(cand);
                 if (fullIdx !== -1) this.$TCT.candidates.splice(fullIdx, 1);
+                // remove running mate links pointing at nonexistent candidates
+                for (let i = this.$TCT.running_mates.length - 1; i >= 0; i--) {
+                    const rm = this.$TCT.running_mates[i];
+                    if (rm.fields.candidate === cand.pk || rm.fields.running_mate === cand.pk) {
+                        this.$TCT.running_mates.splice(i, 1);
+                    }
+                }
+                this.$TCT.sanitizeRunningMates();
                 this.selectedIdx = Math.max(0, this.selectedIdx - 1);
             }
         },
@@ -561,8 +569,15 @@ registerCode1Component('running-mate-editor', {
         deleteRunningMate() {
             if (this.$TCT.running_mates.length === 0) return;
             if (confirm("Delete this running mate link?")) {
+                const rm = this.$TCT.running_mates[this.selectedIdx];
                 this.$TCT.running_mates.splice(this.selectedIdx, 1);
                 this.selectedIdx = Math.max(0, this.selectedIdx - 1);
+                // unmark the candidate as a running mate if nothing links to it anymore
+                if (rm) {
+                    const stillLinked = this.$TCT.running_mates.some(r => r.fields.running_mate === rm.fields.running_mate);
+                    const cand = this.$TCT.candidates.find(c => c.pk === rm.fields.running_mate);
+                    if (cand && !stillLinked) cand.fields.running_mate = false;
+                }
             }
         },
         changeRunningMatePk(event) {

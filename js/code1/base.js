@@ -107,15 +107,17 @@ class TCTCode1Data {
 
             this.candidates = allCandidates.filter(c => c.fields.election == electionPk);
 
-            const candPks = new Set(this.candidates.map(c => c.pk));
+            const candPks = new Set(this.candidates.map(c => Number(c.pk)));
             this.running_mates = allRunningMates.filter(rm =>
-                candPks.has(rm.fields.candidate) || candPks.has(rm.fields.running_mate)
+                rm && rm.fields &&
+                candPks.has(Number(rm.fields.candidate)) &&
+                candPks.has(Number(rm.fields.running_mate))
             );
 
             // mark candidates as running mates if they appear in the running_mate table
-            const rmPksSet = new Set(this.running_mates.map(rm => rm.fields.running_mate));
+            const rmPksSet = new Set(this.running_mates.map(rm => Number(rm.fields.running_mate)));
             this.candidates.forEach(c => {
-                c.fields.running_mate = rmPksSet.has(c.pk);
+                c.fields.running_mate = rmPksSet.has(Number(c.pk));
             });
 
             this.credits = "Dan Bryan";
@@ -162,6 +164,24 @@ class TCTCode1Data {
             console.error("Error applying template:", e);
             return false;
         }
+    }
+
+    getValidRunningMates() {
+        const pks = new Set((this.candidates || []).map(c => Number(c.pk)));
+        return (this.running_mates || []).filter(rm =>
+            rm && rm.fields &&
+            pks.has(Number(rm.fields.candidate)) &&
+            pks.has(Number(rm.fields.running_mate))
+        );
+    }
+
+    sanitizeRunningMates() {
+        const kept = this.getValidRunningMates();
+        const dropped = this.running_mates.length - kept.length;
+        if (dropped > 0) {
+            this.running_mates.splice(0, this.running_mates.length, ...kept);
+        }
+        return dropped;
     }
 
     loadDefaultData() {
@@ -362,7 +382,7 @@ class TCTCode1Data {
         code += "campaignTrail_temp.candidate_json = " + JSON.stringify(this.candidates, null, 4) + ";\n\n";
 
         // export running mates
-        code += "campaignTrail_temp.running_mate_json = " + JSON.stringify(this.running_mates, null, 4) + ";\n\n";
+        code += "campaignTrail_temp.running_mate_json = " + JSON.stringify(this.getValidRunningMates(), null, 4) + ";\n\n";
 
         // export opponents
         const activeCandidates = this.candidates.filter(c => !c.fields.running_mate).map(c => c.pk);
@@ -570,13 +590,13 @@ applyTheme(theme);
                 let RecReading = true;
                 let corrr = "";
                 let selectedTheme = nct_stuff.themes[nct_stuff.selectedTheme];
-                
+
                 try {
                     ${fileContent}
                 } catch(err) {
                     console.warn("Caught runtime exception during sandbox parse, continuing...", err);
                 }
-                
+
                 return { campaignTrail_temp, nct_stuff, RecReading, corrr };
                 `
             );
@@ -781,6 +801,11 @@ applyTheme(theme);
             if (!extractedFallbackColors[key].includes('${')) {
                 this.jet_data[key] = extractedFallbackColors[key];
             }
+        }
+
+        const droppedLinks = this.sanitizeRunningMates();
+        if (droppedLinks > 0) {
+            console.warn(`Removed ${droppedLinks} running mate link(s) that pointed at candidates missing from candidate_json.`);
         }
 
         return this.elections.length > 0;
