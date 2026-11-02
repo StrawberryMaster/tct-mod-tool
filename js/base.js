@@ -3362,6 +3362,7 @@ class TCTData {
         // remove stale generated banner blocks
         codeToAdd = stripGeneratedBlock(codeToAdd,
             "// [TCT_BANNER_SIGN_START]", "// [TCT_BANNER_SIGN_END]");
+        codeToAdd = stripGeneratedBannerSignCode(codeToAdd);
         codeToAdd = stripGeneratedBlock(codeToAdd,
             "// [JETS_BUNNYHOP_START]", "// [JETS_BUNNYHOP_END]");
         codeToAdd = stripGeneratedBlock(codeToAdd,
@@ -4419,6 +4420,10 @@ const markedBlockRegex = (startMarker, endMarker) =>
     new RegExp(`^[ \\t]*${escapeRegex(startMarker)}[ \\t]*\\r?$[\\s\\S]*?^[ \\t]*${escapeRegex(endMarker)}[ \\t]*\\r?$`, "gm");
 const stripGeneratedBlock = (source, startMarker, endMarker) =>
     typeof source === "string" ? source.replace(markedBlockRegex(startMarker, endMarker), "\n") : source;
+const generatedBannerSignRegex =
+    /;?\(\(\)\s*=>\s*\{(?=[\s\S]*?campaign_sign_style)(?=[\s\S]*?#campaign_sign)[\s\S]*?\}\)\(\);/g;
+const stripGeneratedBannerSignCode = (source) =>
+    typeof source === "string" ? source.replace(generatedBannerSignRegex, "\n") : source;
 
 const JS_STRING_LITERAL = /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/;
 
@@ -5038,6 +5043,7 @@ function loadDataFromFile(raw_json) {
     extractor.excludeMarkedBlock("// [JETS_BUNNYHOP_START]", "// [JETS_BUNNYHOP_END]");
     // the generated #campaign_sign style block is always machine-generated
     extractor.excludeMarkedBlock("// [TCT_BANNER_SIGN_START]", "// [TCT_BANNER_SIGN_END]");
+    extractor.excludeRegex(generatedBannerSignRegex);
     // keep manual banner assignments in custom code unless the banner module is enabled
     if (jet_data.banner_enabled) {
         extractor.excludeRegex(/campaignTrail_temp\.(candidate_image_url|running_mate_image_url|candidate_last_name|running_mate_last_name|campaign_sign_color|campaign_sign_border_color)\s*=\s*(?:(["']).*?\2|\d+)\s*;/g);
