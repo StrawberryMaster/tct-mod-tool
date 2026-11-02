@@ -93,10 +93,6 @@ class TCTCode1Data {
             if (this.elections[0].fields.has_visits == null) {
                 this.elections[0].fields.has_visits = 0;
             }
-            if (this.elections[0].fields.site_description == null) {
-                this.elections[0].fields.site_description = "";
-            }
-
             // update temp_election_list too
             this.temp_election_list = [{
                 "id": election.pk,
