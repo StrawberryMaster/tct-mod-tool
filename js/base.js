@@ -3435,6 +3435,14 @@ class TCTData {
                 codeToAdd = stripGeneratedBlock(codeToAdd, blockStart, blockEnd);
 
                 if (generatedEffects) {
+                    // older exports did not mark this generated block, so remove the
+                    // exact legacy copy before inserting the current one
+                    const legacyEffectsRe = new RegExp(
+                        generatedEffects.trim().split(/\s+/).map(escapeRegex).join("\\s+"),
+                        "g"
+                    );
+                    codeToAdd = codeToAdd.replace(legacyEffectsRe, "");
+
                     const noCounterRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[\s\S]*?e\.noCounter\s*=\s*[^;]+;[ \t]*\r?\n)/;
                     const ansRe = /(cyoAdventure\s*=\s*function\s*\([^)]*\)\s*\{[\s\S]*?(?:(?:const|let|var)\s+)?ans\s*=[^;]+;[ \t]*\r?\n)/;
 
