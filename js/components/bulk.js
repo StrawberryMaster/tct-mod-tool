@@ -451,6 +451,26 @@ registerComponent('bulk', {
             </div>
         </details>
 
+        <details class="mt-4">
+            <summary class="font-semibold cursor-pointer p-2 bg-gray-50 rounded">Export compression</summary>
+            <div class="p-4 space-y-3">
+                <p class="text-sm text-gray-700">
+                    When enabled, the generated <code class="font-mono">campaignTrail_temp.*_json</code> data arrays are written as
+                    <code class="font-mono">JSON.parse("...")</code> instead of indented JSON. This makes Code 2 smaller by 30-35% on average and can load slightly faster,
+                    at the cost of making the data much harder to read or edit by hand. It might be useful for final mod releases, or mods that are huge.
+                </p>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" :checked="compressJsonData" @change="toggleCompressJsonData" class="h-4 w-4">
+                    Compress generated data arrays
+                </label>
+                <label v-if="compressJsonData" class="flex items-center gap-2 text-sm text-gray-700 ml-6">
+                    <input type="checkbox" :checked="minifyJsonData" @change="toggleMinifyJsonData" class="h-4 w-4">
+                    Fully minify (for extra compression)
+                </label>
+                <p class="text-xs text-gray-500">Can be switched on or off at any time. Note that  your own custom code will not be compressed when this is on.</p>
+            </div>
+        </details>
+
     </div>
     `,
 
@@ -473,6 +493,18 @@ registerComponent('bulk', {
     },
 
     methods: {
+
+        toggleCompressJsonData: function () {
+            this.$TCT.jet_data.compress_json_data = !this.$TCT.jet_data.compress_json_data;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        toggleMinifyJsonData: function () {
+            this.$TCT.jet_data.minify_json_data = !this.$TCT.jet_data.minify_json_data;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
 
         setCandidatePk: function (evt) {
             this.bulkCandidatePk = Number(evt.target.value);
@@ -1849,6 +1881,14 @@ registerComponent('bulk', {
 
         stateMultipliers: function () {
             return Object.values(this.$TCT.candidate_state_multiplier).filter((x) => x.fields.candidate == this.bulkCandidatePk)
+        },
+
+        compressJsonData: function () {
+            return !!this.$TCT.jet_data.compress_json_data;
+        },
+
+        minifyJsonData: function () {
+            return !!this.$TCT.jet_data.minify_json_data;
         }
     }
 });

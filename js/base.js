@@ -1177,6 +1177,8 @@ class TCTData {
 
         this.normalizeStateMetadata();
 
+        if (this.jet_data.compress_json_data == null) this.jet_data.compress_json_data = false;
+        if (this.jet_data.minify_json_data == null) this.jet_data.minify_json_data = false;
         if (this.jet_data.bunnyhop_enabled == null) this.jet_data.bunnyhop_enabled = false;
         if (this.jet_data.bunnyhop_pools == null) this.jet_data.bunnyhop_pools = [];
         if (this.jet_data.cyoa_enabled == null) this.jet_data.cyoa_enabled = false;
@@ -3296,7 +3298,23 @@ class TCTData {
 
         const generatedCyoaCode = this.getCYOACode();
 
+        const stringifySpaced = (value) => {
+            if (value === null || typeof value !== "object") {
+                const scalar = JSON.stringify(value);
+                return scalar === undefined ? "null" : scalar;
+            }
+            if (Array.isArray(value)) {
+                return "[" + value.map(stringifySpaced).join(", ") + "]";
+            }
+            return "{" + Object.entries(value)
+                .filter(([, v]) => v !== undefined)
+                .map(([key, v]) => JSON.stringify(key) + ": " + stringifySpaced(v))
+                .join(", ") + "}";
+        };
+
         // helper to stringify data collections
+        const compressJson = !!this.jet_data.compress_json_data;
+        const minifyJson = compressJson && !!this.jet_data.minify_json_data;
         const stringifyCollection = (name, collection, isMap = false) => {
             let data = isMap ? Array.from(collection.values()) : Object.values(collection);
             if (name === "states_json") {
@@ -3306,6 +3324,10 @@ class TCTData {
                     const { d, transform, ...rest } = state;
                     return rest;
                 });
+            }
+            if (compressJson) {
+                const json = (minifyJson ? JSON.stringify(data) : stringifySpaced(data)).replaceAll("â€™", "'");
+                return `campaignTrail_temp.${name} = JSON.parse(${JSON.stringify(json)});\n\n`;
             }
             const json = JSON.stringify(data, null, 4).replaceAll("â€™", "'");
             return `campaignTrail_temp.${name} = ${json};\n\n`;
