@@ -1,3 +1,5 @@
+const SKIP_ELECTION_NIGHT_TARGET = '__SKIP_ELECTION_NIGHT__';
+
 registerComponent('cyoa', {
 
     data() {
@@ -189,7 +191,7 @@ registerComponent('cyoa', {
             <!-- Branching events section -->
             <details open class="bg-gray-50 rounded-sm border">
                 <summary class="px-3 py-2 font-medium cursor-pointer">CYOA events (tunneling)</summary>
-                <p class="px-3 py-2 text-sm text-gray-700 italic">Also known as tunneling, these events let you immediately jump to specific questions based on player answers/variables.</p>
+                <p class="px-3 py-2 text-sm text-gray-700 italic">Also known as tunneling, these events let you immediately jump to specific questions based on player answers/variables, among other goodies.</p>
                 <div class="p-3 space-y-3">
                     <div class="flex items-center gap-2">
                         <button
@@ -2027,8 +2029,13 @@ registerComponent('cyoa-event', {
                     <span v-if="triggerList.length">
                         <span v-for="(pk, idx) in triggerList" :key="'summary-t-'+pk+'-'+idx" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 ml-1">#{{ pk }}</span><span v-if="idx < triggerList.length - 1">,</span>
                     </span>
-                    <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-500 ml-1">no answers (disabled)</span>,
-                    then immediately jump to question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
+                    <span v-else class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-500 ml-1">no answers ({{ isSkipElectionNight ? 'condition-only' : 'disabled' }})</span>,
+                    <template v-if="isSkipElectionNight">
+                        then skip directly to <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800">election night</span>
+                    </template>
+                    <template v-else>
+                        then immediately jump to question <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800">#{{ questionVal }}</span>
+                    </template>
                     <span v-if="hasConditions">
                         when
                         <span v-for="(c, idx) in conditionsList" :key="'summary-c-'+idx" class="inline-flex items-center">
@@ -2044,7 +2051,7 @@ registerComponent('cyoa-event', {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium mb-1" for="answer">Answers
-                <span class="ml-1 text-xs text-gray-500 italic">(trigger the jump)</span></label>
+                <span class="ml-1 text-xs text-gray-500 italic">({{ isSkipElectionNight ? 'trigger the skip' : 'trigger the jump' }})</span></label>
                 <div class="flex items-center gap-2">
                     <select v-model.number="triggerToAdd" name="answer" class="w-full border rounded-sm p-2">
                         <option :value="null" disabled>Select answer...</option>
@@ -2059,11 +2066,13 @@ registerComponent('cyoa-event', {
                         #{{ pk }}
                         <button class="ml-1 text-blue-700 hover:text-blue-900" @click="removeTrigger(pk)" aria-label="Remove">✕</button>
                     </span>
-                    <span v-if="!triggerList.length" class="text-xs italic text-gray-500">No trigger answers yet — the branch is disabled until one is added.</span>
+                    <span v-if="!triggerList.length" class="text-xs italic text-gray-500">
+                        {{ isSkipElectionNight ? 'No trigger answers; the rule depends only on the extra conditions below.' : 'No trigger answers yet; the branch is disabled until one is added.' }}
+                    </span>
                 </div>
             </div>
 
-            <div>
+            <div v-if="!isSkipElectionNight">
                 <label class="block text-sm font-medium mb-1" for="answer">Question
                 <span class="ml-1 text-xs text-gray-500 italic">(to jump to)</span></label>
                 <select v-model.number="questionVal" name="question" class="w-full border rounded-sm p-2">
@@ -2072,10 +2081,13 @@ registerComponent('cyoa-event', {
                     </option>
                 </select>
             </div>
+            <div v-else class="flex items-center">
+                <p class="text-sm text-gray-600 italic">When enabled, this rule 'skips' future questions so that the next question immediately takes you to election night.</p>
+            </div>
         </div>
 
         <div class="mt-4">
-            <label class="block text-sm font-medium mb-1">Extra conditions (optional)</label>
+            <label class="block text-sm font-medium mb-1">Extra conditions &amp; actions (optional)</label>
 
             <div v-if="conditionsList.length > 1" class="mb-2 flex items-center gap-2">
                 <span class="text-xs text-gray-600">Join with:</span>
@@ -2094,26 +2106,37 @@ registerComponent('cyoa-event', {
                 </div>
             </div>
 
+            <div v-if="isSkipElectionNight" class="mb-2 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 p-2 rounded-sm">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-200 text-amber-900">Skip to election night</span>
+                <span class="text-xs text-gray-600">Ends the campaign at election night on the next question.</span>
+                <button class="text-red-600 hover:text-red-800 text-xs" @click="removeSkipElectionNight()">✕</button>
+            </div>
+
             <div class="grid grid-cols-4 gap-1 items-center">
                 <select v-model="conditionToAdd.variable" @change="onConditionTargetChanged" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value="" disabled>Target...</option>
+                    <option value="" disabled>Condition or action...</option>
                     <option v-for="v in conditionTargets" :key="v.value" :value="v.value">{{ v.label }}</option>
                 </select>
-                <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value="==">== (equal)</option>
-                    <option value="!=">!= (not equal)</option>
-                </select>
-                <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
-                    <option value=">=">&gt;= (greater than or equal)</option>
-                    <option value="<=">&lt;= (less than or equal)</option>
-                    <option value=">">&gt; (greater than)</option>
-                    <option value="<">&lt; (less than)</option>
-                    <option value="==">== (equal)</option>
-                    <option value="!=">!= (not equal)</option>
-                </select>
-                <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder='e.g. Pence' class="border rounded-sm p-1 text-sm col-span-1">
-                <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
-                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">Add</button>
+                <template v-if="isSkipTarget(conditionToAdd.variable)">
+                    <span class="text-xs text-gray-600 col-span-2">Ends the campaign at election night on the next question.</span>
+                </template>
+                <template v-else>
+                    <select v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                        <option value="==">== (equal)</option>
+                        <option value="!=">!= (not equal)</option>
+                    </select>
+                    <select v-else v-model="conditionToAdd.comparator" class="border rounded-sm p-1 text-sm col-span-1">
+                        <option value=">=">&gt;= (greater than or equal)</option>
+                        <option value="<=">&lt;= (less than or equal)</option>
+                        <option value=">">&gt; (greater than)</option>
+                        <option value="<">&lt; (less than)</option>
+                        <option value="==">== (equal)</option>
+                        <option value="!=">!= (not equal)</option>
+                    </select>
+                    <input v-if="isStringTarget(conditionToAdd.variable)" v-model="conditionToAdd.value" type="text" placeholder='e.g. Pence' class="border rounded-sm p-1 text-sm col-span-1">
+                    <input v-else v-model.number="conditionToAdd.value" type="number" class="border rounded-sm p-1 text-sm col-span-1">
+                </template>
+                <button class="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-sm text-xs col-span-1" @click="addCondition" :disabled="!conditionToAdd.variable">{{ isSkipTarget(conditionToAdd.variable) ? 'Set' : 'Add' }}</button>
             </div>
         </div>
     </div>
@@ -2188,6 +2211,11 @@ registerComponent('cyoa-event', {
                 alert('Please select a target.');
                 return;
             }
+            if (this.isSkipTarget(this.conditionToAdd.variable)) {
+                this.setSkipElectionNight();
+                this.conditionToAdd = { variable: '', comparator: '>=', value: 0 };
+                return;
+            }
 
             if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
                 const strVal = String(this.conditionToAdd.value ?? '').trim();
@@ -2251,7 +2279,12 @@ registerComponent('cyoa-event', {
             return window.TCTAnswerSwapHelper.isStringCondition(name);
         },
 
+        isSkipTarget(name) {
+            return name === SKIP_ELECTION_NIGHT_TARGET;
+        },
+
         onConditionTargetChanged() {
+            if (this.isSkipTarget(this.conditionToAdd.variable)) return;
             if (window.TCTAnswerSwapHelper.isStringCondition(this.conditionToAdd.variable)) {
                 this.conditionToAdd.comparator = '==';
                 this.conditionToAdd.value = '';
@@ -2259,6 +2292,22 @@ registerComponent('cyoa-event', {
                 this.conditionToAdd.comparator = '>=';
                 this.conditionToAdd.value = 0;
             }
+        },
+
+        setSkipElectionNight() {
+            const row = this.getEvent();
+            if (row.action === 'skipElectionNight') return;
+            row.action = 'skipElectionNight';
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
+        },
+
+        removeSkipElectionNight() {
+            const row = this.getEvent();
+            if (row.action === undefined) return;
+            delete row.action;
+            this.$globalData.dataVersion++;
+            window.requestAutosaveIfEnabled?.();
         },
 
         updateGlobal: function (field, val) {
@@ -2293,6 +2342,16 @@ registerComponent('cyoa-event', {
     },
 
     computed: {
+        action() {
+            this.$globalData.dataVersion;
+            const row = this.$TCT.jet_data.cyoa_data[this.id] || {};
+            return row.action === 'skipElectionNight' ? 'skipElectionNight' : 'jump';
+        },
+
+        isSkipElectionNight() {
+            return this.action === 'skipElectionNight';
+        },
+
         currentQuestion: function () {
             const row = this.$TCT.jet_data.cyoa_data[this.id] || {};
             return row.question;
@@ -2316,7 +2375,12 @@ registerComponent('cyoa-event', {
 
         conditionTargets() {
             const vars = (this.$TCT.getAllCyoaVariables?.() || []).map(v => ({ value: v.name, label: v.name }));
-            return [{ value: '__NO_COUNTER__', label: 'Question number (starts at 0)' }, { value: '__RUNNING_MATE__', label: 'Running mate (last name)' }, ...vars];
+            return [
+                { value: '__NO_COUNTER__', label: 'Question number (starts at 0)' },
+                { value: SKIP_ELECTION_NIGHT_TARGET, label: 'Skip to election night' },
+                { value: '__RUNNING_MATE__', label: 'Running mate (last name)' },
+                ...vars
+            ];
         },
 
         hasConditions() {

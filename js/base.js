@@ -4322,22 +4322,32 @@ function getQuestionNumberFromPk(pk) {
 
         const compiledEvents = events
             .map(event => {
-                const questionPk = Number(event?.question);
                 const triggers = this.getCyoaEventTriggers(event);
-                if (event?.question == null || String(event.question).trim() === ''
-                    || !Number.isFinite(questionPk) || !triggers.length) return null;
+                const skipToElectionNight = event?.action === 'skipElectionNight';
+                const questionPk = Number(event?.question);
+                const hasQuestion = event?.question != null && String(event.question).trim() !== ''
+                    && Number.isFinite(questionPk);
+
+                // jump rules need a target question; skip rules do not
+                if (!skipToElectionNight && !hasQuestion) return null;
 
                 const answerExpr = triggers.length > 1
                     ? `[${triggers.join(', ')}].includes(ans)`
-                    : `ans == ${triggers[0]}`;
+                    : triggers.length === 1 ? `ans == ${triggers[0]}` : '';
                 const condBuilt = buildConditionExpr(event?.conditions, event?.conditionOperator || 'AND');
                 const condExpr = condBuilt ? condBuilt.expr : '';
                 // parens only needed when the condition side is OR-joined under &&
-                const combinedExpr = condExpr ? (condBuilt.needsParens ? `${answerExpr} && (${condExpr})` : `${answerExpr} && ${condExpr}`) : answerExpr;
+                const combinedExpr = (answerExpr && condExpr)
+                    ? (condBuilt.needsParens ? `${answerExpr} && (${condExpr})` : `${answerExpr} && ${condExpr}`)
+                    : (answerExpr || condExpr);
+                // a rule with neither a trigger nor a usable condition would always fire
+                if (!combinedExpr) return null;
 
                 return {
                     condition: combinedExpr,
-                    questionPk
+                    body: skipToElectionNight
+                        ? 'e.global_parameter_json[0].fields.question_count = e.question_number + 1;'
+                        : `campaignTrail_temp.question_number = tunnel(${questionPk});`
                 };
             })
             .filter(Boolean);
@@ -4347,7 +4357,7 @@ function getQuestionNumberFromPk(pk) {
             for (let i = 0; i < compiledEvents.length; i++) {
                 const row = compiledEvents[i];
                 parts.push(`    ${i > 0 ? "else " : ""}if (${row.condition}) {\n`);
-                parts.push(`        campaignTrail_temp.question_number = tunnel(${row.questionPk});\n`);
+                parts.push(`        ${row.body}\n`);
                 parts.push("    }\n");
             }
         }
